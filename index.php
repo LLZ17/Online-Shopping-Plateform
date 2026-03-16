@@ -5,7 +5,7 @@
     <div class="container">
         <div class="hero">
             <h1>Welcome to PXX Mall</h1>
-            <p>Best Deals in Malaysia</p>
+            <p>Your Best Online Shopping Platform</p>
         </div>
         
         <div class="product-grid">

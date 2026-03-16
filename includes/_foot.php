@@ -9,7 +9,7 @@
             </div>
 
             <div style="color: #999; border-top: 1px solid #ddd; padding-top: 20px; font-size: 12px;">
-                <p>PXX MALL Sdn. Bhd. [201501009497 (1134832-W)]</p>
+                <p>PXX Mall Sdn. Bhd.<span style="font-size: 10px; vertical-align: 4px; line-height: 0;">&reg;</span> [202001028493 (1357831-M)]</p>
                 <p>Copyright © 2026 All Rights Reserved.</p>
             </div>
         </div>

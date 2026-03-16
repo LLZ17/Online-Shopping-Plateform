@@ -3,94 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PXX MALL | Men & Women Fashion</title>
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.2/css/all.min.css">
+    <title>PXX Mall | Your Best Online Shopping Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* --- 核心布局 --- */
-        html, body { height: 100%; margin: 0; }
-        body { font-family: 'Helvetica', Arial, sans-serif; background: #f4f4f4; display: flex; flex-direction: column; }
-        .main-content { flex: 1; } 
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #ffffff; display: flex; flex-direction: column; min-height: 100vh; }
+        a { text-decoration: none; color: inherit; }
+        * { box-sizing: border-box; }
+        .main-content { flex: 1; padding: 20px; }
 
-        :root { --main-red: #e60012; }
-        .container { width: 90%; max-width: 1200px; margin: auto; }
+        header { background-color: #e60012; color: white; padding: 15px 0; position: relative; z-index: 1000; }
+        .header-container { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; padding: 0 30px; }
 
-        /* --- Header 顶部导航栏 --- */
-        header { background: var(--main-red); color: white; padding: 12px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .nav-bar { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+        /* Logo: 38px, 取消全大写 */
+        .logo-link { font-size: 50px; font-weight: 700; letter-spacing: 1px; line-height: 1; flex-shrink: 0; }
 
-        /* 左侧 Logo */
-        .nav-left { display: flex; align-items: center; gap: 15px; }
-        .logo { font-size: 26px; font-weight: bold; text-decoration: none; color: white; letter-spacing: 1px; }
-        .btn-main { color: white; text-decoration: none; font-size: 13px; border: 1px solid rgba(255,255,255,0.6); padding: 5px 12px; border-radius: 4px; transition: 0.3s; }
-        .btn-main:hover { background: white; color: var(--main-red); }
+        /* 搜索框 */
+        .search-section { flex: 1; margin: 0 60px; }
+        .search-container { display: flex; background-color: white; border-radius: 6px; overflow: hidden; border: 2px solid white; }
+        .search-input { width: 100%; border: none; padding: 12px 20px; outline: none; font-size: 15px; color: #333; }
+        .search-btn { background: white; border: none; color: #e60012; cursor: pointer; padding: 0 20px; font-size: 18px; }
 
-        /* --- 中间搜索框 (加了放大镜) --- */
-        .nav-center { flex: 1; max-width: 500px; }
-        .search-container { 
+        /* 右侧图标功能区 - 绝对对齐方案 */
+        .icon-section { display: flex; align-items: center; gap: 5px; } 
+
+        .dropdown-wrapper { 
+            position: relative; 
             display: flex; 
-            background: white; 
-            border-radius: 4px; 
-            overflow: hidden; /* 让里面的东西不出界 */
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            min-width: 100px; /* 统一宽度，确保中心点对齐 */
+            padding: 5px 0;
+            cursor: pointer;
         }
-        .search-input { 
-            flex: 1; 
-            padding: 10px 15px; 
-            border: none; 
-            outline: none; 
-            font-size: 14px; 
-        }
-        .search-btn { 
-            background: white; 
-            border: none; 
-            padding: 0 15px; 
-            cursor: pointer; 
-            color: var(--main-red); /* 放大镜颜色 */
-            font-size: 16px;
-            transition: 0.3s;
-        }
-        .search-btn:hover { background: #f0f0f0; }
 
-        /* --- 右侧功能区 --- */
-        .nav-right { display: flex; align-items: center; gap: 25px; }
-        .nav-right a { color: white; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px; transition: 0.3s; }
-        .nav-right i { font-size: 18px; }
+        .icon-link { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 5px; 
+            font-size: 12px; 
+            font-weight: 600; 
+            width: 100%; 
+            text-align: center;
+            position: relative;
+        }
+        .icon-link i { font-size: 24px; transition: all 0.3s ease; }
+
+        /* --- 数字气泡：回归精致风格（白底红字，不要加粗） --- */
+        .icon-badge {
+            position: absolute;
+            top: -6px; 
+            right: 32px;              /* 锁定位置，不跑位 */
+            background-color: #ffffff; 
+            color: #000000;          /* 回归红色数字，更统一 */
+            font-size: 9px;           /* 调小字体，更精致 */
+            font-weight: 600;         /* 取消 Bold */
+            width: 15px;              
+            height: 15px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .wishlist:hover i { color: #ffffff; transform: scale(1.1); }
+        .cart:hover i { transform: translateY(-3px); }
+        .login:hover { color: #ffffff; }
+
+        /* 下拉预览框 */
+        .dropdown-box {
+            display: none;
+            position: absolute;
+            top: 58px;
+            right: 0;
+            width: 350px;
+            background: white;
+            color: #333;
+            border-radius: 8px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.25);
+            border: 1px solid #ddd;
+            z-index: 9999;
+            cursor: default;
+        }
+
+        .dropdown-wrapper:hover .dropdown-box { display: block; }
+
+        .box-header { padding: 15px; font-weight: bold; border-bottom: 2px solid #f4f4f4; font-size: 15px; text-align: left; }
+        .box-content { max-height: 480px; overflow-y: auto; padding: 10px 15px; }
+
+        .preview-item { display: flex; gap: 12px; margin-bottom: 15px; align-items: center; border-bottom: 1px solid #f9f9f9; padding-bottom: 10px; }
+        .preview-img { width: 55px; height: 65px; background: #eee; border-radius: 4px; flex-shrink: 0; }
+        .preview-info { flex: 1; font-size: 13px; text-align: left; }
+        .preview-info .p-name { display: block; font-weight: bold; color: #222; margin-bottom: 4px; line-height: 1.2; }
+        .preview-info .p-price { color: #e60012; font-weight: bold; font-size: 14px; }
+
+        .box-footer { padding: 15px; background: #fcfcfc; border-top: 1px solid #eee; }
+        .box-btn { display: block; background: #e60012; color: white; text-align: center; padding: 12px; border-radius: 4px; font-weight: bold; }
         
-        /* 鼠标悬停特效 */
-        .nav-right a:hover { color: #ffd700; } 
-        .wishlist-icon:hover i { color: #ffffff !important; transform: scale(1.3); } 
-        .cart-icon:hover i { transform: translateY(-3px); } 
+        .box-content::-webkit-scrollbar { width: 6px; }
+        .box-content::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="container nav-bar">
-        <div class="nav-left">
-            <a href="index.php" class="logo" title="Back to Homepage">PXXMALL</a>
-            <a href="index.php" class="btn-main" title="Go to Main Page">Main Page</a>
-        </div>
-
-        <div class="nav-center">
+    <div class="header-container">
+    <a href="index.php" class="logo-link">PXX Mall<span style="font-size: 12px; vertical-align: 28px; line-height: 0; font-weight: 400; margin-left: 2px;">&reg;</span> </a>
+        <div class="search-section">
             <form action="search.php" method="GET" class="search-container">
-                <input type="text" name="query" class="search-input" placeholder="Search for Men or Women Clothing..." title="Type to search">
-                <button type="submit" class="search-btn" title="Search">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </button>
+                <input type="text" name="query" class="search-input" placeholder="Search for men or women clothes...">
+                <button type="submit" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
         </div>
 
-        <div class="nav-right">
-            <a href="wishlist.php" class="wishlist-icon" title="View your saved Wishlist">
-                <i class="fa-solid fa-heart"></i> Wishlist
-            </a>
-            <a href="cart.php" class="cart-icon" title="View your Shopping Cart">
-                <i class="fa-solid fa-cart-shopping"></i> Cart
-            </a>
-            <a href="login.php" title="Login or Manage your account">
-                <i class="fa-solid fa-user"></i> Login/Acc
-            </a>
+        <div class="icon-section">
+            <div class="dropdown-wrapper">
+                <a href="wishlist.php" class="icon-link wishlist">
+                    <i class="fa-solid fa-heart"></i>
+                    <span class="icon-badge">5</span>
+                    <span>Wishlist</span>
+                </a>
+                <div class="dropdown-box">
+                    <div class="box-header">❤️ Wishlist Preview</div>
+                    <div class="box-content">
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Classic Leather Watch</span><span class="p-price">RM 199.00</span></div></div>
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Retro Sunglasses</span><span class="p-price">RM 45.00</span></div></div>
+                    </div>
+                    <div class="box-footer"><a href="wishlist.php" class="box-btn">Go to Wishlist</a></div>
+                </div>
+            </div>
+
+            <div class="dropdown-wrapper">
+                <a href="cart.php" class="icon-link cart">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="icon-badge">12</span>
+                    <span>Cart</span>
+                </a>
+                <div class="dropdown-box">
+                    <div class="box-header"> <i class="fa-solid fa-cart-shopping"></i> Shopping Cart Preview</div>
+                    <div class="box-content">
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Premium White T-Shirt</span><span class="p-price">RM 49.00</span></div></div>
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Slim Fit Denim Jeans</span><span class="p-price">RM 129.00</span></div></div>
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Nike Air Max Sneakers</span><span class="p-price">RM 450.00</span></div></div>
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Adidas Shorts</span><span class="p-price">RM 89.00</span></div></div>
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Puma Sports Cap</span><span class="p-price">RM 59.00</span></div></div>
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Cotton Hoodie</span><span class="p-price">RM 119.00</span></div></div>
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Leather Wallet</span><span class="p-price">RM 75.00</span></div></div>
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Bluetooth Earbuds</span><span class="p-price">RM 210.00</span></div></div>
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Gym Shaker</span><span class="p-price">RM 35.00</span></div></div>
+                        <div class="preview-item"><div class="preview-img"></div><div class="preview-info"><span class="p-name">Oxford Shirt</span><span class="p-price">RM 95.00</span></div></div>
+                    </div>
+                    <div class="box-footer"><a href="cart.php" class="box-btn">Check Out Now</a></div>
+                </div>
+            </div>
+
+            <div class="dropdown-wrapper">
+                <a href="login.php" class="icon-link login">
+                    <i class="fa-solid fa-user"></i>
+                    <span>Login/Sign-up</span>
+                </a>
+            </div>
         </div>
     </div>
 </header>
