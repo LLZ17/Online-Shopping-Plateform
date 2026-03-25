@@ -1,3 +1,34 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// 🔥 新增：自动登录逻辑 (检查 SQL 记录)
+if (!isset($_SESSION['username']) && isset($_COOKIE['remember_me'])) {
+    require_once 'includes/db.php'; 
+    $token = $_COOKIE['remember_me'];
+    
+    // 查找 Token 匹配的用户
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE remember_token = ?");
+    $stmt->execute([$token]);
+    $user = $stmt->fetch();
+
+    if ($user) {
+        // 恢复 Session
+        // 🔥 修正：改为 user_id
+        $_SESSION['user_id'] = $user['user_id']; 
+        $_SESSION['username'] = $user['username'];
+        $_SESSION['role'] = $user['role'];
+        // 对应你数据库的第 18 号字段 profile_photo
+        $_SESSION['profile_image'] = !empty($user['profile_photo']) ? $user['profile_photo'] : 'default.jpg';
+        
+        // 更新最后登录时间 (第 15 号字段 last_login)
+        // 🔥 修正：WHERE 条件改为 user_id
+        $updateTime = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE user_id = ?");
+        $updateTime->execute([$user['user_id']]);
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,16 +46,13 @@
         header { background-color: #e60012; color: white; padding: 15px 0; position: relative; z-index: 1000; }
         .header-container { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; padding: 0 30px; }
 
-        /* Logo: 38px, 取消全大写 */
         .logo-link { font-size: 50px; font-weight: 700; letter-spacing: 1px; line-height: 1; flex-shrink: 0; }
 
-        /* 搜索框 */
         .search-section { flex: 1; margin: 0 60px; }
         .search-container { display: flex; background-color: white; border-radius: 6px; overflow: hidden; border: 2px solid white; }
         .search-input { width: 100%; border: none; padding: 12px 20px; outline: none; font-size: 15px; color: #333; }
         .search-btn { background: white; border: none; color: #e60012; cursor: pointer; padding: 0 20px; font-size: 18px; }
 
-        /* 右侧图标功能区 - 绝对对齐方案 */
         .icon-section { display: flex; align-items: center; gap: 5px; } 
 
         .dropdown-wrapper { 
@@ -33,7 +61,7 @@
             flex-direction: column; 
             align-items: center; 
             justify-content: center;
-            min-width: 100px; /* 统一宽度，确保中心点对齐 */
+            min-width: 100px; 
             padding: 5px 0;
             cursor: pointer;
         }
@@ -51,16 +79,25 @@
         }
         .icon-link i { font-size: 24px; transition: all 0.3s ease; }
 
-        /* --- 数字气泡：回归精致风格（白底红字，不要加粗） --- */
+        /* 🔥 头像样式 🔥 */
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            margin-bottom: 2px;
+        }
+
         .icon-badge {
             position: absolute;
             top: -6px; 
-            right: 32px;              /* 锁定位置，不跑位 */
+            right: 32px;
             background-color: #ffffff; 
-            color: #000000;          /* 回归红色数字，更统一 */
-            font-size: 9px;           /* 调小字体，更精致 */
-            font-weight: 600;         /* 取消 Bold */
-            width: 15px;              
+            color: #000000;
+            font-size: 9px;
+            font-weight: 600;
+            width: 15px; 
             height: 15px;
             border-radius: 50%;
             display: flex;
@@ -76,7 +113,6 @@
         .cart:hover i { transform: translateY(-3px); }
         .login:hover { color: #ffffff; }
 
-        /* 下拉预览框 */
         .dropdown-box {
             display: none;
             position: absolute;
@@ -114,7 +150,7 @@
 
 <header>
     <div class="header-container">
-    <a href="index.php" class="logo-link">PXX Mall<span style="font-size: 12px; vertical-align: 28px; line-height: 0; font-weight: 400; margin-left: 2px;">&reg;</span> </a>
+        <a href="index.php" class="logo-link">PXX Mall<span style="font-size: 12px; vertical-align: 28px; line-height: 0; font-weight: 400; margin-left: 2px;">&reg;</span> </a>
         <div class="search-section">
             <form action="search.php" method="GET" class="search-container">
                 <input type="text" name="query" class="search-input" placeholder="Search for men or women clothes...">
@@ -164,13 +200,27 @@
             </div>
 
             <div class="dropdown-wrapper">
-                <a href="login.php" class="icon-link login">
-                    <i class="fa-solid fa-user"></i>
-                    <span>Login/Sign-up</span>
-                </a>
+                <?php if (isset($_SESSION['username'])): ?>
+                    <a href="profile.php" class="icon-link login">
+                        <?php 
+                            $avatar = (isset($_SESSION['profile_image']) && !empty($_SESSION['profile_image'])) ? $_SESSION['profile_image'] : 'default.jpg';
+                        ?>
+                        <img src="images/<?php echo $avatar; ?>" class="user-avatar" alt="Avatar">
+                        <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
+                    </a>
+                    <div class="dropdown-box" style="width: 150px;">
+                        <div class="box-header"><a href="profile.php" style="color:black; display:block;">My Account</a></div>
+                        <div class="box-content" style="padding: 10px;">
+                            <a href="logout.php" style="color: #e60012; font-weight: bold; font-size: 14px;">Logout</a>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <a href="login.php" class="icon-link login">
+                        <i class="fa-solid fa-user"></i>
+                        <span>Login/Sign-up</span>
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </header>
-
-<div class="main-content">
