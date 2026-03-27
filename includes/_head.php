@@ -3,8 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// 🛠️ 核心修正：判断是否登录（同时兼容 username 和 user_id）
+$isLoggedIn = false;
+if (isset($_SESSION['username']) || isset($_SESSION['user_id'])) {
+    $isLoggedIn = true;
+}
+
 // 🔥 新增：自动登录逻辑 (检查 SQL 记录)
-if (!isset($_SESSION['username']) && isset($_COOKIE['remember_me'])) {
+if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
     require_once 'includes/db.php'; 
     $token = $_COOKIE['remember_me'];
     
@@ -15,17 +21,16 @@ if (!isset($_SESSION['username']) && isset($_COOKIE['remember_me'])) {
 
     if ($user) {
         // 恢复 Session
-        // 🔥 修正：改为 user_id
         $_SESSION['user_id'] = $user['user_id']; 
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
-        // 对应你数据库的第 18 号字段 profile_photo
         $_SESSION['profile_image'] = !empty($user['profile_photo']) ? $user['profile_photo'] : 'default.jpg';
         
-        // 更新最后登录时间 (第 15 号字段 last_login)
-        // 🔥 修正：WHERE 条件改为 user_id
+        // 更新最后登录时间
         $updateTime = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE user_id = ?");
         $updateTime->execute([$user['user_id']]);
+        
+        $isLoggedIn = true; // 状态设为已登录
     }
 }
 ?>
@@ -200,18 +205,19 @@ if (!isset($_SESSION['username']) && isset($_COOKIE['remember_me'])) {
             </div>
 
             <div class="dropdown-wrapper">
-                <?php if (isset($_SESSION['username'])): ?>
+                <?php if ($isLoggedIn): ?>
                     <a href="profile.php" class="icon-link login">
                         <?php 
                             $avatar = (isset($_SESSION['profile_image']) && !empty($_SESSION['profile_image'])) ? $_SESSION['profile_image'] : 'default.jpg';
+                            $displayUname = isset($_SESSION['username']) ? $_SESSION['username'] : 'User';
                         ?>
                         <img src="images/<?php echo $avatar; ?>" class="user-avatar" alt="Avatar">
-                        <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
+                        <span><?php echo htmlspecialchars($displayUname); ?></span>
                     </a>
                     <div class="dropdown-box" style="width: 150px;">
-                        <div class="box-header"><a href="profile.php" style="color:black; display:block;">My Account</a></div>
+                        <div class="box-header"><a href="profile.php" style="color:black; display:block; width: 100%;">My Account</a></div>
                         <div class="box-content" style="padding: 10px;">
-                            <a href="logout.php" style="color: #e60012; font-weight: bold; font-size: 14px;">Logout</a>
+                            <a href="logout.php" style="color: #e60012; font-weight: bold; font-size: 14px; display: block;">Logout</a>
                         </div>
                     </div>
                 <?php else: ?>
