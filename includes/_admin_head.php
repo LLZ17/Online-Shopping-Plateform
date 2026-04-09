@@ -163,6 +163,15 @@ $user_avatar = isset($_SESSION['profile_image']) ? $_SESSION['profile_image'] : 
         <a href="admin_maintenance.php" class="nav-item"><i class="fas fa-user-shield"></i> Admin CRUD</a>
         <a href="order_list.php" class="nav-item"><i class="fas fa-shopping-cart"></i> Sales Data</a>
         <a href="index.php" class="nav-item" target="_blank"><i class="fas fa-external-link-alt"></i> View Store</a>
+        <a href="admin_product.php" class="nav-item">
+    <i class="fas fa-box"></i>  Product CRUD 
+</a>
+<a href="admin_member_list.php" class="nav-item">
+    <i class="fas fa-users"></i> Member CRUD
+</a>
+<a href="admin_order.php" class="nav-item">
+    <i class="fas git add includes/_admin_head.phpfa-shopping-bag"></i> Order CRUD
+</a>
     </div>
 </div>
 
