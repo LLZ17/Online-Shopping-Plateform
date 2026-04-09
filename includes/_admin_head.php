@@ -127,7 +127,7 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     <i class="fas fa-users"></i> Member CRUD
 </a>
 <a href="admin_order.php" class="nav-item">
-    <i class="fas fa-shopping-bag"></i> Order CRUD
+    <i class="fas git add includes/_admin_head.phpfa-shopping-bag"></i> Order CRUD
 </a>
     </div>
 </div>
