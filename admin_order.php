@@ -4,7 +4,7 @@ require_once 'includes/_base.php';
 require_once 'includes/db.php';
 
 $_title = 'Admin | Order Management';
-include 'includes/_head.php';
+include 'includes/_admin_head.php';
 
 // 1. 处理状态更新逻辑 (更新 order_status 和 payment_status)
 if (isset($_POST['update_status'])) {

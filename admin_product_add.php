@@ -3,7 +3,7 @@ require_once 'includes/_base.php';
 require_once 'includes/db.php';
 
 $_title = 'Admin | Add Product';
-include 'includes/_head.php';
+include 'includes/_admin_head.php';
 
 // 检查是否提交了表单
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
