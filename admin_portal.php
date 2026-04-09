@@ -30,4 +30,4 @@
     <p><strong>Last Login:</strong> <?php echo date('Y-m-d H:i:s'); ?></p>
 </div>
 
-<?php include 'includes/_foot.php'; // 底部依然可以用回公共的 ?>
+<?php include 'includes/_admin_foot.php'; // 底部依然可以用回公共的 ?>

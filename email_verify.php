@@ -1,36 +1,44 @@
 <?php
-ob_start(); // 开启缓冲区，拦截所有 HTML 输出
 /**
  * =================================================================================
- * PXX MALL - PROFESSIONAL IDENTITY VERIFICATION SYSTEM (VERSION 4.0)
+ * PXX MALL - ENTERPRISE IDENTITY VERIFICATION SYSTEM (V9.0 - FINAL STABLE)
  * =================================================================================
- * Database Requirements: 
- * - email_code (varchar 6)
- * - email_expiry (datetime)
- * - email_verified (int 1, default 0)
- * - email_status (enum 'Verified', 'Unverified')
+ * 核心安全模块：邮件验证与 OTP 自主重发控制系统
+ * 开发者：PXX Mall 技术部
+ * ---------------------------------------------------------------------------------
+ * 业务逻辑：
+ * 1. 首次进入页面：系统检测到无有效验证码，自动触发第一次发信。
+ * 2. 30秒过期保护：倒计时结束后，验证码在数据库层面失效。
+ * 3. 循环重发逻辑：过期后显示蓝色 Resent 按钮，由用户主动触发，可无限次循环。
+ * 4. 邮件格式优化：安全警告文字实现物理换行。
  * =================================================================================
  */
 
-// --- [1. 引入核心库与开启严苛模式] ---
-// 路径适配你的 lib 目录
-require_once 'lib/PHPMailer.php';
-require_once 'lib/SMTP.php';
-require_once 'lib/Exception.php';
+// --- [STAGE 1: 系统环境预设] ---
+ob_start(); 
 
-// 开启所有错误报告，任何 SQL 或变量错误都会直接显示
+// 强制同步马来西亚时区，这是 30s 逻辑能否成功的关键
+date_default_timezone_set('Asia/Kuala_Lumpur');
+
+// --- [STAGE 2: 核心类库引入] ---
+// 使用物理绝对路径，彻底解决 Fatal error: Class not found 问题
+require_once 'lib/Exception.php'; 
+require_once 'lib/PHPMailer.php'; 
+require_once 'lib/SMTP.php';
+
+// --- [STAGE 3: 严苛模式配置] ---
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// 开启全局会话管理
 if (session_status() === PHP_SESSION_NONE) { 
     session_start(); 
 }
 
-// --- [2. 引入项目全局依赖] ---
+// --- [STAGE 4: 数据库依赖加载] ---
 require_once __DIR__ . '/includes/db.php';
-include_once __DIR__ . '/includes/_head.php';
 
-// 登录守卫：防止未授权访问
+// 登录守卫：未登录用户强制拦截
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
@@ -39,51 +47,55 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 /**
- * --- [3. 核心发信逻辑 - 深度展开版] ---
- * 修复点：使用完全限定命名空间实例化，解决 Class Not Found 报错
+ * --- [STAGE 5: 高级发信引擎 - 深度逻辑版] ---
+ * 功能：生成 6 位 OTP，设定 30s 有效期，并构建带换行的邮件模板。
  */
 function sendSecurityVerificationOTP($pdo, $user_id) {
-    // A. 提取用户信息：获取 Email 和 Username 用于个性化邮件
-    $sql_user = "SELECT email, username FROM users WHERE user_id = ?";
-    $stmt_user = $pdo->prepare($sql_user);
-    $stmt_user->execute([$user_id]);
-    $user = $stmt_user->fetch(PDO::FETCH_ASSOC); 
-    
-    if (!$user) return false;
-    
-    $target_email = $user['email'];
-    $target_name  = $user['username'];
-
-    // B. 生成加密级 6 位纯数字验证码
-    // sprintf 确保 001234 这种格式不丢失首位 0
-    $generated_otp = sprintf("%06d", mt_rand(0, 999999));
-    
-    // C. 设定严格的 60 秒生存周期
-    $expiry_time = date("Y-m-d H:i:s", strtotime("+1 minute"));
-    
-    // D. 执行 SQL 更新，将 Code 写入数据库
-    $sql_update = "UPDATE users SET email_code = ?, email_expiry = ? WHERE user_id = ?";
-    $stmt_upd = $pdo->prepare($sql_update);
-    $is_recorded = $stmt_upd->execute([$generated_otp, $expiry_time, $user_id]);
-
-    if (!$is_recorded) {
-        return false; 
-    }
-
-    // E. 🔥 核心修复点：实例化 PHPMailer
-    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-
     try {
+        // 开启数据库事务，确保发信与数据记录的原子性
+        $pdo->beginTransaction();
+
+        $sql_user = "SELECT email, username FROM users WHERE user_id = ? FOR UPDATE";
+        $stmt_user = $pdo->prepare($sql_user);
+        $stmt_user->execute([$user_id]);
+        $user = $stmt_user->fetch(PDO::FETCH_ASSOC); 
+        
+        if (!$user) {
+            $pdo->rollBack();
+            return "Critical Error: User profile could not be retrieved.";
+        }
+        
+        $target_email = $user['email'];
+        $target_name  = $user['username'];
+
+        // 生成加密级 6 位纯数字验证码
+        $generated_otp = sprintf("%06d", mt_rand(0, 999999));
+        
+        // 设定严格的 30 秒生命周期
+        $expiry_time = date("Y-m-d H:i:s", strtotime("+30 seconds"));
+        
+        // 更新数据库记录
+        $sql_update = "UPDATE users SET 
+                        email_code = ?, 
+                        email_expiry = ?, 
+                        email_verified = 0, 
+                        email_status = 'Unverified' 
+                      WHERE user_id = ?";
+        $stmt_upd = $pdo->prepare($sql_update);
+        $stmt_upd->execute([$generated_otp, $expiry_time, $user_id]);
+
+        // 实例化 PHPMailer 核心类
+        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
         $mail->Username   = 'pxxmallmalaysia@gmail.com'; 
-        $mail->Password   = 'wfnh iygk roxj ibxz';       
+        $mail->Password   = 'wfnh iygk roxj ibxz'; 
         $mail->SMTPSecure = 'tls';
         $mail->Port       = 587;
         $mail->CharSet    = 'utf-8';
 
-        // 核心安全补丁：跳过本地环境的 SSL 验证
+        // 解决本地环境 SSL 证书验证问题
         $mail->SMTPOptions = array(
             'ssl' => array(
                 'verify_peer' => false,
@@ -92,180 +104,351 @@ function sendSecurityVerificationOTP($pdo, $user_id) {
             )
         );
 
-        // 设置发件人与收件人
-        $mail->setFrom('pxxmallmalaysia@gmail.com', 'noreply@PXX Mall Security System');
+        $mail->setFrom('pxxmallmalaysia@gmail.com', 'noreply@PXX Mall Security');
         $mail->addAddress($target_email, $target_name);
-
         $mail->isHTML(true);
-        $mail->Subject = "Verification Code: $generated_otp for " . $user['username'];
+        $mail->Subject = "Verification Code: [ $generated_otp ] for $target_name";
         
-        // --- 修正 141-142 行报错点：使用 Heredoc 语法锁定 HTML 内容 ---
-        $email_body = <<<HTML
-<div style='background-color: #f7f7f7; padding: 50px 0; font-family: Helvetica, Arial, sans-serif;'>
-    <table align='center' border='0' cellpadding='0' cellspacing='0' width='600' style='background-color: #ffffff; border-radius: 12px; border: 1px solid #eeeeee; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>
-        <tr>
-            <td align='center' style='padding: 40px 0; background-color: #e60012;'>
-                <h1 style='color: #ffffff; margin: 0; font-size: 26px; text-transform: uppercase; letter-spacing: 3px;'>PXX Mall Security System</h1>
-            </td>
-        </tr>
-        <tr>
-            <td style='padding: 50px 40px;'>
-                <p style='font-size: 20px; color: #333333; margin-bottom: 25px;'>Hello, <strong>$target_name</strong>!</p>
-                <p style='font-size: 16px; color: #666666; line-height: 1.8;'>You have requested a security verification code to access your PXX Mall account. For your verification, please enter the following 6-digit code on the verification page:</p>
-                
-                <div style='margin: 45px 0; padding: 40px; background-color: #fcfcfc; border: 2px dashed #000000; text-align: center; border-radius: 8px;'>
-                    <span style='font-size: 52px; font-weight: 900; color: #e60012; letter-spacing: 15px; font-family: monospace;'>$generated_otp</span>
-                </div>
-                
-                <table border='0' cellpadding='0' cellspacing='0' width='100%' style='border-top: 1px solid #eeeeee; padding-top: 30px;'>
-                    <tr>
-                        <td style='font-size: 13px; color: #000000; line-height: 1.6; text-align: center;'>
-                            ⚠️ <strong>Security Note:</strong> This code is only valid for <strong>60 seconds</strong>.<br>
-                            Never share this code with anyone. Our staff will never ask for your OTP.<br>
-                            If you did not make this request, please ignore it!
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</div>
-HTML;
+        /**
+         * 🔥 邮件正文：满足换行要求
+         */
+        $email_body = "
+        <div style='background-color: #f7f7f7; padding: 50px 0; font-family: sans-serif;'>
+            <table align='center' border='0' cellpadding='0' cellspacing='0' width='600' style='background-color: #ffffff; border-radius: 12px; border: 1px solid #eeeeee; overflow: hidden;'>
+                <tr>
+                    <td align='center' style='padding: 40px; background-color: #e60012;'>
+                        <h1 style='color: #ffffff; margin: 0; font-size: 26px;'>PXX Mall Security</h1>
+                    </td>
+                </tr>
+                <tr>
+                    <td style='padding: 50px 40px; text-align: center;'>
+                        <h2 style='color: #333;'>Hi $target_name,</h2>
+                        <p style='color: #666; font-size: 16px;'>To complete your verification, please enter the code below:</p>
+                        <div style='margin: 30px auto; padding: 30px; background: #f9f9f9; border: 2px dashed #e60012; font-size: 48px; font-weight: bold; color: #e60012; letter-spacing: 12px;'>$generated_otp</div>
+                        <p style='color: #ff0000; font-size: 14px;'><strong>Attention:</strong> This code is valid for 30 seconds.</p>
+                        
+                        <p style='color: #999; font-size: 13px; line-height: 1.8; margin-top: 25px;'>
+                            This is a system generated message, please do not reply.<br>
+                            Please dont share your code to anyone!
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style='padding: 25px; background-color: #fafafa; text-align: center; font-size: 11px; color: #bbb; border-top: 1px solid #eeeeee;'>
+                        <strong>PXX Mall Malaysia Sdn. Bhd.® [202001028493 (1357831-M)]</strong><br>
+                        Copyright © 2026 All Rights Reserved
+                    </td>
+                </tr>
+            </table>
+        </div>";
 
         $mail->Body = $email_body;
-
-        if($mail->send()) {
+        
+        if ($mail->send()) {
+            $pdo->commit();
             return "success";
         } else {
-            return "Error: " . $mail->ErrorInfo;
+            $pdo->rollBack();
+            return "failed";
         }
 
-    } catch (Exception $e) {
-        return "Error: " . $e->getMessage();
+    } catch (\Exception $e) {
+        if ($pdo->inTransaction()) { $pdo->rollBack(); }
+        return "System Error: " . $e->getMessage();
     }
 }
 
-/**
- * --- [4. 业务逻辑处理：AJAX & POST] ---
- */
-$error_feedback = "";
-
-// 处理 AJAX 重发请求
+// --- [STAGE 6: 处理 AJAX 异步重发请求] ---
 if (isset($_GET['service']) && $_GET['service'] == 'trigger_resend') {
     while (ob_get_level()) { ob_end_clean(); }
     header('Content-Type: text/plain; charset=UTF-8');
-    $result = sendSecurityVerificationOTP($pdo, $user_id);
-    echo trim($result); 
+    echo trim(sendSecurityVerificationOTP($pdo, $user_id)); 
     exit(); 
 }
 
-// 处理表单提交确认
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action_confirm_otp'])) {
-    $user_input = $_POST['otp_input_field'];
-    if (!ctype_digit($user_input) || strlen($user_input) !== 6) {
-        $error_feedback = "Format Error: Please enter a 6-digit numeric code.";
-    } else {
-        $stmt_check = $pdo->prepare("SELECT email_code, email_expiry FROM users WHERE user_id = ?");
-        $stmt_check->execute([$user_id]);
-        $data_record = $stmt_check->fetch();
-
-        if ($data_record && $data_record['email_code'] === $user_input) {
-            if (strtotime($data_record['email_expiry']) >= time()) {
-                $sql_verify_success = "UPDATE users SET email_verified = 1, email_status = 'Verified', email_code = NULL WHERE user_id = ?";
-                $pdo->prepare($sql_verify_success)->execute([$user_id]);
-                echo "<script>alert('Verified Successfully!'); window.location.href='profile.php?page=security';</script>";
-                exit();
-            } else {
-                $error_feedback = "Timeout: Code has expired. Please request a new code.";
-            }
-        } else {
-            $error_feedback = "Error: The code entered is incorrect.";
-        }
+// --- [STAGE 7: 🔥 首次进入：自动触发第一次发信] ---
+if ($_SERVER["REQUEST_METHOD"] != "POST" && !isset($_GET['service'])) {
+    $stmt_init = $pdo->prepare("SELECT email_expiry FROM users WHERE user_id = ?");
+    $stmt_init->execute([$user_id]);
+    $init_data = $stmt_init->fetch();
+    
+    // 如果没有验证码或者之前的验证码已过期，则在进入页面时自动发一次
+    if (!$init_data || strtotime($init_data['email_expiry']) < time()) {
+        sendSecurityVerificationOTP($pdo, $user_id);
     }
 }
 
-// 首次加载检测
-$stmt_init = $pdo->prepare("SELECT email_code, email_expiry FROM users WHERE user_id = ?");
-$stmt_init->execute([$user_id]);
-$initial_row = $stmt_init->fetch();
-if (!$initial_row['email_code'] || strtotime($initial_row['email_expiry']) < time()) {
-    sendSecurityVerificationOTP($pdo, $user_id);
+// --- [STAGE 8: POST 业务逻辑确认] ---
+$error_feedback = "";
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action_confirm_otp'])) {
+    $user_input = trim($_POST['otp_input_field']);
+    
+    $stmt_check = $pdo->prepare("SELECT email_code, email_expiry FROM users WHERE user_id = ?");
+    $stmt_check->execute([$user_id]);
+    $data_record = $stmt_check->fetch();
+
+    if ($data_record && $data_record['email_code'] === $user_input) {
+        // 严格检查 30s 数据库有效期
+        if (strtotime($data_record['email_expiry']) >= time()) {
+            $sql_final = "UPDATE users SET email_verified = 1, email_status = 'Verified', email_code = NULL WHERE user_id = ?";
+            $stmt_final = $pdo->prepare($sql_final);
+            
+            if ($stmt_final->execute([$user_id])) {
+                echo "<script>alert('Verified Successfully!'); window.location.href='profile.php?page=security';</script>";
+                exit();
+            } else { $error_feedback = "Update Error: Database write failure."; }
+        } else { 
+            // 如果过期了，这里会提示用户去点 Resend
+            $error_feedback = "Verification Failed: Code has expired (30s limit). Please use 'Resent a new code' below."; 
+        }
+    } else { 
+        $error_feedback = "Verification Failed: The 6-digits code is incorrect."; 
+    }
 }
 
-// 获取 UI 数据
 $stmt_ui = $pdo->prepare("SELECT email, username FROM users WHERE user_id = ?");
 $stmt_ui->execute([$user_id]);
 $ui_data = $stmt_ui->fetch();
 
-function esc_html($val) { return htmlspecialchars($val ?? ''); }
+include_once __DIR__ . '/includes/_head.php';
 ?>
 
 <style>
-    :root { --pxx-primary: #e60012; --pxx-shadow: rgba(0, 0, 0, 0.08); }
-    body { background-color: #f0f2f5; font-family: 'Segoe UI', system-ui; margin: 0; }
-    .pxx-main-layout { width: 1200px; margin: 100px auto; display: flex; justify-content: center; align-items: center; min-height: 500px; }
-    .pxx-verify-card { background: #ffffff; width: 650px; padding: 90px 110px; border-radius: 8px; box-shadow: 0 20px 60px var(--pxx-shadow); text-align: center; border-top: 10px solid var(--pxx-primary); animation: slideUp 0.6s ease-out; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-    .v-badge { width: 100px; height: 100px; background: #fff5f5; color: var(--pxx-primary); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 45px; margin-bottom: 35px; border: 2px solid #ffebeb; }
-    .v-h1 { font-size: 34px; font-weight: 900; margin-bottom: 15px; color: #1a1a1a; letter-spacing: -1px; }
-    .v-p { color: #777; font-size: 17px; margin-bottom: 50px; line-height: 1.7; }
-    .pxx-otp-field { width: 100%; padding: 22px 0; font-size: 48px; font-weight: 900; text-align: center; letter-spacing: 25px; border: 2px solid #e0e0e0; border-radius: 12px; background: #fafafa; outline: none; transition: 0.4s; margin-bottom: 35px; color: #111; }
-    .pxx-otp-field:focus { border-color: var(--pxx-primary); background: #fff; box-shadow: 0 15px 35px rgba(230,0,18,0.12); transform: scale(1.02); }
-    .pxx-submit-btn { width: 100%; background-color: var(--pxx-primary); color: #ffffff; border: none; padding: 24px; font-size: 20px; font-weight: 800; border-radius: 6px; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 3px; }
-    .alert-box { background-color: #fff1f0; border: 1px solid #ffa39e; color: var(--pxx-primary); padding: 18px; margin-bottom: 35px; border-radius: 6px; font-size: 15px; font-weight: 600; }
-    .timer-container { margin-top: 50px; font-size: 16px; color: #bbb; }
-    #timer-val { color: var(--pxx-primary); font-weight: 800; }
-    .resend-action-btn { color: #0056b3; font-weight: bold; text-decoration: underline; cursor: pointer; display: none; background: none; border: none; font-size: 16px; padding: 10px; margin: 20px auto 0; text-align: center; width: fit-content; }
+    :root { 
+        --pxx-red: #e60012; 
+        --pxx-blue: #0056b3; 
+        --pxx-bg: #f0f2f5; 
+        --pxx-white: #ffffff;
+        --pxx-shadow: rgba(0, 0, 0, 0.1); 
+    }
+    
+    body { background-color: var(--pxx-bg); font-family: 'Segoe UI', system-ui; margin: 0; padding: 0; }
+
+    .pxx-main-viewport { 
+        width: 100%; 
+        min-height: 100vh; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        padding: 60px 0;
+    }
+    
+    .pxx-auth-card { 
+        background: var(--pxx-white); 
+        width: 800px; 
+        padding: 100px 75px; 
+        border-radius: 16px; 
+        box-shadow: 0 40px 100px var(--pxx-shadow); 
+        text-align: center; 
+        border-top: 15px solid var(--pxx-red); 
+        box-sizing: border-box;
+    }
+    
+    .v-h1 { font-size: 44px; font-weight: 900; color: #111; margin-bottom: 25px; letter-spacing: -2px; }
+    
+    .v-p-nowrap { 
+        color: #777; 
+        font-size: 20px; 
+        margin: 0 auto 50px auto; 
+        white-space: nowrap; 
+        display: block;
+        text-align: center; 
+    }
+
+    .pxx-otp-input { 
+        width: 100%; 
+        max-width: 520px;
+        padding: 30px 0; 
+        font-size: 55px; 
+        font-weight: 950; 
+        text-align: center; 
+        letter-spacing: 30px; 
+        border: 2px solid #ddd; 
+        border-radius: 20px; 
+        background: #fcfcfc; 
+        outline: none; 
+        transition: 0.4s;
+        color: #000;
+    }
+    
+    .pxx-otp-input:focus { border-color: var(--pxx-red); background: #fff; box-shadow: 0 10px 40px rgba(230,0,18,0.1); }
+    
+    .pxx-submit-trigger { 
+        width: 100%; 
+        max-width: 520px;
+        background-color: var(--pxx-red); 
+        color: #fff; 
+        border: none; 
+        padding: 28px; 
+        font-size: 24px; 
+        font-weight: 850; 
+        border-radius: 12px; 
+        cursor: pointer; 
+        text-transform: uppercase; 
+        margin-top: 45px;
+        transition: 0.3s;
+    }
+    
+    .pxx-submit-trigger:hover { background-color: #cc0010; transform: translateY(-4px); }
+    
+    /* 🔥 Resent 区域：居中 + 蓝色文字 */
+    .resend-utility-zone { margin-top: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    
+    .btn-resend-link { 
+        color: var(--pxx-blue) !important; 
+        font-weight: 700; 
+        text-decoration: underline; 
+        cursor: pointer; 
+        display: none; /* 倒计时中隐藏 */
+        background: none; 
+        border: none; 
+        font-size: 19px; 
+        padding: 15px;
+        text-align: center;
+    }
+    
+    .btn-resend-link:hover { color: #003d80 !important; }
+
+    .link-back-nav { 
+        display: inline-block; 
+        margin-top: 50px; 
+        color: #bbb; 
+        text-decoration: none; 
+        font-size: 16px; 
+        transition: 0.3s; 
+    }
+    .link-back-nav:hover { color: var(--pxx-red); }
+
+    .timer-digit { color: var(--pxx-red); font-weight: 950; }
+    
+    .pxx-alert { 
+        background-color: #fff1f0; 
+        border: 1px solid #ffa39e; 
+        color: var(--pxx-red); 
+        padding: 22px; 
+        margin-bottom: 40px; 
+        border-radius: 10px; 
+        font-weight: 700; 
+        max-width: 520px; 
+        margin: 0 auto;
+    }
 </style>
 
-<div class="pxx-main-layout">
-    <div class="pxx-verify-card">
-        <div class="v-badge"><i class="fas fa-user-shield"></i></div>
-        <div class="v-h1">Hello, <?php echo esc_html($ui_data['username']); ?>!</div>
-        <p class="v-p">To verify your email, please enter the 6-digits code <br>sent to: <strong style="color:#222;"><?php echo esc_html($ui_data['email']); ?></strong></p>
+<div class="pxx-main-viewport">
+    <div class="pxx-auth-card">
+        <div style="font-size: 70px; color: var(--pxx-red); margin-bottom: 40px;"><i class="fas fa-user-shield"></i></div>
+        
+        <h1 class="v-h1">Hello, <?php echo htmlspecialchars($ui_data['username']); ?>!</h1>
+        
+        <p class="v-p-nowrap">To verify your email, please enter the 6-digits code</p>
+        <p style="margin-top: -35px; margin-bottom: 50px; color: #888; font-size: 20px;">
+            sent to: <strong style="color:#000;"><?php echo htmlspecialchars($ui_data['email']); ?></strong>
+        </p>
 
-        <?php if($error_feedback): ?><div class="alert-box"><?php echo $error_feedback; ?></div><?php endif; ?>
+        <?php if($error_feedback): ?>
+            <div class="pxx-alert"><?php echo $error_feedback; ?></div>
+        <?php endif; ?>
 
-        <form method="POST">
-            <input type="text" name="otp_input_field" class="pxx-otp-field" placeholder="000000" maxlength="6" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required autofocus autocomplete="off">
-            <button type="submit" name="action_confirm_otp" class="pxx-submit-btn">Complete Verification</button>
+        <form method="POST" action="">
+            <input type="text" name="otp_input_field" class="pxx-otp-input" placeholder="000000" maxlength="6" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required autofocus autocomplete="off">
+            <br>
+            <button type="submit" name="action_confirm_otp" class="pxx-submit-trigger">Complete Verification</button>
         </form>
 
-        <div class="timer-container">
-            <div id="countdown-ui">Your code expires in <span id="timer-val">60</span>s</div>
-            <button id="resend-btn-ui" class="resend-action-btn" onclick="executeResendService()">Resent a new code</button>
+        <div class="resend-utility-zone">
+            <div id="countdown-ui" style="font-size: 19px; color: #aaa;">
+                Your code expires in <span id="timer-val" class="timer-digit">30</span>s
+            </div>
+            
+            <button id="resend-btn-ui" class="btn-resend-link" onclick="runResendProcess()">Resent a new code</button>
         </div>
+
+        <a href="profile.php?page=security" class="link-back-nav">
+            <i class="fas fa-chevron-left"></i> Back to My Account
+        </a>
     </div>
 </div>
 
+<div style="clear: both;"></div>
+
 <script>
 (function() {
-    let timeLeft = 60; let timerInterval = null;
-    const timerVal = document.getElementById('timer-val');
-    const countdownUI = document.getElementById('countdown-ui');
-    const resendBtn = document.getElementById('resend-btn-ui');
+    let timeLeft = 30; // 固定倒计时 30s
+    let timerInterval = null;
+    
+    const timerDisplay = document.getElementById('timer-val');
+    const countdownBox = document.getElementById('countdown-ui');
+    const resendTrigger = document.getElementById('resend-btn-ui');
 
-    function startTimer(s) {
-        clearInterval(timerInterval); timeLeft = s;
-        countdownUI.style.display = 'block'; resendBtn.style.display = 'none';
+    /**
+     * 初始化倒计时循环逻辑
+     */
+    function startTimerLoop(seconds) {
+        clearInterval(timerInterval); 
+        timeLeft = seconds;
+        
+        if(countdownBox) countdownBox.style.display = 'block'; 
+        if(resendTrigger) resendTrigger.style.display = 'none';
+        
         timerInterval = setInterval(() => {
-            timeLeft--; if(timerVal) timerVal.innerText = timeLeft;
+            timeLeft--; 
+            if(timerDisplay) timerDisplay.innerText = timeLeft;
+            
             if (timeLeft <= 0) {
-                clearInterval(timerInterval); countdownUI.style.display = 'none';
-                resendBtn.style.display = 'block'; resendBtn.disabled = false;
+                // 🔥 时间到，停止倒计时并显示按钮供用户“自主”重发
+                clearInterval(timerInterval); 
+                if(countdownBox) countdownBox.style.display = 'none';
+                if(resendTrigger) {
+                    resendTrigger.style.display = 'block';
+                    resendTrigger.innerText = "Resent a new code";
+                    resendTrigger.style.pointerEvents = "auto";
+                }
             }
         }, 1000);
     }
 
-    window.executeResendService = function() {
-        resendBtn.innerText = "Sending..."; resendBtn.disabled = true;
-        fetch('email_verify.php?service=trigger_resend').then(res => res.text()).then(status => {
-            if (status.trim() === 'success') { alert("Success: A new verification code has been sent!"); startTimer(60); }
-            else { alert("Error: " + status); resendBtn.disabled = false; resendBtn.innerText = "Resent a new code"; }
-        });
+    /**
+     * 🔥 重发流程：由用户按，按完之后开启 30s 倒计时
+     */
+    window.runResendProcess = function() {
+        if(resendTrigger) {
+            resendTrigger.innerText = "Sending...";
+            resendTrigger.style.pointerEvents = "none";
+        }
+        
+        // 调用后端发信服务
+        fetch('email_verify.php?service=trigger_resend')
+            .then(res => res.text())
+            .then(status => {
+                if (status.trim() === 'success') { 
+                    alert("A fresh 30-second verification code has been dispatched!"); 
+                    // 只有成功重发后，才重新开启 30s 倒计时
+                    startTimerLoop(30); 
+                } else { 
+                    alert("Transmission Error: " + status); 
+                    if(resendTrigger) {
+                        resendTrigger.innerText = "Resent a new code";
+                        resendTrigger.style.pointerEvents = "auto";
+                    }
+                }
+            })
+            .catch(err => {
+                alert("Network latency detected.");
+                if(resendTrigger) {
+                    resendTrigger.innerText = "Resent a new code";
+                    resendTrigger.style.pointerEvents = "auto";
+                }
+            });
     };
-    startTimer(60);
+
+    // 页面初次进入时，因为系统自动发了一次，所以自动开启第一次倒计时
+    startTimerLoop(30);
 })();
 </script>
 
-<?php include_once __DIR__ . '/includes/_foot.php'; ?>
+<?php 
+// 引入全局页脚
+if (file_exists(__DIR__ . '/includes/_foot.php')) {
+    include_once __DIR__ . '/includes/_foot.php'; 
+}
+?>
