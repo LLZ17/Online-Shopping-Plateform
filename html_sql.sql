@@ -310,7 +310,7 @@ ALTER TABLE `vouchers`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `code` (`code`);
 
---
+--  
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -354,3 +354,5 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+INSERT INTO `products` (`product_id`, `category_id`, `name`, `keywords`, `description`, `price`, `size`, `colour`, `rating`, `stock`, `low_stock_threshold`, `sales_count`, `product_image`, `status`, `created_at`) VALUES ('1', '1', 'A Shirt', 'Shirt', 'This is a Shirt', '10.00', 'XL/XXL/S', 'BLACK / WHITE', '4.56', '500', '10', '2', 'A Shirt.jpg', 'Instock', '2026-04-11 15:51:16');
+INSERT INTO `favourites` (`id`, `user_id`, `product_id`, `category_id`, `created_at`) VALUES ('1', 't104', '1', '1', '2026-04-11 19:02:29');

@@ -1,6 +1,9 @@
+<?php header("Location: product.php") ?>//Redirect to product.php
+
+//Code not used after this comment
+
 <?php require_once 'includes/db.php'; ?>
 <?php require_once 'includes/_head.php'; ?>
-
 <div class="main-content">
     <div class="container">
         <div class="hero">
