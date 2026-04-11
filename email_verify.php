@@ -199,7 +199,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action_confirm_otp']))
             } else { $error_feedback = "Update Error: Database write failure."; }
         } else { 
             // 如果过期了，这里会提示用户去点 Resend
-            $error_feedback = "Verification Failed: Code has expired (30s limit). Please use 'Resent a new code' below."; 
+            $error_feedback = "Verification Failed: Code has expired!. Please resent a new code"; 
         }
     } else { 
         $error_feedback = "Verification Failed: The 6-digits code is incorrect."; 
@@ -412,7 +412,7 @@ include_once __DIR__ . '/includes/_head.php';
      */
     window.runResendProcess = function() {
         if(resendTrigger) {
-            resendTrigger.innerText = "Sending...";
+            resendTrigger.innerText = "Code Requesting...";
             resendTrigger.style.pointerEvents = "none";
         }
         
@@ -421,7 +421,7 @@ include_once __DIR__ . '/includes/_head.php';
             .then(res => res.text())
             .then(status => {
                 if (status.trim() === 'success') { 
-                    alert("A fresh 30-second verification code has been dispatched!"); 
+                    alert("Success: A new verification code has been sent to your email!"); 
                     // 只有成功重发后，才重新开启 30s 倒计时
                     startTimerLoop(30); 
                 } else { 
