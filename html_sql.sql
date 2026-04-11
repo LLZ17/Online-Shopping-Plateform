@@ -310,7 +310,7 @@ ALTER TABLE `vouchers`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `code` (`code`);
 
---
+--  
 -- AUTO_INCREMENT for dumped tables
 --
 

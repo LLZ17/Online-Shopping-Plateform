@@ -84,7 +84,16 @@
         font-size: 18px;
     }
 
+    .qty-input {
+        width: 60px;
+        padding: 6px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        text-align: center;
+    }
+
     /* 操作按钮 */
+
     .btn-add-cart {
         background-color: #e60012;
         color: white;
@@ -120,6 +129,24 @@
     }
 </style>
 
+<?php
+require_once 'includes/db.php'; // 引入连接
+
+// 1. 拦截未登录用户
+if (!isset($_SESSION['user_id'])) {
+    echo "<script>alert('Please login to use Wishlist!'); window.location.href='login.php';</script>";
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+
+$sql = "SELECT p.* FROM products p JOIN favourites f  ON p.product_id = f.product_id WHERE f.user_id = ?";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$_SESSION['user_id']]);
+$result = $stmt->fetchAll();
+
+?>
 <div class="wishlist-container">
     <div class="wishlist-card">
         <div class="wishlist-header">
@@ -131,23 +158,26 @@
                 <tr>
                     <th style="width: 50%;">Product Details</th>
                     <th style="width: 20%;">Unit Price</th>
+                    <th style="width: 15%;">Quantity</th>
                     <th style="width: 20%;">Stock Status</th>
                     <th style="width: 10%;">Action</th>
                 </tr>
             </thead>
             <tbody>
+<?php foreach ($result as $r): ?>
                 <tr>
                     <td>
                         <div class="product-box">
-                            <img src="https://via.placeholder.com/80x100" class="product-img" alt="Product">
+                            <img src="images/<?php echo $r['product_image']; ?>" class="product-img" alt="<?php echo $r['name']; ?>">
                             <div class="product-info">
-                                <b>Classic Leather Watch</b>
-                                <span>Category: Accessories</span>
+                                <b><?php echo $r['name']; ?></b>
+                                <span>Size: <?php echo $r['size'] ?> | Color: <?php echo $r['colour']; ?></span>
                             </div>
                         </div>
                     </td>
-                    <td><span class="price-tag">RM 199.00</span></td>
-                    <td><span style="color: #28a745; font-weight: 600;">In Stock</span></td>
+                    <td><span class="price-tag">RM <?php echo $r['price']; ?></span></td>
+                    <td><input type="number" value="1" class="qty-input"></td>
+                    <td><span style="color: #28a745; font-weight: 300;"><?php echo $r['status']; ?></span></td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <button class="btn-add-cart" title="Move to Cart">Add to Cart</button>
@@ -155,26 +185,9 @@
                         </div>
                     </td>
                 </tr>
+<?php endforeach ?>
 
-                <tr>
-                    <td>
-                        <div class="product-box">
-                            <img src="https://via.placeholder.com/80x100" class="product-img" alt="Product">
-                            <div class="product-info">
-                                <b>Retro Sunglasses</b>
-                                <span>Category: Eyewear</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td><span class="price-tag">RM 45.00</span></td>
-                    <td><span style="color: #28a745; font-weight: 600;">In Stock</span></td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <button class="btn-add-cart" title="Move to Cart">Add to Cart</button>
-                            <i class="fa-solid fa-trash-can remove-icon" title="Remove from Wishlist"></i>
-                        </div>
-                    </td>
-                </tr>
+               
             </tbody>
         </table>
 
