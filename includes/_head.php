@@ -11,7 +11,7 @@ if (isset($_SESSION['username']) || isset($_SESSION['user_id'])) {
 
 // 🔥 自动登录逻辑
 if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
-    require_once 'includes/db.php'; 
+    require_once 'db.php'; 
     $token = $_COOKIE['remember_me'];
     $stmt = $pdo->prepare("SELECT * FROM users WHERE remember_token = ?");
     $stmt->execute([$token]);
@@ -226,7 +226,7 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
         <div class="icon-section">
             
             <div class="dropdown-wrapper">
-                <a href="notifications.php" class="icon-link">
+                <a href="member/notifications.php" class="icon-link">
                     <div class="icon-wrapper">
                         <i class="fa-solid fa-bell"></i>
                         <span class="icon-badge">2</span>
@@ -248,7 +248,7 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
             </div>
 
             <div class="dropdown-wrapper">
-                <a href="wishlist.php" class="icon-link">
+                <a href="member/wishlist.php" class="icon-link">
                     <div class="icon-wrapper">
                         <i class="fa-solid fa-heart"></i>
                         <span class="icon-badge">5</span>
@@ -271,7 +271,7 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
             </div>
 
             <div class="dropdown-wrapper">
-                <a href="cart.php" class="icon-link">
+                <a href="mmeber/cart.php" class="icon-link">
                     <div class="icon-wrapper">
                         <i class="fa-solid fa-cart-shopping"></i>
                         <span class="icon-badge">12</span>
@@ -295,7 +295,7 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
 
             <div class="dropdown-wrapper">
                 <?php if ($isLoggedIn): ?>
-                    <a href="profile.php" class="icon-link">
+                    <a href="member/profile.php" class="icon-link">
                         <div class="icon-wrapper">
                             <?php $avatar = !empty($_SESSION['profile_image']) ? $_SESSION['profile_image'] : 'default.jpg'; ?>
                             <img src="images/<?php echo $avatar; ?>" class="user-avatar" alt="Avatar">
@@ -305,13 +305,13 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
                     
                     <div class="dropdown-box account-box">
                         <div class="box-header" style="white-space: nowrap;"><i class="fa-solid fa-user"></i> My Account</div>
-                        <a href="profile.php" class="menu-link">My Profile</a>
-                        <a href="setting.php" class="menu-link">Settings</a>
+                        <a href="member/profile.php" class="menu-link">My Profile</a>
+                        <a href="member/setting.php" class="menu-link">Settings</a>
                         <a href="logout.php" class="menu-link" style="border-top: 1px solid #eee;">Logout</a>
                     </div>
 
                 <?php else: ?>
-                    <a href="login.php" class="icon-link">
+                    <a href="../login_selection.php" class="icon-link">
                         <div class="icon-wrapper">
                             <i class="fa-solid fa-user"></i>
                         </div>

@@ -140,26 +140,26 @@ include 'includes/_head.php';
 
 <div class="role-selection-wrapper">
     <div class="role-container">
-        <h1>Welcome to PXX Mall</h1>
+        <h1>Welcome to PXX Mal!</h1>
         <p>Please select your account type to continue</p>
 
         <div class="role-cards">
-            <a href="login_member.php" class="role-card member-card">
+            <a href="member/login.php" class="role-card member-card">
                 <div class="role-icon">
                     <i class="fa-solid fa-user"></i>
                 </div>
                 <div class="role-title">Member</div>
-                <div class="role-desc">Login or sign up to shop, view orders, and manage your wishlist.</div>
-                <div class="role-btn">Select Member</div>
+                <div class="role-desc">Login or sign up to shop, view orders, manage your wishlist and cart.</div>
+                <div class="role-btn">MEMBER LOGIN</div>
             </a>
 
-            <a href="login_admin.php" class="role-card admin-card">
+            <a href="admin/login.php" class="role-card admin-card">
                 <div class="role-icon">
                     <i class="fa-solid fa-user-tie"></i>
                 </div>
                 <div class="role-title">Admin</div>
-                <div class="role-desc">Access the admin panel to manage products, inventory, and site settings.</div>
-                <div class="role-btn">Select Admin</div>
+                <div class="role-desc">Access the admin portal to manage products, inventory, order, member and more.</div>
+                <div class="role-btn">ADMIN LOGIN</div>
             </a>
         </div>
     </div>

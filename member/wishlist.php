@@ -1,4 +1,4 @@
-<?php require_once 'includes/_head.php'; ?>
+<?php require_once '../includes/_head.php'; ?>
 
 <style>
     /* 愿望清单专用样式 */
@@ -181,4 +181,4 @@
         </div>
 </div>
 
-<?php require_once 'includes/_foot.php'; ?>
+<?php require_once '../includes/_foot.php'; ?>

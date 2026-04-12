@@ -11,8 +11,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start(); 
 }
 
-require_once __DIR__ . '/includes/db.php'; 
-include_once __DIR__ . '/includes/_head.php';
+require_once __DIR__ . '../includes/db.php'; 
+include_once __DIR__ . '../includes/_head.php';
 
 // Check if the user is authenticated
 if (!isset($_SESSION['user_id'])) {
@@ -403,7 +403,7 @@ function d($val) {
             <a href="?page=security" class="nav-link-item <?php echo ($active_page=='security')?'active':''; ?>">Account Security</a>
             
             <div class="logout-nav-container">
-                <a href="logout.php" class="logout-link-aligned">
+                <a href="../logout.php" class="logout-link-aligned">
                     <i class="fas fa-power-off"></i>
                     <span>Logout System</span>
                 </a>
@@ -633,7 +633,7 @@ function d($val) {
 
 <?php 
 // Standard footer inclusion
-$footer_path = __DIR__ . '/includes/_foot.php';
+$footer_path = __DIR__ . '../includes/_foot.php';
 if (file_exists($footer_path)) {
     include_once $footer_path; 
 }

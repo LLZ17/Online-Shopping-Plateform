@@ -1,9 +1,8 @@
 <?php
-require_once 'includes/_base.php';
-require_once 'includes/db.php';
+require_once '../includes/db.php';
 
-$_title = 'Admin | Dashboard';
-include 'includes/_admin_head.php';
+$_title = 'Admin | Portal';
+include '../includes/_admin_head.php';
 
 // 1. 核心 SQL 逻辑：从 orders 表里统计每个产品出现的次数，取出前 5 名
 // 这里的逻辑是：统计 orders 表中 product_id 出现的频率
@@ -73,4 +72,4 @@ $total_revenue = $pdo->query("SELECT SUM(total_price) FROM orders")->fetchColumn
     </table>
 </div>
 
-<?php include 'includes/_foot.php'; ?>
+<?php include '../includes/_foot.php'; ?>

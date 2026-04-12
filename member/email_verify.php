@@ -36,7 +36,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // --- [STAGE 4: 数据库依赖加载] ---
-require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '../includes/db.php';
 
 // 登录守卫：未登录用户强制拦截
 if (!isset($_SESSION['user_id'])) {
@@ -210,7 +210,7 @@ $stmt_ui = $pdo->prepare("SELECT email, username FROM users WHERE user_id = ?");
 $stmt_ui->execute([$user_id]);
 $ui_data = $stmt_ui->fetch();
 
-include_once __DIR__ . '/includes/_head.php';
+include_once __DIR__ . '../includes/_head.php';
 ?>
 
 <style>
@@ -448,7 +448,7 @@ include_once __DIR__ . '/includes/_head.php';
 
 <?php 
 // 引入全局页脚
-if (file_exists(__DIR__ . '/includes/_foot.php')) {
-    include_once __DIR__ . '/includes/_foot.php'; 
+if (file_exists(__DIR__ . '../includes/_foot.php')) {
+    include_once __DIR__ . '../includes/_foot.php'; 
 }
 ?>

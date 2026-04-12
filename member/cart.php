@@ -1,4 +1,4 @@
-<?php require_once 'includes/_head.php'; ?>
+<?php require_once '../includes/_head.php'; ?>
 
 <style>
     /* 购物车整体容器 */
@@ -192,4 +192,4 @@
     </div>
 </div>
 
-<?php require_once 'includes/_foot.php'; ?>
+<?php require_once '../includes/_foot.php'; ?>

@@ -9,8 +9,8 @@ $userSecretKey = '2pl08i3j-hekc-jxfo-218a-02h0ummfdwm3'; // 从 ToyyibPay Settin
 $categoryCode  = 'jmf56yjy'; // 从 ToyyibPay Category -> List 获取
 
 // 这里的 URL 必须指向你的 return.php 存放位置
-$baseUrl = "http://localhost/pxxmall/"; 
-$returnUrl = $baseUrl . "return.php";
+$baseUrl = "http://localhost:8001/"; 
+$returnUrl = $baseUrl . "member/return.php";
 
 // ToyyibPay Sandbox API 地址
 $apiUrl = 'https://dev.toyyibpay.com/index.php/api/createBill';
@@ -23,7 +23,7 @@ $orderId = "PXX-" . date("His") . "-" . rand(10, 99);
 $data = array(
     'userSecretKey' => $userSecretKey,
     'categoryCode' => $categoryCode,
-    'billName' => 'PXX Mall Fashion Order',
+    'billName' => 'PXX Mall Order',
     'billDescription' => 'Payment for Order ' . $orderId,
     'billPriceSetting' => 1,
     'billPayorInfo' => 1,
