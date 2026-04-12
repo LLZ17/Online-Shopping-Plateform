@@ -1,5 +1,4 @@
 <?php
-// includes/db.php
 
 $host = '127.0.0.1';     // 建议用 127.0.0.1，比 localhost 更稳定
 $dbname = 'html_sql';    // 确保你的 phpMyAdmin 里数据库名字真的带空格

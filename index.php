@@ -7,9 +7,43 @@ $stmt = $pdo->prepare("SELECT * FROM products ORDER BY product_id DESC LIMIT 8")
 $stmt->execute();
 $products = $stmt->fetchAll();
 ?>
+<style>
+    .red-heart {
+        color: #e60012;
+        cursor: pointer;
+    }
+
+    .red-heart:hover {
+        font-weight: 900;
+    }
+
+    .product-card {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 25px;
+    }
+
+    .product-container {
+        background: white; border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .product-name-container {
+    display: flex;
+    justify-content: space-between; /* 名字在左，爱心在右 */
+    width: 100%; /* 确保容器占满宽度 */
+    }
+
+    .clear-btn {
+        border: none;
+        background: transparent;
+    }
+
+</style>
 
 <div class="main-content">
-    <div class="container">
+    <div class="container" style = "margin: 30px;">
         <div class="hero">
             <h1>Welcome to PXX Mall</h1>
             <p>Your Best Online Shopping Platform</p>
@@ -17,15 +51,24 @@ $products = $stmt->fetchAll();
         
         <h2 style="margin: 40px 0 20px 0; font-size: 24px;">Featured Products</h2>
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px;">
+        <div class = "product-card">
             <?php foreach ($products as $product): ?>
                 <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>" style="text-decoration: none; color: inherit;">
+                <div class = "prodcut-container">
+                    <a href="products/detail.php?id=<?php echo $product['product_id']; ?>" style="text-decoration: none; color: inherit;">
                         <img src="images/<?php echo !empty($product['product_image']) ? $product['product_image'] : 'default.jpg'; ?>" 
                              style="width: 100%; height: 250px; object-fit: cover;"
                              onerror="this.src='images/default.jpg'">
                         <div style="padding: 15px;">
-                            <h3 style="margin: 0 0 10px 0; font-size: 16px;"><?php echo htmlspecialchars($product['name']); ?></h3>
+                            <div style ="display: flex">
+                                <h3 style="margin: 0 0 10px 0; font-size: 16px;"class="product-name-container"><?php echo htmlspecialchars($product['name']); ?>
+                                <a href = "/wishlist_add"><form method = 'post'></form>
+                                    <button class = "clear-btn" >
+                                        <i class="fa-regular fa-heart red-heart"></i>
+                                    </button>
+                                </a></h3>
+                            </div>
                             <div style="color: #e60012; font-size: 22px; font-weight: bold;">RM <?php echo number_format($product['price'], 2); ?></div>
                             <div style="font-size: 12px; color: #ff9800; margin: 8px 0;">🎁 Earn <?php echo floor($product['price']); ?> points</div>
                             <div style="font-size: 12px; color: <?php echo $product['stock'] > 0 ? 'green' : 'red'; ?>;">

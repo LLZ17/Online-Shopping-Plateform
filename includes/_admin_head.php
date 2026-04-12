@@ -10,7 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // 🔗 数据库连接 (确保路径正确)
-require_once 'includes/db.php'; 
+require_once 'db.php'; 
 
 // ----------------------------------------------------------------
 // 1. 权限验证 (与 Member 逻辑一致)
@@ -38,7 +38,7 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
 
 // 如果还是没登录，踢回登录页
 if (!$isLoggedIn) {
-    header("Location: login.php");
+    header("Location: admin/login.php");
     exit;
 }
 
@@ -65,7 +65,7 @@ $adminPhoto = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PXX Mall | Admin Dashboard</title>
+    <title>PXX Mall | Admin Portal</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -310,28 +310,24 @@ $adminPhoto = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 
 <body>
 
     <header class="admin-top-nav">
-        <div class="brand-logo-area" onclick="location.href='admin_portal.php'">
+        <div class="brand-logo-area" onclick="location.href='admin/portal.php'">
             <div class="logo-pxx">PXX Mall<span>&reg;</span></div>
             <div class="logo-pipe">|</div>
             <div class="logo-admin-text">Admin</div>
         </div>
 
         <div class="header-right">
-            <div class="noti-action" onclick="location.href='notifications.php'">
+            <div class="noti-action" onclick="location.href='admin/notifications.php'">
                 <i class="fa-solid fa-bell"></i>
                 <span>Notifications</span>
                 <div class="white-badge">2</div>
             </div>
 
-            <div class="admin-profile-section">
-                <div class="admin-avatar-frame">
-                    <img src="images/<?php echo $adminPhoto; ?>" onerror="this.src='images/default.jpg'" alt="Profile">
-                </div>
                 <div class="admin-labels">
                     <span class="welcome">Welcome back,</span>
                     <b class="username"><?php echo htmlspecialchars($_SESSION['username']); ?></b>
                 </div>
-                <a href="logout.php" class="btn-power" title="Logout" onclick="return confirm('Securely log out?')">
+                <a href="admin/logout.php" class="btn-power" title="Logout" onclick="return confirm('Securely log out?')">
                     <i class="fa-solid fa-power-off"></i>
                 </a>
             </div>
@@ -344,21 +340,21 @@ $adminPhoto = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 
             <nav>
                 <div class="sidebar-section-name">Control Panel</div>
                 <ul class="sidebar-menu-list">
-                    <li><a href="admin_portal.php" class="sidebar-link active"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
+                    <li><a href="admin/portal.php" class="sidebar-link active"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
                 </ul>
 
                 <div class="sidebar-section-name" style="margin-top:20px;">Management</div>
                 <ul class="sidebar-menu-list">
-                    <li><a href="category_crud.php" class="sidebar-link"><i class="fa-solid fa-tags"></i> Category CRUD</a></li>
-                    <li><a href="product_crud.php" class="sidebar-link"><i class="fa-solid fa-box-open"></i> Product CRUD</a></li>
-                    <li><a href="member_crud.php" class="sidebar-link"><i class="fa-solid fa-users-gear"></i> Member CRUD</a></li>
-                    <li><a href="admin_crud.php" class="sidebar-link"><i class="fa-solid fa-user-shield"></i> Admin CRUD</a></li>
+                    <li><a href="admin/category_crud.php" class="sidebar-link"><i class="fa-solid fa-tags"></i> Category CRUD</a></li>
+                    <li><a href="admin/product_crud.php" class="sidebar-link"><i class="fa-solid fa-box-open"></i> Product CRUD</a></li>
+                    <li><a href="admin/member_crud.php" class="sidebar-link"><i class="fa-solid fa-users-gear"></i> Member CRUD</a></li>
+                    <li><a href="admin/admin_crud.php" class="sidebar-link"><i class="fa-solid fa-user-shield"></i> Admin CRUD</a></li>
                 </ul>
 
                 <div class="sidebar-section-name" style="margin-top:20px;">Logs & Reports</div>
                 <ul class="sidebar-menu-list">
-                    <li><a href="sales_data.php" class="sidebar-link"><i class="fa-solid fa-chart-line"></i> Sales Data</a></li>
-                    <li><a href="order_crud.php" class="sidebar-link"><i class="fa-solid fa-file-invoice-dollar"></i> Order History</a></li>
+                    <li><a href="admin/sales_data.php" class="sidebar-link"><i class="fa-solid fa-chart-line"></i> Sales Data</a></li>
+                    <li><a href="admin/order_crud.php" class="sidebar-link"><i class="fa-solid fa-file-invoice-dollar"></i> Order History</a></li>
                 </ul>
 
                 <div class="sidebar-section-name" style="margin-top:20px;">System</div>
@@ -379,7 +375,7 @@ $adminPhoto = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 
                 <div class="stat-widget border-blue">
                     <div class="widget-title">Total Product Categories</div>
                     <div class="widget-value">12</div>
-                    <a href="category_crud.php" class="widget-btn">Manage Categories &rarr;</a>
+                    <a href="admin/category_crud.php" class="widget-btn">Manage Categories &rarr;</a>
                 </div>
 
                 <div class="stat-widget border-green">
