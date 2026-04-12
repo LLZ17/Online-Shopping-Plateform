@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once '../includes/db.php';
-require_once '../includes/_head.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/_head.php';
 
 if (!isset($_SESSION['user_id'])) {
     echo "<script>alert('Please login first'); window.location.href='../login.php';</script>";
@@ -28,7 +28,7 @@ if (isset($_GET['remove'])) {
     $cart_id = (int)$_GET['remove'];
     $stmt = $pdo->prepare("DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
     $stmt->execute([$cart_id, $user_id]);
-    header('Location: unified_cart.php');
+    echo "<script>window.location.href='unified_cart.php';</script>";
     exit();
 }
 
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
         $stmt = $pdo->prepare("UPDATE cart SET quantity = ? WHERE cart_id = ? AND user_id = ?");
         $stmt->execute([$qty, $cart_id, $user_id]);
     }
-    header('Location: unified_cart.php');
+    echo "<script>window.location.href='unified_cart.php';</script>";
     exit();
 }
 ?>
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
     .price { font-weight: bold; color: #e60012; }
     .remove-link { color: #e60012; text-decoration: none; font-size: 13px; }
     .remove-link:hover { text-decoration: underline; }
-    .total { text-align: right; font-size: 22px; font-weight: bold; color: #e60012; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; }
+    .total { text-align: right; font-size: 24px; font-weight: bold; color: #e60012; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; }
     .btn { background: #e60012; color: white; padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; margin-left: 10px; }
     .btn-gray { background: #666; }
     .empty-cart { text-align: center; padding: 50px; color: #999; }
@@ -65,60 +65,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
 
 <div class="cart-container">
     <h1>🛒 My Shopping Cart</h1>
-    
     <?php if (empty($cart_items)): ?>
-        <div class="empty-cart">
-            <p>Your cart is empty.</p>
-            <a href="../products/listing.php" class="btn btn-gray">Continue Shopping</a>
-        </div>
+        <div class="empty-cart"><p>Your cart is empty.</p><a href="../memberProducts/listing.php" class="btn btn-gray">Continue Shopping</a></div>
     <?php else: ?>
         <form method="POST">
             <table>
-                <thead>
-                    <tr>
-                        <th style="width: 40%;">Product</th>
-                        <th style="width: 15%;">Price</th>
-                        <th style="width: 15%;">Quantity</th>
-                        <th style="width: 15%;">Subtotal</th>
-                        <th style="width: 15%;"></th>
-                    </tr>
-                </thead>
+                <thead><tr><th>Product</th><th>Price</th><th>Quantity</th><th>Subtotal</th><th></th></tr></thead>
                 <tbody>
-                    <?php foreach ($cart_items as $item): ?>
+                    <?php foreach ($cart_items as $item): $subtotal = $item['price'] * $item['quantity']; ?>
                         <tr>
-                            <td>
-                                <div class="product-info">
-                                    <img src="../images/<?php echo $item['product_image'] ?: 'default.jpg'; ?>" class="product-img" onerror="this.src='../images/default.jpg'">
-                                    <div>
-                                        <div class="product-name"><?php echo htmlspecialchars($item['name']); ?></div>
-                                        <div class="product-size">Size: <?php echo !empty($item['selected_size']) ? $item['selected_size'] : 'N/A'; ?></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <td class="price">RM <?php echo number_format($item['price'], 2); ?></div>
-                            <td>
-                                <input type="number" name="quantity[<?php echo $item['cart_id']; ?>]" 
-                                       value="<?php echo $item['quantity']; ?>" min="1" 
-                                       max="<?php echo $item['stock']; ?>" class="qty-input">
-                            </div>
-                            <td class="price">RM <?php echo number_format($item['price'] * $item['quantity'], 2); ?></div>
-                            <td><a href="?remove=<?php echo $item['cart_id']; ?>" class="remove-link" onclick="return confirm('Remove this item?')">Remove</a></div>
+                            <td><div class="product-info"><img src="../images/<?php echo $item['product_image'] ?: 'default.jpg'; ?>" class="product-img" onerror="this.src='../images/default.jpg'"><div><strong><?php echo htmlspecialchars($item['name']); ?></strong><br><small>Size: <?php echo !empty($item['selected_size']) ? $item['selected_size'] : 'N/A'; ?></small></div></div></td>
+                            <td class="price">RM <?php echo number_format($item['price'], 2); ?></td>
+                            <td><input type="number" name="quantity[<?php echo $item['cart_id']; ?>]" value="<?php echo $item['quantity']; ?>" min="1" class="qty-input"></td>
+                            <td class="price">RM <?php echo number_format($subtotal, 2); ?></td>
+                            <td><a href="?remove=<?php echo $item['cart_id']; ?>" class="remove-link" onclick="return confirm('Remove this item?')">Remove</a></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            
-            <div class="total">
-                Total: RM <?php echo number_format($total, 2); ?>
-            </div>
-            
+            <div class="total">Total: RM <?php echo number_format($total, 2); ?></div>
             <div class="cart-actions">
                 <button type="submit" name="update_cart" class="btn btn-gray">Update Cart</button>
-                <a href="../products/listing.php" class="btn btn-gray">Continue Shopping</a>
+                <a href="../index.php" class="btn btn-gray">Continue Shopping</a>
                 <a href="checkout.php" class="btn">Proceed to Checkout →</a>
             </div>
         </form>
     <?php endif; ?>
 </div>
-
-<?php require_once '../includes/_foot.php'; ?>
+<?php require_once __DIR__ . '/../includes/_foot.php'; ?>

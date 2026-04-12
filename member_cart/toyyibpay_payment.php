@@ -1,39 +1,43 @@
 <?php
 session_start();
-require_once 'includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 if (!isset($_SESSION['pending_order'])) {
-    header('Location: cart.php');
-    exit();
+    die("No pending order. Please go back to checkout.");
 }
 
-$order = $_SESSION['pending_order'];
-$total = $order['total'];
+$pending_order = $_SESSION['pending_order'];
 
-// ToyyibPay 配置
+// 获取订单信息
+$total = $pending_order['final_total'] ?? $pending_order['total'];
+$name = $pending_order['name'];
+$email = $pending_order['email'];
+$phone = $pending_order['phone'];
+
 $userSecretKey = '2pl08i3j-hekc-jxfo-218a-02h0ummfdwm3';
 $categoryCode = 'jmf56yjy';
-$baseUrl = "http://localhost/HTML-Online-Shopping-main/";
+$baseUrl = "http://localhost:8001/";
 $returnUrl = $baseUrl . "payment_return.php";
 
 $apiUrl = 'https://dev.toyyibpay.com/index.php/api/createBill';
 $gatewayUrl = 'https://dev.toyyibpay.com/';
 
-$orderId = "PXX-" . date("YmdHis") . "-" . rand(10, 99);
+$orderId = "PXX-" . date("His") . "-" . rand(10, 99);
+$billAmount = $total * 100;
 
 $data = array(
     'userSecretKey' => $userSecretKey,
     'categoryCode' => $categoryCode,
-    'billName' => 'PXX Mall Order',
+    'billName' => 'PXX Mall Fashion Order',
     'billDescription' => 'Payment for Order ' . $orderId,
     'billPriceSetting' => 1,
     'billPayorInfo' => 1,
-    'billAmount' => $total * 100, // 转换成 sen
+    'billAmount' => $billAmount,
     'billReturnUrl' => $returnUrl,
     'billExternalReferenceNo' => $orderId,
-    'billTo' => $order['name'],
-    'billEmail' => $order['email'],
-    'billPhone' => $order['phone']
+    'billTo' => $name,
+    'billEmail' => $email,
+    'billPhone' => $phone
 );
 
 $curl = curl_init();
@@ -41,6 +45,8 @@ curl_setopt($curl, CURLOPT_POST, 1);
 curl_setopt($curl, CURLOPT_URL, $apiUrl);
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 
 $result = curl_exec($curl);
 $errors = curl_error($curl);
@@ -53,22 +59,11 @@ if ($errors) {
 $obj = json_decode($result);
 
 if (isset($obj[0]->BillCode)) {
-    // 保存订单信息到 session，支付成功后使用
-    $_SESSION['payment_order'] = [
-        'order_number' => $orderId,
-        'total' => $total,
-        'name' => $order['name'],
-        'email' => $order['email'],
-        'phone' => $order['phone'],
-        'address' => $order['address'],
-        'cart_items' => $order['cart_items']
-    ];
-    
     header("Location: " . $gatewayUrl . $obj[0]->BillCode);
     exit;
 } else {
     echo "<div style='padding:20px; border:2px solid red;'>";
-    echo "<h3 style='color:red;'>Payment Error</h3>";
+    echo "<h3>Payment Error</h3>";
     echo "<p>" . htmlspecialchars($result) . "</p>";
     echo "</div>";
 }

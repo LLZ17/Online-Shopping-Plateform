@@ -155,7 +155,7 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
             top: -8px;
             border-left: 8px solid transparent;
             border-right: 8px solid transparent;
-            border-bottom: 8px solid white;
+            border-bottom: 8px solid transparent;
             z-index: 2;
         }
 
@@ -229,11 +229,16 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
         <a href="index.php" class="logo-link">PXX Mall<span style="font-size: 12px; vertical-align: 28px;">&reg;</span></a>
         
         <div class="search-section">
-            <form action="search.php" method="GET" class="search-container">
-                <input type="text" name="query" class="search-input" placeholder="Search for products...">
-                <button type="submit" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </form>
-        </div>
+    <form action="ViewAllProduct.php" method="GET" class="search-container" style="display: flex; gap: 10px;">
+        <input type="text" name="query" class="search-input" placeholder="Search for products...">
+        <select name="category" style="padding: 0 15px; border: none; background: white; border-radius: 6px; font-size: 14px;">
+            <option value="">All</option>
+            <option value="Men">👔 Men</option>
+            <option value="Women">👗 Women</option>
+        </select>
+        <button type="submit" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+    </form>
+</div>
 
        <div class="icon-section">
     
@@ -259,27 +264,26 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
         </a>
     </div>
 
-    <!-- Cart -->
-    <div class="dropdown-wrapper">
-        <a href="cart/unified_cart.php" class="icon-link">
-            <div class="icon-wrapper">
-                <i class="fa-solid fa-cart-shopping"></i>
-                <span class="icon-badge">12</span>
-            </div>
-            <span>Cart</span>
-        </a>
-    </div>
+<!-- Your Cart Link -->
+<div class="dropdown-wrapper">
+    <a href="../member_cart/unified_cart.php" class="icon-link">
+        <div class="icon-wrapper">
+            <i class="fa-solid fa-cart-shopping"></i>
+            <span class="icon-badge">0</span>
+        </div>
+        <span>Cart</span>
+    </a>
+</div>
 
-    <!-- Orders -->
-    <div class="dropdown-wrapper">
-        <a href="orders/history.php" class="icon-link">
-            <div class="icon-wrapper">
-                <i class="fa-solid fa-receipt"></i>
-            </div>
-            <span>Orders</span>
-        </a>
-    </div>
-
+<!-- Your Orders Link -->
+<div class="dropdown-wrapper">
+    <a href="../memberOrders/history.php" class="icon-link">
+        <div class="icon-wrapper">
+            <i class="fa-solid fa-receipt"></i>
+        </div>
+        <span>Orders</span>
+    </a>
+</div>
     <!-- User -->
     <div class="dropdown-wrapper">
         <?php if ($isLoggedIn): ?>

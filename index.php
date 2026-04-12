@@ -20,7 +20,7 @@ $products = $stmt->fetchAll();
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px;">
             <?php foreach ($products as $product): ?>
                 <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <a href="products/detail.php?id=<?php echo $product['product_id']; ?>" style="text-decoration: none; color: inherit;">
+                    <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>" style="text-decoration: none; color: inherit;">
                         <img src="images/<?php echo !empty($product['product_image']) ? $product['product_image'] : 'default.jpg'; ?>" 
                              style="width: 100%; height: 250px; object-fit: cover;"
                              onerror="this.src='images/default.jpg'">
@@ -48,9 +48,9 @@ $products = $stmt->fetchAll();
         </div>
         
         <div style="text-align: center; margin: 40px 0;">
-            <a href="products/listing.php" style="background: #e60012; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                View All Products →
-            </a>
+<a href="ViewAllProduct.php" style="background: #e60012; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+    View All Products →
+</a>
         </div>
     </div>
 </div>
@@ -58,26 +58,27 @@ $products = $stmt->fetchAll();
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 function addToCart(productId) {
-    $.ajax({
-        url: 'cart/add.php',
+    fetch('member_cart/add.php', {
         method: 'POST',
-        data: { product_id: productId, quantity: 1 },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                if (confirm('✓ Added to cart! Go to cart now?')) {
-                    window.location.href = 'cart/index.php';
-                }
-            } else {
-                alert(response.error);
-                if (response.error === 'Please login first') {
-                    window.location.href = 'login.php';
-                }
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'product_id=' + productId + '&quantity=1'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            if (confirm('✓ Added to cart! Go to cart now?')) {
+                window.location.href = 'member_cart/unified_cart.php';
             }
-        },
-        error: function() {
-            alert('Error adding to cart');
+        } else {
+            alert(data.error);
+            if (data.error === 'Please login first') {
+                window.location.href = 'login.php';
+            }
         }
+    })
+    .catch(err => {
+        console.log(err);
+        alert('Error adding to cart');
     });
 }
 </script>
