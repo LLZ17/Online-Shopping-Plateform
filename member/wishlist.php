@@ -1,4 +1,5 @@
-<?php require_once '../includes/_head.php'; ?>
+<?php require_once __DIR__ . '/../includes/_head.php';
+      require_once __DIR__ . '/../includes/db.php';?>
 
 <style>
     /* 愿望清单专用样式 */
@@ -130,8 +131,6 @@
 </style>
 
 <?php
-require_once 'includes/db.php'; // 引入连接
-
 // 1. 拦截未登录用户
 if (!isset($_SESSION['user_id'])) {
     echo "<script>alert('Please login to use Wishlist!'); window.location.href='login.php';</script>";
@@ -169,7 +168,7 @@ $result = $stmt->fetchAll();
                 <tr>
                     <td>
                         <div class="product-box">
-                            <img src="images/<?php echo $r['product_image']; ?>" class="product-img" alt="<?php echo $r['name']; ?>">
+                            <img src= "../images/<?php echo $r['product_image']; ?>" class="product-img" alt="<?php echo $r['name']; ?>">
                             <div class="product-info">
                                 <b><?php echo $r['name']; ?></b>
                                 <span>Size: <?php echo $r['size'] ?> | Color: <?php echo $r['colour']; ?></span>
@@ -195,4 +194,4 @@ $result = $stmt->fetchAll();
         </div>
 </div>
 
-<?php require_once '../includes/_foot.php'; ?>
+<?php require_once __DIR__ . '/../includes/_foot.php'; ?>
