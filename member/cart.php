@@ -1,4 +1,4 @@
-<?php require_once '../includes/_head.php'; ?>
+<?php require_once 'includes/_head.php'; ?>
 
 <style>
     /* 购物车整体容器 */
@@ -131,65 +131,60 @@
     }
 </style>
 
-<div class="cart-page-container">
-    <div class="cart-card">
-        <div class="cart-title">
-            <i class="fa-solid fa-cart-shopping"></i> My Shopping Cart
+<div class="cart-container">
+    <h1>🛒 My Shopping Cart</h1>
+    
+    <?php if (empty($cart_items)): ?>
+        <div class="empty-cart">
+            <p>Your cart is empty.</p>
+            <a href="products/listing.php" class="btn btn-gray">Continue Shopping</a>
         </div>
-
-        <table class="cart-table">
-            <thead>
-                <tr>
-                    <th style="width: 45%;">Product</th>
-                    <th style="width: 15%;">Price</th>
-                    <th style="width: 15%;">Quantity</th>
-                    <th style="width: 15%;">Total</th>
-                    <th style="width: 10%;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>
-                        <div class="item-box">
-                            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=100&auto=format&fit=crop" class="item-image" alt="Product">
-                            <div class="item-details">
-                                <b>Premium White T-Shirt</b>
-                                <span>Size: L | Color: White</span>
+    <?php else: ?>
+        <form method="POST">
+            <table>
+                <thead>
+                    <tr style="background:#f5f5f5;">
+                        <th style="padding:15px;">Product</th>
+                        <th style="padding:15px;">Price</th>
+                        <th style="padding:15px;">Quantity</th>
+                        <th style="padding:15px;">Subtotal</th>
+                        <th style="padding:15px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($cart_items as $item): 
+                        $subtotal = $item['price'] * $item['quantity'];
+                    ?>
+                        <tr>
+                            <td style="padding:15px;">
+                                <div class="product-info">
+                                    <img src="images/<?php echo $item['product_image'] ?: 'default.jpg'; ?>" class="product-img" onerror="this.src='images/default.jpg'">
+                                    <div>
+                                        <strong><?php echo htmlspecialchars($item['name']); ?></strong><br>
+                                        <small>Size: <?php echo !empty($item['selected_size']) ? $item['selected_size'] : 'N/A'; ?></small>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </td>
-                    <td class="price-col">RM 49.00</td>
-                    <td><input type="number" value="1" class="qty-input"></td>
-                    <td class="total-col">RM 49.00</td>
-                    <td><span class="remove-link">Remove</span></td>
-                </tr>
-
-                <tr>
-                    <td>
-                        <div class="item-box">
-                            <img src="https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=100&auto=format&fit=crop" class="item-image" alt="Product">
-                            <div class="item-details">
-                                <b>Classic Blue Jeans</b>
-                                <span>Size: 32 | Color: Denim Blue</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="price-col">RM 129.00</td>
-                    <td><input type="number" value="1" class="qty-input"></td>
-                    <td class="total-col">RM 129.00</td>
-                    <td><span class="remove-link">Remove</span></td>
-                </tr>
-            </tbody>
-        </table>
-
-        <div class="cart-checkout-section">
-            <div class="final-price-wrapper">
-                Subtotal (2 items): <span>RM 178.00</span>
+                            <td class="price">RM <?php echo number_format($item['price'], 2); ?></div>
+                            <td><input type="number" name="quantity[<?php echo $item['cart_id']; ?>]" value="<?php echo $item['quantity']; ?>" min="1" class="qty-input"></div>
+                            <td class="price">RM <?php echo number_format($subtotal, 2); ?></div>
+                            <td><a href="?remove=<?php echo $item['cart_id']; ?>" class="remove-link" onclick="return confirm('Remove this item?')">Remove</a></div>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            
+            <div class="total">
+                Total: RM <?php echo number_format($total, 2); ?>
             </div>
-            <a href="checkout.php" class="btn-pay">PROCEED TO CHECKOUT</a>
-            <a href="index.php" style="color: #888; font-size: 14px; text-decoration: underline;">Continue Shopping</a>
-        </div>
-    </div>
+            
+            <div class="cart-actions">
+                <button type="submit" name="update_cart" class="btn btn-gray">Update Cart</button>
+                <a href="products/listing.php" class="btn btn-gray">Continue Shopping</a>
+                <a href="checkout.php" class="btn">Proceed to Checkout →</a>
+            </div>
+        </form>
+    <?php endif; ?>
 </div>
 
 <?php require_once '../includes/_foot.php'; ?>

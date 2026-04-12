@@ -67,60 +67,72 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
         .search-btn { background: white; border: none; color: #e60012; cursor: pointer; padding: 0 22px; font-size: 19px; }
 
         /* --- Icon 严格对齐排版 --- */
-        .icon-section { display: flex; align-items: center; gap: 15px; flex-shrink: 0; } 
+        .icon-section { 
+    display: flex; 
+    align-items: center; 
+    gap: 5px; 
+}
 
-        .dropdown-wrapper { 
-            position: relative; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            min-width: 70px; 
-            cursor: pointer;
-            padding: 5px 0;
-        }
+.dropdown-wrapper { 
+    position: relative; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center;
+    min-width: 70px; 
+    padding: 5px 0;
+    cursor: pointer;
+}
 
-        .icon-link { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            gap: 4px; 
-            font-size: 13px; 
-            font-weight: bold; 
-            white-space: nowrap; 
-        }
+.icon-link { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 4px; 
+    font-size: 12px; 
+    font-weight: 600; 
+    width: 100%; 
+    text-align: center;
+    position: relative;
+}
 
-        .icon-wrapper {
-            position: relative;
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            height: 30px; 
-            width: 30px;
-        }
-        
-        .icon-wrapper i { font-size: 24px; }
+.icon-wrapper {
+    position: relative;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    height: 28px; 
+    width: 28px;
+}
 
-        /* 🌟 调整角标位置，使其更靠近图标 */
-        .icon-badge {
-            position: absolute;
-            top: -4px; /* 从 -6px 改为 -4px，往下压一点 */
-            right: -2px; /* 从 -8px 改为 -2px，往左边靠拢 */
-            background-color: #ffffff; 
-            color: #000000;
-            font-size: 11px;
-            font-weight: 800;
-            width: 18px; 
-            height: 18px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3); 
-            z-index: 10;
-        }
+.icon-wrapper i { 
+    font-size: 22px; 
+}
 
-        .user-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; }
+.icon-badge {
+    position: absolute;
+    top: -6px; 
+    right: -8px;
+    background-color: #ffffff; 
+    color: #e60012;
+    font-size: 10px;
+    font-weight: 800;
+    width: 16px; 
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.user-avatar { 
+    width: 28px; 
+    height: 28px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+    border: 2px solid #fff; 
+}
 
         /* --- 下拉框（加入滤镜阴影和向上箭头） --- */
         .dropdown-box {
@@ -223,6 +235,7 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
             </form>
         </div>
 
+<<<<<<< HEAD
         <div class="icon-section">
             
             <div class="dropdown-wrapper">
@@ -267,9 +280,73 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
                         </div>
                     </div>
                     <div class="box-footer"><a href="wishlist.php" class="box-btn">Go to Wishlist</a></div>
-                </div>
+=======
+       <div class="icon-section">
+    
+    <!-- Notifications -->
+    <div class="dropdown-wrapper">
+        <a href="notifications.php" class="icon-link">
+            <div class="icon-wrapper">
+                <i class="fa-solid fa-bell"></i>
+                <span class="icon-badge">2</span>
             </div>
+            <span>Notifications</span>
+        </a>
+    </div>
 
+    <!-- Wishlist -->
+    <div class="dropdown-wrapper">
+        <a href="wishlist.php" class="icon-link">
+            <div class="icon-wrapper">
+                <i class="fa-solid fa-heart"></i>
+                <span class="icon-badge">5</span>
+            </div>
+            <span>Wishlist</span>
+        </a>
+    </div>
+
+    <!-- Cart -->
+    <div class="dropdown-wrapper">
+        <a href="cart/unified_cart.php" class="icon-link">
+            <div class="icon-wrapper">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span class="icon-badge">12</span>
+            </div>
+            <span>Cart</span>
+        </a>
+    </div>
+
+    <!-- Orders -->
+    <div class="dropdown-wrapper">
+        <a href="orders/history.php" class="icon-link">
+            <div class="icon-wrapper">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+            <span>Orders</span>
+        </a>
+    </div>
+
+    <!-- User -->
+    <div class="dropdown-wrapper">
+        <?php if ($isLoggedIn): ?>
+            <a href="profile.php" class="icon-link">
+                <div class="icon-wrapper">
+                    <img src="images/<?php echo $avatar; ?>" class="user-avatar" alt="Avatar">
+                </div>
+                <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
+            </a>
+        <?php else: ?>
+            <a href="login.php" class="icon-link">
+                <div class="icon-wrapper">
+                    <i class="fa-solid fa-user"></i>
+>>>>>>> 42f5cd74c3dada5bd802d4171b31253bac600039
+                </div>
+                <span>Login/signup</span>
+            </a>
+        <?php endif; ?>
+    </div>
+
+<<<<<<< HEAD
             <div class="dropdown-wrapper">
                 <a href="mmeber/cart.php" class="icon-link">
                     <div class="icon-wrapper">
@@ -319,6 +396,9 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
                     </a>
                 <?php endif; ?>
             </div>
+=======
+</div>
+>>>>>>> 42f5cd74c3dada5bd802d4171b31253bac600039
 
         </div>
     </div>
