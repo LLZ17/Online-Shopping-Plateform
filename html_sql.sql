@@ -26,6 +26,7 @@ SET time_zone = "+00:00";
 --
 -- Table structure for table `cart`
 --
+
 CREATE TABLE `cart` (
   `cart_id` int(11) NOT NULL,
   `user_id` varchar(20) NOT NULL,
@@ -259,42 +260,7 @@ CREATE TABLE `vouchers` (
 --
 -- Indexes for dumped tables
 --
-ALTER TABLE `products` ADD COLUMN IF NOT EXISTS `sizes` VARCHAR(100) DEFAULT 'XS,S,M,L,XL,XXL';
 
--- ============================================
--- 3. 插入你的衣服产品（如果已存在则跳过）
--- ============================================
-INSERT IGNORE INTO `products` (`name`, `price`, `stock`, `description`, `product_image`, `sizes`, `status`) VALUES
-('HYPE Signature Collegiate Pullover Hoodie', 229.90, 8, 'Signature collegiate design pullover hoodie. Comfortable fit with embroidered logo.', 'hype_hoodie.jpg', 'XS,S,M,L,XL,XXL', 'Low in stock'),
-('HYPE CNY Seasonal Graphic Lion Tee', 149.90, 50, 'CNY Seasonal Graphic Lion Tee. Loose fit cutting. 82% cotton, 18% polyester.', 'hype_lion.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('HYPE CNY Seasonal Graphic Chess Tee', 149.90, 50, 'CNY Seasonal Graphic Chess Tee. Loose fit cutting with unique chess pattern.', 'hype_chess.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('TNTCO Neighing Horse Tee', 199.00, 35, 'Neighing Horse graphic tee from TNTCO. Premium quality cotton.', 'tntco_horse.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('TNTCO Patched Logo Hoodie', 289.00, 25, 'Patched Logo Hoodie in navy. Features signature TNTCO patched logo.', 'tntco_hoodie.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('TNTCO Cobra Logo Tee', 99.00, 60, 'Cobra Logo Tee in red. Bold cobra graphic design.', 'tntco_cobra.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('RIC Year of Dragon Tang Shirt', 189.00, 30, 'RIC 2024 Year of the Dragon Tang Shirt. Chinese-style print with traditional knot button.', 'ric_tang_shirt.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('HYPE Initial D 86 Tee', 149.90, 45, 'Initial D 86 graphic tee. Features the iconic AE86 design.', 'hype_86_tee.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('HYPE Initial D Sliding Tee', 149.90, 45, 'Initial D Sliding graphic tee. Loose fit with high quality print.', 'hype_sliding_tee.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('HYPE Initial D Keisuke Tee', 149.90, 45, 'Initial D Keisuke Takahashi graphic tee.', 'hype_initial_d_keisuke.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('HYPE Initial D Takumi Tee', 149.90, 45, 'Initial D Takumi Fujiwara graphic tee. The legendary driver.', 'hype_initial_d_takumi.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('HYPE COCA-COLA Heritage Open Collar Shirt', 179.90, 5, 'Loose fit cutting. 97% polyester, 3% spandex. Digital graphic prints with embroidery.', 'hype_cocacola_shirt.jpg', 'XS,S,M,L,XL,XXL', 'Low in stock'),
-('HYPE Mesh Jersey', 169.90, 8, 'Oversize fit cutting. Mesh fabric with pristine embroidery.', 'hype_mesh_jersey.jpg', 'XS,S,M,L,XL,XXL', 'Low in stock'),
-('HYPE Seasonal Graphic Tee', 149.90, 50, 'Loose fit cutting. 82% cotton, 18% polyester. Interlock 250gsm with printing.', 'hype_seasonal_tee.jpg', 'XS,S,M,L,XL,XXL', 'Instock');
-
-INSERT IGNORE INTO `products` (`name`, `price`, `stock`, `description`, `product_image`, `sizes`, `status`) VALUES
-('Premium White T-Shirt', 49.00, 100, 'Classic white t-shirt made from 100% cotton.', 'premium_tshirt.jpg', 'XS,S,M,L,XL,XXL', 'Instock'),
-('Classic Blue Jeans', 129.00, 80, 'Classic blue denim jeans with slim fit.', 'blue_jeans.jpg', '28,30,32,34,36', 'Instock'),
-('Nike Air Max Sneakers', 450.00, 50, 'Comfortable running shoes with air cushion.', 'nike_airmax.jpg', '6,7,8,9,10', 'Instock'),
-('Adidas Shorts', 89.00, 100, 'Sport shorts for running and gym.', 'adidas_shorts.jpg', 'XS,S,M,L,XL', 'Instock'),
-('Puma Sports Cap', 59.00, 120, 'Sports cap with breathable fabric.', 'puma_cap.jpg', 'One Size', 'Instock'),
-('Cotton Hoodie', 119.00, 60, 'Warm cotton hoodie for casual wear.', 'cotton_hoodie.jpg', 'XS,S,M,L,XL', 'Instock'),
-('Leather Wallet', 75.00, 80, 'Genuine leather wallet with multiple slots.', 'leather_wallet.jpg', 'One Size', 'Instock'),
-('Bluetooth Earbuds', 210.00, 40, 'Wireless earbuds with charging case.', 'earbuds.jpg', 'One Size', 'Instock'),
-('Gym Shaker', 35.00, 150, 'Protein shaker bottle for gym use.', 'shaker.jpg', 'One Size', 'Instock'),
-('Oxford Shirt', 95.00, 70, 'Formal oxford shirt for office wear.', 'oxford_shirt.jpg', 'XS,S,M,L,XL,XXL', 'Instock');
--- ============================================
--- 4. 验证插入结果
--- ============================================
-SELECT product_id, name, price, stock, sizes FROM products ORDER BY product_id DESC LIMIT 15;
 --
 -- Indexes for table `cart`
 --
@@ -344,7 +310,7 @@ ALTER TABLE `vouchers`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `code` (`code`);
 
---
+--  
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -388,3 +354,5 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+INSERT INTO `products` (`product_id`, `category_id`, `name`, `keywords`, `description`, `price`, `size`, `colour`, `rating`, `stock`, `low_stock_threshold`, `sales_count`, `product_image`, `status`, `created_at`) VALUES ('1', '1', 'A Shirt', 'Shirt', 'This is a Shirt', '10.00', 'XL/XXL/S', 'BLACK / WHITE', '4.56', '500', '10', '2', 'A Shirt.jpg', 'Instock', '2026-04-11 15:51:16');
+INSERT INTO `favourites` (`id`, `user_id`, `product_id`, `category_id`, `created_at`) VALUES ('1', 't104', '1', '1', '2026-04-11 19:02:29');
