@@ -327,7 +327,7 @@ $adminPhoto = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 
                     <span class="welcome">Welcome back,</span>
                     <b class="username"><?php echo htmlspecialchars($_SESSION['username']); ?></b>
                 </div>
-                <a href="../logout.php" class="btn-power" title="Logout" onclick="return confirm('Securely log out?')">
+                <a href="admin/logout.php" class="btn-power" title="Logout" onclick="return confirm('Securely log out?')">
                     <i class="fa-solid fa-power-off"></i>
                 </a>
             </div>
@@ -345,16 +345,16 @@ $adminPhoto = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 
 
                 <div class="sidebar-section-name" style="margin-top:20px;">Management</div>
                 <ul class="sidebar-menu-list">
-                    <li><a href="category_crud.php" class="sidebar-link"><i class="fa-solid fa-tags"></i> Category CRUD</a></li>
-                    <li><a href="product_crud.php" class="sidebar-link"><i class="fa-solid fa-box-open"></i> Product CRUD</a></li>
-                    <li><a href="member_crud.php" class="sidebar-link"><i class="fa-solid fa-users-gear"></i> Member CRUD</a></li>
-                    <li><a href="admin_crud.php" class="sidebar-link"><i class="fa-solid fa-user-shield"></i> Admin CRUD</a></li>
+                    <li><a href="admin/category_crud.php" class="sidebar-link"><i class="fa-solid fa-tags"></i> Category CRUD</a></li>
+                    <li><a href="admin/product_crud.php" class="sidebar-link"><i class="fa-solid fa-box-open"></i> Product CRUD</a></li>
+                    <li><a href="admin/member_crud.php" class="sidebar-link"><i class="fa-solid fa-users-gear"></i> Member CRUD</a></li>
+                    <li><a href="admin/admin_crud.php" class="sidebar-link"><i class="fa-solid fa-user-shield"></i> Admin CRUD</a></li>
                 </ul>
 
                 <div class="sidebar-section-name" style="margin-top:20px;">Logs & Reports</div>
                 <ul class="sidebar-menu-list">
-                    <li><a href="sales_data.php" class="sidebar-link"><i class="fa-solid fa-chart-line"></i> Sales Data</a></li>
-                    <li><a href="order_crud.php" class="sidebar-link"><i class="fa-solid fa-file-invoice-dollar"></i> Order History</a></li>
+                    <li><a href="admin/sales_data.php" class="sidebar-link"><i class="fa-solid fa-chart-line"></i> Sales Data</a></li>
+                    <li><a href="admin/order_crud.php" class="sidebar-link"><i class="fa-solid fa-file-invoice-dollar"></i> Order History</a></li>
                 </ul>
 
                 <div class="sidebar-section-name" style="margin-top:20px;">System</div>
@@ -375,7 +375,7 @@ $adminPhoto = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 
                 <div class="stat-widget border-blue">
                     <div class="widget-title">Total Product Categories</div>
                     <div class="widget-value">12</div>
-                    <a href="category_crud.php" class="widget-btn">Manage Categories &rarr;</a>
+                    <a href="admin/category_crud.php" class="widget-btn">Manage Categories &rarr;</a>
                 </div>
 
                 <div class="stat-widget border-green">
