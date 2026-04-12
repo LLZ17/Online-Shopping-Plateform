@@ -9,29 +9,45 @@ include 'includes/_head.php';
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 75vh;
-        background-color: #f8f9fa;
+        min-height: 85vh; 
+        position: relative;
+        background-image: url('images/pxxbg.jpeg'); 
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
         padding: 40px 20px;
     }
 
     .role-container {
         text-align: center;
         max-width: 800px;
-        width: 100%;
+        width: 100%;/* --- 插入在第 25 行之后 --- */
+.role-selection-wrapper::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.45); /* 🌑 遮罩黑度，0.45 左右最合适 */
+    z-index: 1;
+}
+
+.role-container {
+    position: relative;
+    z-index: 2; /* 确保内容在遮罩上面 */
+}
     }
 
     .role-container h1 {
-        color: #333;
-        font-size: 32px;
-        font-weight: 800;
-        margin-bottom: 10px;
-    }
+    color: #ffffff; /* 🌟 改为白色 */
+    text-shadow: 0 4px 12px rgba(0,0,0,0.4); /* 增加投影防止背景太亮 */
+    font-size: 44px;
+    font-weight: 900;
+}
 
-    .role-container p {
-        color: #666;
-        font-size: 16px;
-        margin-bottom: 40px;
-    }
+.role-container p {
+    color: rgba(255, 255, 255, 0.9); /* 🌟 改为浅白色 */
+    text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
 
     /* 选项卡片布局 */
     .role-cards {
@@ -43,7 +59,9 @@ include 'includes/_head.php';
     }
 
     .role-card {
-        background: #ffffff;
+        background: rgba(255, 255, 255, 0.92); /* 🌟 半透明白 */
+        backdrop-filter: blur(30px); /* 🌟 磨砂模糊效果 */
+        -webkit-backdrop-filter: blur(10px);
         width: 320px;
         padding: 40px 30px;
         border-radius: 16px;
@@ -51,7 +69,6 @@ include 'includes/_head.php';
         text-align: center;
         text-decoration: none;
         color: #333;
-        border: 2px solid transparent; /* 默认透明边框 */
         transition: all 0.3s ease;
         display: flex;
         flex-direction: column;

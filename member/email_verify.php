@@ -36,8 +36,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // --- [STAGE 4: 数据库依赖加载] ---
-require_once __DIR__ . '../includes/db.php';
-
+require_once '../includes/db.php';
 // 登录守卫：未登录用户强制拦截
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -104,7 +103,7 @@ function sendSecurityVerificationOTP($pdo, $user_id) {
             )
         );
 
-        $mail->setFrom('pxxmallmalaysia@gmail.com', 'noreply@PXX Mall Security');
+        $mail->setFrom('pxxmallmalaysia@gmail.com', 'noreply@PXX Mall Security System');
         $mail->addAddress($target_email, $target_name);
         $mail->isHTML(true);
         $mail->Subject = "Verification Code: [ $generated_otp ] for $target_name";
@@ -117,19 +116,20 @@ function sendSecurityVerificationOTP($pdo, $user_id) {
             <table align='center' border='0' cellpadding='0' cellspacing='0' width='600' style='background-color: #ffffff; border-radius: 12px; border: 1px solid #eeeeee; overflow: hidden;'>
                 <tr>
                     <td align='center' style='padding: 40px; background-color: #e60012;'>
-                        <h1 style='color: #ffffff; margin: 0; font-size: 26px;'>PXX Mall Security</h1>
+                        <h1 style='color: #ffffff; margin: 0; font-size: 26px;'>PXX Mall Security System</h1>
                     </td>
                 </tr>
                 <tr>
                     <td style='padding: 50px 40px; text-align: center;'>
                         <h2 style='color: #333;'>Hi $target_name,</h2>
-                        <p style='color: #666; font-size: 16px;'>To complete your verification, please enter the code below:</p>
+                        <p style='color: #666; font-size: 16px;'>To complete your email verification, please enter the code below:</p>
                         <div style='margin: 30px auto; padding: 30px; background: #f9f9f9; border: 2px dashed #e60012; font-size: 48px; font-weight: bold; color: #e60012; letter-spacing: 12px;'>$generated_otp</div>
-                        <p style='color: #ff0000; font-size: 14px;'><strong>Attention:</strong> This code is valid for 30 seconds.</p>
+                        <p style='color: #ff0000; font-size: 14px;'><strong>Attention:</strong> This code is valid for 30 seconds!</p>
                         
                         <p style='color: #999; font-size: 13px; line-height: 1.8; margin-top: 25px;'>
-                            This is a system generated message, please do not reply.<br>
-                            Please dont share your code to anyone!
+                            This is a system generated message, please do not reply!<br>
+                            Please dont share your code to anyone!<br>
+                            If you didn't request the code, please ignore it!<br>
                         </p>
                     </td>
                 </tr>
@@ -210,7 +210,7 @@ $stmt_ui = $pdo->prepare("SELECT email, username FROM users WHERE user_id = ?");
 $stmt_ui->execute([$user_id]);
 $ui_data = $stmt_ui->fetch();
 
-include_once __DIR__ . '../includes/_head.php';
+include_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_head.php';
 ?>
 
 <style>

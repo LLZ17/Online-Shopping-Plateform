@@ -124,7 +124,7 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
         /* Logo 样式 */
         .logo-link { 
             font-family: 'Montserrat', sans-serif;
-            font-size: 42px; font-weight: 800; letter-spacing: -1px; 
+            font-size: 50px; font-weight: 600; letter-spacing: -1px; 
             display: flex; align-items: flex-start;
         }
         .logo-link span { font-size: 14px; font-weight: 700; margin-top: 5px; margin-left: 2px; }
@@ -204,7 +204,7 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
         }
         .user-dropdown a:last-child { border-bottom: none; }
         .user-dropdown i { width: 20px; text-align: center; color: #888; font-size: 16px; }
-        .user-dropdown a:hover { color: #00cba9; background: #fafafa; }
+        .user-dropdown a:hover { color: #28a745; background: #fafafa; }
         .user-dropdown a.logout-btn:hover, .user-dropdown a.logout-btn:hover i { color: var(--pxx-red); }
 
         /* 预览框详情样式 */
@@ -225,7 +225,7 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
         
         <div class="search-section">
             <form action="<?php echo $path_prefix; ?>search.php" method="GET" class="search-container">
-                <input type="text" name="query" class="search-input" placeholder="Search for Men and Women chlotes......">
+                <input type="text" name="query" class="search-input" placeholder="Search for Men and Women clothes">
                 <button type="submit" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
         </div>
@@ -258,7 +258,7 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
                 </a>
                 <?php if ($isLoggedIn): ?>
                 <div class="preview-box">
-                    <div class="preview-header">Wishlist Items</div>
+                    <div class="preview-header">Your Wishlist Item:</div>
                     <div class="preview-content">No items added to wishlist recently.</div>
                 </div>
                 <?php endif; ?>
@@ -274,7 +274,7 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
                 </a>
                 <?php if ($isLoggedIn): ?>
                 <div class="preview-box">
-                    <div class="preview-header">Cart Summary</div>
+                    <div class="preview-header">Your Shopping Cart:</div>
                     <div class="preview-content">12 items in your shopping cart.</div>
                 </div>
                 <?php endif; ?>
@@ -291,7 +291,7 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
                     <div class="user-dropdown">
                         <a href="<?php echo $path_prefix; ?>member/profile.php"><i class="fa-solid fa-user-circle"></i> My Account</a>
                         <a href="<?php echo $path_prefix; ?>member/order_history.php"><i class="fa-solid fa-box"></i> My Orders</a>
-                        <a href="<?php echo $path_prefix; ?>member/settings.php"><i class="fa-solid fa-gear"></i> Settings</a>
+                        <a href="<?php echo $path_prefix; ?>member/settings.php"><i class="fa-solid fa-gear"></i> My Settings</a>
                         <div style="height:1px; background:#eee; margin:5px 0;"></div>
                         <a href="<?php echo $path_prefix; ?>member/logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
                     </div>
@@ -306,7 +306,7 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
                             <a href="<?php echo $path_prefix; ?>login_selection.php" style="background:var(--pxx-red); color:white; border-radius:4px; font-weight:800;">
                                 <i class="fa-solid fa-key" style="color:white; font-size:12px;"></i> Login
                             </a>
-                            <a href="<?php echo $path_prefix; ?>signup.php" style="border:1.5px solid #eee; border-radius:4px;">
+                            <a href="<?php echo $path_prefix; ?>member/signup.php" style="border:1.5px solid #eee; border-radius:4px;">
                                 <i class="fa-solid fa-user-plus" style="font-size:12px;"></i> Sign Up
                             </a>
                         </div>

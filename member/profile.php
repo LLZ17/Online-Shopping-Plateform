@@ -420,11 +420,11 @@ if (file_exists($pxx_head_file)) {
             
             <a href="?page=my_profile" class="nav-link-item <?php echo ($active_page=='my_profile')?'active':''; ?>">My Profile</a>
             
-            <a href="?page=addresses" class="nav-link-item <?php echo ($active_page=='addresses')?'active':''; ?>">My Addresses</a>
+            <a href="?page=addresses" class="nav-link-item <?php echo ($active_page=='addresses')?'active':''; ?>">My Shipping Addresses</a>
             
-            <a href="?page=bank" class="nav-link-item <?php echo ($active_page=='bank')?'active':''; ?>">Bank Accounts / Cards</a>
+            <a href="?page=bank" class="nav-link-item <?php echo ($active_page=='bank')?'active':''; ?>">My Bank Accounts / Cards</a>
             
-            <a href="?page=security" class="nav-link-item <?php echo ($active_page=='security')?'active':''; ?>">Account Security</a>
+            <a href="?page=security" class="nav-link-item <?php echo ($active_page=='security')?'active':''; ?>">My Account Security</a>
             
             <div class="logout-nav-container">
                 <a href="../logout.php" class="logout-link-aligned">
@@ -612,7 +612,7 @@ if (file_exists($pxx_head_file)) {
 
             <div class="security-data-row">
                 <div class="sec-meta-info">
-                    <strong>Primary Mobile Number</strong><br>
+                    <strong>Phone Number</strong><br>
                     <span style="color: #888; font-size: 14px; line-height: 2;"><?php echo d($u['phone_num']); ?></span>
                     <span class="status-badge badge-verified">Verified</span>
                 </div>
