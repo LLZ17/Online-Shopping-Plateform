@@ -22,9 +22,9 @@ date_default_timezone_set('Asia/Kuala_Lumpur');
 
 // --- [STAGE 2: 核心类库引入] ---
 // 使用物理绝对路径，彻底解决 Fatal error: Class not found 问题
-require_once 'lib/Exception.php'; 
-require_once 'lib/PHPMailer.php'; 
-require_once 'lib/SMTP.php';
+require_once '../lib/Exception.php'; 
+require_once '../lib/PHPMailer.php'; 
+require_once '../lib/SMTP.php';
 
 // --- [STAGE 3: 严苛模式配置] ---
 error_reporting(E_ALL);

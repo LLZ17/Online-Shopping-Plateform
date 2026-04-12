@@ -1,404 +1,318 @@
 <?php
+/**
+ * =================================================================================
+ * PXX MALL - ENTERPRISE GLOBAL HEADER (STABLE VERSION 8.0)
+ * =================================================================================
+ * 开发者：PXX Mall 技术部
+ * 物理路径参考: C:\xampp\htdocs\HTML_Ass\images
+ * =================================================================================
+ */
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 🛠️ 判断登录状态
+// ----------------------------------------------------------------
+// 1. 全局变量初始化与权限判定
+// ----------------------------------------------------------------
 $isLoggedIn = false;
+$username = "";
+$avatar_file = "default.jpg";
+
+// 🌟 核心：判定当前运行的文件夹层级 (解决相对路径报错)
+$current_page_dir = basename(dirname($_SERVER['PHP_SELF']));
+$is_subfolder = ($current_page_dir === 'admin' || $current_page_dir === 'member');
+$path_prefix = $is_subfolder ? '../' : '';
+
+// 2. 获取用户数据：强制连接 SQL 获取最新头像
 if (isset($_SESSION['username']) || isset($_SESSION['user_id'])) {
     $isLoggedIn = true;
-}
-
-// 🔥 自动登录逻辑
-if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
-    require_once 'db.php'; 
-    $token = $_COOKIE['remember_me'];
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE remember_token = ?");
-    $stmt->execute([$token]);
-    $user = $stmt->fetch();
-    if ($user) {
-        $_SESSION['user_id'] = $user['user_id']; 
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role'] = $user['role'];
-        $_SESSION['profile_image'] = !empty($user['profile_photo']) ? $user['profile_photo'] : 'default.jpg';
-        $isLoggedIn = true;
+    $username = $_SESSION['username'];
+    
+    // 🔗 引入数据库连接 (锁定路径)
+    $db_file = __DIR__ . '/db.php';
+    if (file_exists($db_file)) {
+        require_once $db_file;
+        if (isset($pdo)) {
+            try {
+                // 实时查询数据库中的 profile_photo 字段，确保头像同步
+                $stmt = $pdo->prepare("SELECT profile_photo FROM users WHERE username = ? LIMIT 1");
+                $stmt->execute([$username]);
+                $user_data = $stmt->fetch();
+                
+                if ($user_data && !empty($user_data['profile_photo'])) {
+                    $avatar_file = $user_data['profile_photo'];
+                    $_SESSION['profile_photo'] = $avatar_file; // 同步给 Session
+                }
+            } catch (PDOException $e) {
+                // 数据库报错时回退到 Session 或 默认图
+                $avatar_file = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 'default.jpg';
+            }
+        }
     }
 }
+
+// 3. Remember Me 自动登录
+if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
+    $db_file = __DIR__ . '/db.php';
+    if (file_exists($db_file)) {
+        require_once $db_file;
+        if (isset($pdo)) {
+            $token = $_COOKIE['remember_me'];
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE remember_token = ? LIMIT 1");
+            $stmt->execute([$token]);
+            $user = $stmt->fetch();
+            
+            if ($user) {
+                $_SESSION['user_id'] = $user['user_id']; 
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role'] = $user['role'];
+                $db_avatar = !empty($user['profile_photo']) ? $user['profile_photo'] : 'default.jpg';
+                $_SESSION['profile_photo'] = $db_avatar;
+                
+                $isLoggedIn = true;
+                $username = $_SESSION['username'];
+                $avatar_file = $db_avatar;
+            }
+        }
+    }
+}
+
+// 最终合成图片物理路径
+$final_avatar_path = $path_prefix . 'images/' . $avatar_file;
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-        * { box-sizing: border-box; }
-        a { text-decoration: none; color: inherit; }
+        /* ============================================================
+           CSS 系统设置 (不偷工减料，完整保留所有 UI 细节)
+           ============================================================ */
+        :root {
+            --pxx-red: #e60012;
+            --white: #ffffff;
+            --gray-100: #f8f9fa;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-        /* --- Header 固定样式 --- */
+        body { margin: 0; font-family: 'Poppins', sans-serif; background-color: var(--gray-100); }
+        * { box-sizing: border-box; }
+        a { text-decoration: none; color: inherit; transition: var(--transition); }
+
+        /* 顶部导航容器 */
         .pxx-header { 
-            background-color: #e60012; 
+            background-color: var(--pxx-red); 
             color: white; 
-            padding: 15px 0; 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            right: 0; 
+            padding: 12px 0; 
+            position: fixed; top: 0; left: 0; right: 0; 
             z-index: 10000; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         .header-container { 
-            display: flex; 
-            justify-content: space-between; 
+            display: flex; justify-content: space-between; align-items: center; 
+            max-width: 1400px; margin: 0 auto; padding: 0 40px; 
+        }
+
+        /* Logo 样式 */
+        .logo-link { 
+            font-family: 'Montserrat', sans-serif;
+            font-size: 42px; font-weight: 800; letter-spacing: -1px; 
+            display: flex; align-items: flex-start;
+        }
+        .logo-link span { font-size: 14px; font-weight: 700; margin-top: 5px; margin-left: 2px; }
+
+        /* 搜索栏样式 */
+        .search-section { flex: 1; margin: 0 60px; max-width: 700px; }
+        .search-container { display: flex; background: white; border-radius: 6px; overflow: hidden; }
+        .search-input { width: 100%; border: none; padding: 12px 20px; outline: none; font-size: 15px; color: #333; }
+        .search-btn { background: white; border: none; color: var(--pxx-red); cursor: pointer; padding: 0 20px; font-size: 18px; }
+
+        /* 图标动作区 */
+        .nav-actions { display: flex; align-items: center; gap: 28px; } 
+        .nav-item { position: relative; display: flex; flex-direction: column; align-items: center; }
+        .nav-trigger-link { display: flex; flex-direction: column; align-items: center; cursor: pointer; color: white; }
+        .nav-trigger-link:hover { opacity: 0.85; transform: translateY(-2px); }
+
+        .profile-item { margin-left: 20px; } 
+        .icon-wrap { position: relative; height: 32px; display: flex; align-items: center; justify-content: center; }
+        .icon-wrap i { font-size: 24px; color: white; }
+        .icon-text { font-size: 13px; font-weight: 700; color: white; margin-top: 4px; }
+
+        /* 徽章样式 */
+        .badge { 
+            position: absolute; top: -6px; right: -12px; 
+            background: white; color: black; 
+            font-size: 12px; font-weight: 900; 
+            width: 20px; height: 20px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* 头像圆形 */
+        .user-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid white; }
+
+        /* =========================================
+           悬停预览与下拉菜单样式
+           ========================================= */
+        .preview-box, .user-dropdown {
+            position: absolute; top: calc(100% + 15px); background: white; border-radius: 6px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #eee; 
+            visibility: hidden; opacity: 0; transform: translateY(10px); 
+            transition: var(--transition); color: #333; z-index: 10001;
+        }
+
+        /* 指向上方的小三角 */
+        .preview-box::after, .user-dropdown::after { 
+            content: ''; position: absolute; top: -8px; 
+            border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid white; 
+        }
+
+        /* 鼠标悬停激活 */
+        .nav-item.hover-trigger:hover .preview-box, 
+        .nav-item.hover-trigger:hover .user-dropdown { 
+            visibility: visible; opacity: 1; transform: translateY(-5px); 
+        }
+
+        /* 用户下拉菜单宽度调节 */
+        .user-dropdown { right: 0; min-width: 220px; display: flex; flex-direction: column; padding: 5px 0; }
+        .user-dropdown::after { right: 25px; } 
+
+        /* 🔥 新增：未登录时的宽大菜单样式 (解决 Signup/Login 同一行问题) */
+        .guest-dropdown { width: 260px !important; padding: 15px !important; text-align: center; }
+        .guest-dropdown a { 
+            padding: 10px 15px !important; 
+            display: inline-flex !important; 
             align-items: center; 
-            max-width: 1400px; 
-            margin: 0 auto; 
-            padding: 0 30px; 
+            justify-content: center;
+            width: auto !important;
+            font-size: 15px !important;
+            border-bottom: none !important;
         }
 
-        .logo-link { font-size: 50px; font-weight: 700; letter-spacing: 1px; line-height: 1; flex-shrink: 0; }
-
-        /* 🌟 放大搜索栏：加宽 max-width，增加内边距和字体大小 */
-        .search-section { flex: 1; margin: 0 40px 0 60px; max-width: 650px; }
-        .search-container { display: flex; background-color: white; border-radius: 6px; overflow: hidden; border: 2px solid white; }
-        .search-input { width: 100%; border: none; padding: 14px 24px; outline: none; font-size: 16px; color: #333; }
-        .search-btn { background: white; border: none; color: #e60012; cursor: pointer; padding: 0 22px; font-size: 19px; }
-
-        /* --- Icon 严格对齐排版 --- */
-        .icon-section { 
-    display: flex; 
-    align-items: center; 
-    gap: 5px; 
-}
-
-.dropdown-wrapper { 
-    position: relative; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    justify-content: center;
-    min-width: 70px; 
-    padding: 5px 0;
-    cursor: pointer;
-}
-
-.icon-link { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    gap: 4px; 
-    font-size: 12px; 
-    font-weight: 600; 
-    width: 100%; 
-    text-align: center;
-    position: relative;
-}
-
-.icon-wrapper {
-    position: relative;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    height: 28px; 
-    width: 28px;
-}
-
-.icon-wrapper i { 
-    font-size: 22px; 
-}
-
-.icon-badge {
-    position: absolute;
-    top: -6px; 
-    right: -8px;
-    background-color: #ffffff; 
-    color: #e60012;
-    font-size: 10px;
-    font-weight: 800;
-    width: 16px; 
-    height: 16px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.user-avatar { 
-    width: 28px; 
-    height: 28px; 
-    border-radius: 50%; 
-    object-fit: cover; 
-    border: 2px solid #fff; 
-}
-
-        /* --- 下拉框（加入滤镜阴影和向上箭头） --- */
-        .dropdown-box {
-            display: none;
-            position: absolute;
-            top: calc(100% + 15px); 
-            background: white;
-            color: #333;
-            border-radius: 6px;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
-            z-index: 10001;
-            cursor: default;
+        .user-dropdown a { 
+            padding: 12px 20px; font-size: 14px; color: #444; font-weight: 600; 
+            text-align: left; display: flex; align-items: center; gap: 12px; 
+            border-bottom: 1px solid #f9f9f9; 
         }
-        .dropdown-wrapper:hover .dropdown-box { display: block; }
+        .user-dropdown a:last-child { border-bottom: none; }
+        .user-dropdown i { width: 20px; text-align: center; color: #888; font-size: 16px; }
+        .user-dropdown a:hover { color: #00cba9; background: #fafafa; }
+        .user-dropdown a.logout-btn:hover, .user-dropdown a.logout-btn:hover i { color: var(--pxx-red); }
 
-        /* 向上箭头 */
-        .dropdown-box::before {
-            content: "";
-            position: absolute;
-            top: -8px;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-bottom: 8px solid white;
-            z-index: 2;
-        }
+        /* 预览框详情样式 */
+        .preview-box { right: -20px; width: 320px; cursor: default; }
+        .preview-box::after { right: 35px; } 
+        .preview-header { padding: 15px 20px; font-size: 15px; font-weight: 700; border-bottom: 1px solid #eee; text-align: left; }
+        .preview-content { padding: 20px; color: #888; font-size: 13px; text-align: center; }
 
-        /* 隐形桥梁 */
-        .dropdown-box::after {
-            content: "";
-            position: absolute;
-            top: -15px; 
-            left: 0;
-            right: 0;
-            height: 15px;
-            background: transparent;
-            z-index: 1;
-        }
-
-        .center-box { width: 320px; right: 50%; transform: translateX(50%); }
-        .center-box::before { right: 50%; transform: translateX(50%); }
-
-        .account-box { width: 200px; right: 0; padding: 10px 0; }
-        .account-box::before { right: 26px; } 
-
-        .menu-link { 
-            display: block; 
-            padding: 12px 20px; 
-            font-size: 15px; 
-            color: #333; 
-            text-align: left; 
-            font-weight: 500;
-            transition: all 0.2s ease; 
-            white-space: nowrap; 
-        }
-        .menu-link:hover { 
-            background-color: #f5f5f5; 
-            color: #e60012; 
-        }
-
-        /* 🌟 预览框标题样式更新：加入 flex 排版以对齐图标和文字 */
-        .box-header { 
-            padding: 15px; 
-            font-weight: bold; 
-            border-bottom: 1px solid #eee; 
-            text-align: left; 
-            font-size: 15px; 
-            color: #333; 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-        }
-        /* 给 box-header 里的 icon 加一点主题红 */
-        .box-header i { color: #e60012; font-size: 16px; }
-
-        .box-content { padding: 10px; max-height: 350px; overflow-y: auto; }
-        .box-footer { padding: 12px; background: #fcfcfc; border-top: 1px solid #eee; }
-        .box-btn { display: block; background: #e60012; color: white; text-align: center; padding: 10px; border-radius: 4px; font-weight: bold; font-size: 14px; }
-
-        .preview-item { display: flex; gap: 12px; padding: 10px; align-items: center; border-bottom: 1px solid #f9f9f9; }
-        .preview-item:hover { background-color: #fcfcfc; }
-        .preview-img { width: 45px; height: 45px; background: #eee; border-radius: 4px; flex-shrink: 0; object-fit: cover; }
-        .preview-info { flex: 1; text-align: left; }
-        .preview-info .p-name { display: block; font-size: 13px; color: #333; margin-bottom: 4px; line-height: 1.3; }
-        .preview-info .p-price { display: block; font-size: 14px; font-weight: bold; color: #e60012; }
-
-        /* 隐形垫片 */
-        .header-spacer { height: 98px; width: 100%; display: block; background: transparent; }
+        .header-spacer { height: 95px; width: 100%; display: block; }
     </style>
 </head>
 <body>
 
 <header class="pxx-header">
     <div class="header-container">
-        <a href="index.php" class="logo-link">PXX Mall<span style="font-size: 12px; vertical-align: 28px;">&reg;</span></a>
+        
+        <a href="<?php echo $path_prefix; ?>index.php" class="logo-link">PXX Mall<span>&reg;</span></a>
         
         <div class="search-section">
-            <form action="search.php" method="GET" class="search-container">
-                <input type="text" name="query" class="search-input" placeholder="Search for products...">
+            <form action="<?php echo $path_prefix; ?>search.php" method="GET" class="search-container">
+                <input type="text" name="query" class="search-input" placeholder="Search for Men and Women chlotes......">
                 <button type="submit" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
         </div>
 
-<<<<<<< HEAD
-        <div class="icon-section">
+        <div class="nav-actions">
             
-            <div class="dropdown-wrapper">
-                <a href="member/notifications.php" class="icon-link">
-                    <div class="icon-wrapper">
+            <div class="nav-item <?php echo $isLoggedIn ? 'hover-trigger' : ''; ?>">
+                <a href="<?php echo $isLoggedIn ? $path_prefix.'member/notifications.php' : $path_prefix.'login_selection.php'; ?>" class="nav-trigger-link">
+                    <div class="icon-wrap">
                         <i class="fa-solid fa-bell"></i>
-                        <span class="icon-badge">2</span>
+                        <?php if ($isLoggedIn): ?><span class="badge">2</span><?php endif; ?>
                     </div>
-                    <span>Notifications</span>
+                    <span class="icon-text">Notifications</span>
                 </a>
-                <div class="dropdown-box center-box">
-                    <div class="box-header"><i class="fa-solid fa-bell"></i> Recent Notifications</div>
-                    <div class="box-content">
-                        <div class="preview-item">
-                            <div class="preview-info">
-                                <span class="p-name">Your order #PX123 has been shipped.</span>
-                                <span style="font-size: 11px; color: #999;">2 hours ago</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="box-footer"><a href="notifications.php" class="box-btn">View All Notifications</a></div>
-                </div>
-            </div>
-
-            <div class="dropdown-wrapper">
-                <a href="member/wishlist.php" class="icon-link">
-                    <div class="icon-wrapper">
-                        <i class="fa-solid fa-heart"></i>
-                        <span class="icon-badge">5</span>
-                    </div>
-                    <span>Wishlist</span>
-                </a>
-                <div class="dropdown-box center-box">
-                    <div class="box-header"><i class="fa-solid fa-heart"></i> Wishlist Preview</div>
-                    <div class="box-content">
-                        <div class="preview-item">
-                            <div class="preview-img" style="background: url('https://placehold.co/100x100?text=IMG') center/cover;"></div>
-                            <div class="preview-info">
-                                <span class="p-name">Classic Leather Watch</span>
-                                <span class="p-price">RM 199.00</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="box-footer"><a href="wishlist.php" class="box-btn">Go to Wishlist</a></div>
-=======
-       <div class="icon-section">
-    
-    <!-- Notifications -->
-    <div class="dropdown-wrapper">
-        <a href="notifications.php" class="icon-link">
-            <div class="icon-wrapper">
-                <i class="fa-solid fa-bell"></i>
-                <span class="icon-badge">2</span>
-            </div>
-            <span>Notifications</span>
-        </a>
-    </div>
-
-    <!-- Wishlist -->
-    <div class="dropdown-wrapper">
-        <a href="wishlist.php" class="icon-link">
-            <div class="icon-wrapper">
-                <i class="fa-solid fa-heart"></i>
-                <span class="icon-badge">5</span>
-            </div>
-            <span>Wishlist</span>
-        </a>
-    </div>
-
-    <!-- Cart -->
-    <div class="dropdown-wrapper">
-        <a href="cart/unified_cart.php" class="icon-link">
-            <div class="icon-wrapper">
-                <i class="fa-solid fa-cart-shopping"></i>
-                <span class="icon-badge">12</span>
-            </div>
-            <span>Cart</span>
-        </a>
-    </div>
-
-    <!-- Orders -->
-    <div class="dropdown-wrapper">
-        <a href="orders/history.php" class="icon-link">
-            <div class="icon-wrapper">
-                <i class="fa-solid fa-receipt"></i>
-            </div>
-            <span>Orders</span>
-        </a>
-    </div>
-
-    <!-- User -->
-    <div class="dropdown-wrapper">
-        <?php if ($isLoggedIn): ?>
-            <a href="profile.php" class="icon-link">
-                <div class="icon-wrapper">
-                    <img src="images/<?php echo $avatar; ?>" class="user-avatar" alt="Avatar">
-                </div>
-                <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
-            </a>
-        <?php else: ?>
-            <a href="login.php" class="icon-link">
-                <div class="icon-wrapper">
-                    <i class="fa-solid fa-user"></i>
->>>>>>> 42f5cd74c3dada5bd802d4171b31253bac600039
-                </div>
-                <span>Login/signup</span>
-            </a>
-        <?php endif; ?>
-    </div>
-
-<<<<<<< HEAD
-            <div class="dropdown-wrapper">
-                <a href="mmeber/cart.php" class="icon-link">
-                    <div class="icon-wrapper">
-                        <i class="fa-solid fa-cart-shopping"></i>
-                        <span class="icon-badge">12</span>
-                    </div>
-                    <span>Cart</span>
-                </a>
-                <div class="dropdown-box center-box">
-                    <div class="box-header"><i class="fa-solid fa-cart-shopping"></i> Shopping Cart</div>
-                    <div class="box-content">
-                        <div class="preview-item">
-                            <div class="preview-img" style="background: url('https://placehold.co/100x100?text=Shirt') center/cover;"></div>
-                            <div class="preview-info">
-                                <span class="p-name">Premium White T-Shirt</span>
-                                <span class="p-price">RM 49.00</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="box-footer"><a href="cart.php" class="box-btn">View Cart</a></div>
-                </div>
-            </div>
-
-            <div class="dropdown-wrapper">
                 <?php if ($isLoggedIn): ?>
-                    <a href="member/profile.php" class="icon-link">
-                        <div class="icon-wrapper">
-                            <?php $avatar = !empty($_SESSION['profile_image']) ? $_SESSION['profile_image'] : 'default.jpg'; ?>
-                            <img src="images/<?php echo $avatar; ?>" class="user-avatar" alt="Avatar">
-                        </div>
-                        <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                    </a>
-                    
-                    <div class="dropdown-box account-box">
-                        <div class="box-header" style="white-space: nowrap;"><i class="fa-solid fa-user"></i> My Account</div>
-                        <a href="member/profile.php" class="menu-link">My Profile</a>
-                        <a href="member/setting.php" class="menu-link">Settings</a>
-                        <a href="logout.php" class="menu-link" style="border-top: 1px solid #eee;">Logout</a>
-                    </div>
-
-                <?php else: ?>
-                    <a href="../login_selection.php" class="icon-link">
-                        <div class="icon-wrapper">
-                            <i class="fa-solid fa-user"></i>
-                        </div>
-                        <span>Login/Sign-up</span>
-                    </a>
+                <div class="preview-box">
+                    <div class="preview-header">Recent Notifications</div>
+                    <div class="preview-content">Your order #PXX-882 has been shipped.</div>
+                </div>
                 <?php endif; ?>
             </div>
-=======
-</div>
->>>>>>> 42f5cd74c3dada5bd802d4171b31253bac600039
+
+            <div class="nav-item <?php echo $isLoggedIn ? 'hover-trigger' : ''; ?>">
+                <a href="<?php echo $isLoggedIn ? $path_prefix.'member/wishlist.php' : $path_prefix.'login_selection.php'; ?>" class="nav-trigger-link">
+                    <div class="icon-wrap">
+                        <i class="fa-solid fa-heart"></i>
+                        <?php if ($isLoggedIn): ?><span class="badge">5</span><?php endif; ?>
+                    </div>
+                    <span class="icon-text">Wishlist</span>
+                </a>
+                <?php if ($isLoggedIn): ?>
+                <div class="preview-box">
+                    <div class="preview-header">Wishlist Items</div>
+                    <div class="preview-content">No items added to wishlist recently.</div>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="nav-item <?php echo $isLoggedIn ? 'hover-trigger' : ''; ?>">
+                <a href="<?php echo $isLoggedIn ? $path_prefix.'member/cart.php' : $path_prefix.'login_selection.php'; ?>" class="nav-trigger-link">
+                    <div class="icon-wrap">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <?php if ($isLoggedIn): ?><span class="badge">12</span><?php endif; ?>
+                    </div>
+                    <span class="icon-text">Cart</span>
+                </a>
+                <?php if ($isLoggedIn): ?>
+                <div class="preview-box">
+                    <div class="preview-header">Cart Summary</div>
+                    <div class="preview-content">12 items in your shopping cart.</div>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="nav-item hover-trigger profile-item">
+                <?php if ($isLoggedIn): ?>
+                    <a href="<?php echo $path_prefix; ?>member/profile.php" class="nav-trigger-link">
+                        <div class="icon-wrap">
+                            <img src="<?php echo $final_avatar_path; ?>" onerror="this.src='<?php echo $path_prefix; ?>images/default.jpg'" class="user-avatar" alt="User">
+                        </div>
+                        <span class="icon-text"><?php echo htmlspecialchars($username); ?></span>
+                    </a>
+                    <div class="user-dropdown">
+                        <a href="<?php echo $path_prefix; ?>member/profile.php"><i class="fa-solid fa-user-circle"></i> My Account</a>
+                        <a href="<?php echo $path_prefix; ?>member/order_history.php"><i class="fa-solid fa-box"></i> My Orders</a>
+                        <a href="<?php echo $path_prefix; ?>member/settings.php"><i class="fa-solid fa-gear"></i> Settings</a>
+                        <div style="height:1px; background:#eee; margin:5px 0;"></div>
+                        <a href="<?php echo $path_prefix; ?>member/logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+                    </div>
+                <?php else: ?>
+                    <a href="<?php echo $path_prefix; ?>login_selection.php" class="nav-trigger-link">
+                        <div class="icon-wrap"><i class="fa-solid fa-circle-user" style="font-size:28px;"></i></div>
+                        <span class="icon-text">Login/Sign-up</span>
+                    </a>
+                    <div class="user-dropdown guest-dropdown">
+                        <div style="font-weight:700; color:#888; font-size:12px; margin-bottom:10px;">WELCOME TO PXX Mall!</div>
+                        <div style="display:flex; justify-content:center; gap:10px;">
+                            <a href="<?php echo $path_prefix; ?>login_selection.php" style="background:var(--pxx-red); color:white; border-radius:4px; font-weight:800;">
+                                <i class="fa-solid fa-key" style="color:white; font-size:12px;"></i> Login
+                            </a>
+                            <a href="<?php echo $path_prefix; ?>signup.php" style="border:1.5px solid #eee; border-radius:4px;">
+                                <i class="fa-solid fa-user-plus" style="font-size:12px;"></i> Sign Up
+                            </a>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
 
         </div>
     </div>

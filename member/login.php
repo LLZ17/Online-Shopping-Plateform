@@ -14,7 +14,7 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_pxx'])) {
         $_SESSION['user_id'] = $u['user_id'];
         $_SESSION['username'] = $u['username'];
         $_SESSION['role'] = $u['role'];
-        header("Location: index.php"); 
+        header("Location: ../index.php"); 
         exit();
     }
 }

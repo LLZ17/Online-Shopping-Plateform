@@ -11,12 +11,31 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start(); 
 }
 
-require_once __DIR__ . '../includes/db.php'; 
-include_once __DIR__ . '../includes/_head.php';
+/**
+ * 🔥 核心修复点 1：物理路径对齐
+ * 使用 dirname(__DIR__) 确保路径 100% 准确，解决 member../ 报错
+ */
+$pxx_root = dirname(__DIR__);
+$pxx_db_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'db.php';
+$pxx_head_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_head.php';
+$pxx_foot_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_foot.php';
+
+if (file_exists($pxx_db_file)) {
+    require_once $pxx_db_file;
+} else {
+    die("CRITICAL: Database connector missing at $pxx_db_file");
+}
+
+/**
+ * 🔥 核心修复点 2：PDO 变量防空保护
+ * 确保 $pdo 变量在当前作用域可用，解决 line 100 报错
+ */
+global $pdo;
+if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
 
 // Check if the user is authenticated
 if (!isset($_SESSION['user_id'])) {
-    echo "<script>window.location.href='login.php';</script>";
+    echo "<script>window.location.href='../login_selection.php';</script>";
     exit();
 }
 
@@ -68,7 +87,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $ext = pathinfo($_FILES["profile_photo"]["name"], PATHINFO_EXTENSION);
         $new_filename = "user_" . $user_id . "_" . time() . "." . $ext;
         
-        if (move_uploaded_file($temp_name, "images/" . $new_filename)) {
+        if (move_uploaded_file($temp_name, "../images/" . $new_filename)) {
             $photo_filename = $new_filename;
         }
     }
@@ -90,6 +109,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     // Sync session data
     $_SESSION['username'] = $username;
+    $_SESSION['profile_image'] = $photo_filename;
     
     echo "<script>alert('Success: Your account settings have been updated!'); window.location.href='profile.php?page=$active_page';</script>";
     exit();
@@ -106,6 +126,10 @@ $email_verified_status = (isset($u['email_verified']) && $u['email_verified'] ==
 // Helper function for safe output
 function d($val) { 
     return htmlspecialchars($val ?? ''); 
+}
+
+if (file_exists($pxx_head_file)) {
+    include_once $pxx_head_file;
 }
 ?>
 
@@ -380,7 +404,7 @@ function d($val) {
     
     <div class="pxx-sidebar-nav">
         <div class="sidebar-user-header">
-            <img src="images/<?php echo d($u['profile_photo'] ?: 'default.jpg'); ?>">
+            <img src="../images/<?php echo d($u['profile_photo'] ?: 'default.jpg'); ?>">
             <div class="user-meta">
                 <div class="user-name-text"><?php echo d($u['username']); ?></div>
                 <a href="?page=my_profile" style="font-size: 12px; color: #888; text-decoration: none; font-weight: normal; margin-top: 5px; display: block;">
@@ -424,7 +448,7 @@ function d($val) {
                     <div class="form-label-pxx">Profile Picture</div>
                     <div class="form-content-pxx">
                         <div class="avatar-interactive-box">
-                            <img src="images/<?php echo d($u['profile_photo'] ?: 'default.jpg'); ?>" id="displayAvatarImg">
+                            <img src="../images/<?php echo d($u['profile_photo'] ?: 'default.jpg'); ?>" id="displayAvatarImg">
                             <?php if ($u['profile_photo'] != 'default.jpg'): ?>
                                 <button type="button" class="avatar-remove-btn" onclick="triggerPhotoDelete()">×</button>
                             <?php endif; ?>
@@ -573,7 +597,7 @@ function d($val) {
             
             <div class="security-data-row">
                 <div class="sec-meta-info">
-                    <strong>Email Address Address</strong><br>
+                    <strong>Email Address</strong><br>
                     <span style="color: #888; font-size: 14px; line-height: 2;"><?php echo d($u['email']); ?></span>
                     <span class="status-badge <?php echo $email_verified_status ? 'badge-verified' : 'badge-unverified'; ?>">
                         <?php echo $email_verified_status ? 'Verified' : 'Unverified'; ?>
@@ -616,25 +640,16 @@ function d($val) {
 </div>
 
 <script>
-    /**
-     * Handles the visual and logical removal of the profile picture
-     */
     function triggerPhotoDelete() {
         if(confirm('Warning: Are you sure you want to delete your current photo and revert to the default avatar?')) {
-            // Update preview image instantly
-            document.getElementById('displayAvatarImg').src = 'images/default.jpg';
-            // Set the hidden flag for PHP
+            document.getElementById('displayAvatarImg').src = '../images/default.jpg';
             document.getElementById('avatarDelFlagInput').value = '1';
-            // Optionally notify the user
-            console.log("Avatar marked for deletion upon form submission.");
         }
     }
 </script>
 
 <?php 
-// Standard footer inclusion
-$footer_path = __DIR__ . '../includes/_foot.php';
-if (file_exists($footer_path)) {
-    include_once $footer_path; 
+if (file_exists($pxx_foot_file)) {
+    include_once $pxx_foot_file; 
 }
 ?>
