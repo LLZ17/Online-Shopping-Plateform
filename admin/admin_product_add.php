@@ -157,7 +157,7 @@ if (file_exists($admin_head)) { include $admin_head; }
             }
             reader.readAsDataURL(file);
         }
-    });
+   });
 
     document.addEventListener("DOMContentLoaded", function() {
         const myContent = document.getElementById('add-wrapper');

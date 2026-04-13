@@ -116,5 +116,5 @@ if (file_exists($admin_head)) { include $admin_head; }
 
 <?php 
 $foot = __DIR__ . '/../includes/_foot.php';
-if (file_exists($foot)) { include $foot; } 
+if (file_exists($foot)) { include $foot; }
 ?>
