@@ -393,3 +393,4 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
 
 </body>
 </html>
+<?php endif; ?>
