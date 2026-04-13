@@ -281,7 +281,7 @@ $noti_count = 3;
                 <div class="s-sub-box">
                     <a href="../admin/product_crud.php" class="sub-nav-link">Product CRUD</a>
                     <a href="../admin/category_crud.php" class="sub-nav-link">Category CRUD</a>
-                    <a href="../admin/order_crud.php" class="sub-nav-link">Sales Data</a>
+                    <a href="../admin/order-crud.php" class="sub-nav-link">Sales Data</a>
                 </div>
             </div>
         </nav>
@@ -303,8 +303,26 @@ $noti_count = 3;
             </div>
         </div>
 
-        if (file_exists(__DIR__ . '../includes/_foot.php')) {
-        include_once __DIR__ . '../includes/_foot.php'; 
+    <?php
+    /**
+    * 🌟 终极引用逻辑
+    * 自动检测 _foot.php 的位置并引入
+    */
+
+    // 尝试路径 1: 如果当前文件在根目录
+    $path1 = __DIR__ . '/includes/_admin_foot.php';
+    // 尝试路径 2: 如果当前文件在 admin 文件夹里
+    $path2 = __DIR__ . '/../includes/_admin_foot.php';
+
+    if (file_exists($path1)) {
+         include_once $path1;
+    } elseif (file_exists($path2)) {
+         include_once $path2;
+    } else {
+    // 如果还是找不到，输出这个隐藏注释帮你调试（你在网页右键查看源代码就能看到报错路径）
+    echo "";
+}
+?>
     </main>
 
     <script>
