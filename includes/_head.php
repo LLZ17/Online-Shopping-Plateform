@@ -279,21 +279,36 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
                 <?php endif; ?>
             </div>
 
-            <div class="nav-item <?php echo $isLoggedIn ? 'hover-trigger' : ''; ?>">
-                <a href="<?php echo $isLoggedIn ? $path_prefix.'member/cart.php' : $path_prefix.'login_selection.php'; ?>" class="nav-trigger-link">
-                    <div class="icon-wrap">
-                        <i class="fa-solid fa-cart-shopping"></i>
-                        <?php if ($isLoggedIn): ?><span class="badge">12</span><?php endif; ?>
-                    </div>
-                    <span class="icon-text">Cart</span>
-                </a>
-                <?php if ($isLoggedIn): ?>
-                <div class="preview-box">
-                    <div class="preview-header">Your Shopping Cart:</div>
-                    <div class="preview-content">12 items in your shopping cart.</div>
-                </div>
+<div class="nav-item <?php echo $isLoggedIn ? 'hover-trigger' : ''; ?>">
+    <a href="<?php echo $isLoggedIn ? $path_prefix.'memberProducts/unified_cart.php' : $path_prefix.'login_selection.php'; ?>" class="nav-trigger-link">
+        <div class="icon-wrap">
+            <i class="fa-solid fa-cart-shopping"></i>
+            <?php if ($isLoggedIn): 
+                // 获取购物车数量
+                $cart_count = 0;
+                if (isset($_SESSION['user_id']) && isset($pdo)) {
+                    $stmt = $pdo->prepare("SELECT COALESCE(SUM(quantity), 0) as total FROM cart WHERE user_id = ?");
+                    $stmt->execute([$_SESSION['user_id']]);
+                    $cart_data = $stmt->fetch();
+                    $cart_count = $cart_data['total'] ?? 0;
+                }
+            ?>
+                <?php if ($cart_count > 0): ?>
+                    <span class="badge"><?php echo $cart_count; ?></span>
+                <?php else: ?>
+                    <span class="badge">0</span>
                 <?php endif; ?>
-            </div>
+            <?php endif; ?>
+        </div>
+        <span class="icon-text">Cart</span>
+    </a>
+    <?php if ($isLoggedIn): ?>
+    <div class="preview-box">
+        <div class="preview-header">Your Shopping Cart:</div>
+        <div class="preview-content"><?php echo $cart_count; ?> items in your shopping cart.</div>
+    </div>
+    <?php endif; ?>
+</div>
 
             <div class="nav-item hover-trigger profile-item">
                 <?php if ($isLoggedIn): ?>
