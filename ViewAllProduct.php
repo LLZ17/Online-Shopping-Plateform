@@ -3,23 +3,72 @@ session_start();
 require_once 'includes/db.php';
 require_once 'includes/_head.php';
 
-// 获取搜索关键词和分类
+// 获取搜索参数
 $search = isset($_GET['query']) ? trim($_GET['query']) : '';
 $category = isset($_GET['category']) ? trim($_GET['category']) : '';
 
 $sql = "SELECT * FROM products WHERE 1=1";
 $params = [];
 
-// 搜索功能
+// 智能搜索功能
 if (!empty($search)) {
-    $sql .= " AND (name LIKE ? OR keywords LIKE ? OR description LIKE ?)";
+    $search_lower = strtolower($search);
+    
+    // 检测关键词来自动分类
+    $auto_category = null;
+    $product_type = null;
+    
+    // 性别检测
+    if (strpos($search_lower, 'men') !== false || strpos($search_lower, 'male') !== false || strpos($search_lower, 'boy') !== false) {
+        $auto_category = 'Men';
+    } elseif (strpos($search_lower, 'women') !== false || strpos($search_lower, 'female') !== false || strpos($search_lower, 'girl') !== false || strpos($search_lower, 'lady') !== false) {
+        $auto_category = 'Women';
+    }
+    
+    // 产品类型检测
+    if (strpos($search_lower, 'shirt') !== false || strpos($search_lower, 'tee') !== false || strpos($search_lower, 'top') !== false) {
+        $product_type = 'shirt';
+    } elseif (strpos($search_lower, 'pants') !== false || strpos($search_lower, 'pant') !== false || strpos($search_lower, 'trousers') !== false || strpos($search_lower, 'jeans') !== false) {
+        $product_type = 'pants';
+    } elseif (strpos($search_lower, 'dress') !== false) {
+        $product_type = 'dress';
+    } elseif (strpos($search_lower, 'skirt') !== false) {
+        $product_type = 'skirt';
+    } elseif (strpos($search_lower, 'jacket') !== false || strpos($search_lower, 'coat') !== false) {
+        $product_type = 'jacket';
+    } elseif (strpos($search_lower, 'shorts') !== false) {
+        $product_type = 'shorts';
+    }
+    
+    // 构建搜索条件
+    $sql .= " AND (";
+    $conditions = [];
+    
+    // 按分类搜索
+    if ($auto_category) {
+        $conditions[] = "category_type = ?";
+        $params[] = $auto_category;
+    }
+    
+    // 按产品类型搜索（通过关键词匹配 name 或 keywords）
+    if ($product_type) {
+        $conditions[] = "(name LIKE ? OR keywords LIKE ?)";
+        $params[] = "%$product_type%";
+        $params[] = "%$product_type%";
+    }
+    
+    // 通用搜索（名称、关键词、描述）
+    $conditions[] = "(name LIKE ? OR keywords LIKE ? OR description LIKE ?)";
     $params[] = "%$search%";
     $params[] = "%$search%";
     $params[] = "%$search%";
+    
+    $sql .= implode(" OR ", $conditions);
+    $sql .= ")";
 }
 
-// 分类筛选（男装/女装）
-if (!empty($category)) {
+// 分类筛选（如果用户手动选择了分类）
+if (!empty($category) && $category != 'All') {
     $sql .= " AND category_type = ?";
     $params[] = $category;
 }
@@ -28,15 +77,19 @@ $sql .= " ORDER BY product_id DESC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $products = $stmt->fetchAll();
-?>
 
-<!-- 后面保持原来的显示代码 -->
+// 获取搜索建议
+$search_suggestion = '';
+if (!empty($search) && empty($products)) {
+    $search_suggestion = 'No products found for "' . htmlspecialchars($search) . '". Try searching for: shirt, pants, dress, skirt, jacket';
+}
+?>
 
 <style>
     .products-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
     h1 { color: #333; margin-bottom: 20px; }
-    .filter-bar { display: flex; gap: 15px; margin-bottom: 30px; justify-content: center; }
-    .category-buttons { display: flex; gap: 10px; }
+    .filter-bar { display: flex; gap: 15px; margin-bottom: 30px; justify-content: center; flex-wrap: wrap; }
+    .category-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
     .category-btn { padding: 10px 25px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; text-decoration: none; color: #333; transition: 0.3s; }
     .category-btn.active { background: #e60012; color: white; border-color: #e60012; }
     .category-btn:hover { background: #e60012; color: white; }
@@ -56,21 +109,30 @@ $products = $stmt->fetchAll();
     .add-to-cart { width: 100%; background: #e60012; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; margin-top: 10px; font-weight: bold; }
     .add-to-cart:hover { background: #cc0010; }
     .no-results { text-align: center; padding: 50px; color: #999; }
+    .search-suggestion { text-align: center; color: #e60012; margin-top: 10px; }
+    .back-link { display: inline-block; margin-bottom: 20px; color: #666; text-decoration: none; }
+    .back-link:hover { color: #e60012; }
+    .search-info { background: #f0f0f0; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
 </style>
 
 <div class="products-container">
+    <a href="index.php" class="back-link">← Back to Home</a>
     <h1>All Products</h1>
-    <div style="margin-bottom: 20px;">
-    <a href="index.php" style="display: inline-block; background: #666; color: white; padding: 8px 20px; text-decoration: none; border-radius: 5px;">
-        ← Back to Home
-    </a>
-</div>
+    
+    <?php if (!empty($search)): ?>
+    <div class="search-info">
+        🔍 Showing results for: <strong><?php echo htmlspecialchars($search); ?></strong>
+        <?php if (!empty($products)): ?>
+            (<?php echo count($products); ?> products found)
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
     
     <div class="filter-bar">
         <div class="category-buttons">
-            <a href="?<?php echo $search ? 'query='.urlencode($search).'&' : ''; ?>category=" class="category-btn <?php echo empty($category) ? 'active' : ''; ?>">All</a>
-            <a href="?<?php echo $search ? 'query='.urlencode($search).'&' : ''; ?>category=Men" class="category-btn <?php echo $category == 'Men' ? 'active' : ''; ?>">👔 Men</a>
-            <a href="?<?php echo $search ? 'query='.urlencode($search).'&' : ''; ?>category=Women" class="category-btn <?php echo $category == 'Women' ? 'active' : ''; ?>">👗 Women</a>
+            <a href="ViewAllProduct.php<?php echo $search ? '?query='.urlencode($search) : ''; ?>" class="category-btn <?php echo empty($category) ? 'active' : ''; ?>">All</a>
+            <a href="ViewAllProduct.php<?php echo $search ? '?query='.urlencode($search).'&' : '?'; ?>category=Men" class="category-btn <?php echo $category == 'Men' ? 'active' : ''; ?>">👔 Men</a>
+            <a href="ViewAllProduct.php<?php echo $search ? '?query='.urlencode($search).'&' : '?'; ?>category=Women" class="category-btn <?php echo $category == 'Women' ? 'active' : ''; ?>">👗 Women</a>
         </div>
         
         <?php if ($search || $category): ?>
@@ -80,7 +142,10 @@ $products = $stmt->fetchAll();
     
     <?php if (empty($products)): ?>
         <div class="no-results">
-            <p>No products found.</p>
+            <p>No products found for "<?php echo htmlspecialchars($search); ?>"</p>
+            <?php if ($search_suggestion): ?>
+                <p class="search-suggestion">💡 <?php echo $search_suggestion; ?></p>
+            <?php endif; ?>
             <a href="ViewAllProduct.php" style="color: #e60012;">View all products</a>
         </div>
     <?php else: ?>
@@ -88,10 +153,14 @@ $products = $stmt->fetchAll();
             <?php foreach ($products as $product): ?>
                 <div class="product-card">
                     <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>">
-                        <img src="images/<?php echo !empty($product['product_image']) ? $product['product_image'] : 'default.jpg'; ?>" onerror="this.src='images/default.jpg'">
+                        <img src="images/<?php echo !empty($product['product_image']) ? htmlspecialchars($product['product_image']) : 'default.jpg'; ?>" onerror="this.src='images/default.jpg'">
                     </a>
                     <div class="product-info">
-                        <div class="product-name"><a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>"><?php echo htmlspecialchars($product['name']); ?></a></div>
+                        <div class="product-name">
+                            <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>">
+                                <?php echo htmlspecialchars($product['name']); ?>
+                            </a>
+                        </div>
                         <div class="price">RM <?php echo number_format($product['price'], 2); ?></div>
                         <div class="points">🎁 Earn <?php echo floor($product['price']); ?> points</div>
                         <div class="stock <?php echo $product['stock'] > 0 ? 'in-stock' : 'out-stock'; ?>">
@@ -116,14 +185,14 @@ $(document).ready(function() {
         var productId = $(this).data('id');
         var $btn = $(this);
         $.ajax({
-            url: 'member_cart/add.php',
+            url: 'memberProducts/add.php',
             method: 'POST',
             data: { product_id: productId, quantity: 1 },
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
                     if (confirm('✓ Added to cart! Go to cart now?')) {
-                        window.location.href = 'member_cart/unified_cart.php';
+                        window.location.href = 'memberProducts/unified_cart.php';
                     } else {
                         $btn.text('Added!');
                         setTimeout(function() { $btn.text('Add to Cart'); }, 1500);
@@ -142,4 +211,5 @@ $(document).ready(function() {
     });
 });
 </script>
+
 <?php require_once 'includes/_foot.php'; ?>
