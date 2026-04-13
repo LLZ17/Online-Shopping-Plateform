@@ -11,7 +11,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// 获取购物车商品
 $stmt = $pdo->prepare("
     SELECT c.*, p.name, p.price, p.product_image, p.stock 
     FROM cart c 
@@ -26,13 +25,11 @@ if (empty($cart_items)) {
     exit();
 }
 
-// 计算总额
 $subtotal = 0;
 foreach ($cart_items as $item) {
     $subtotal += $item['price'] * $item['quantity'];
 }
 
-// 获取用户信息
 $stmt = $pdo->prepare("SELECT points, username, email, phone_num, address FROM users WHERE user_id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
@@ -54,19 +51,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $phone = $_POST['phone'] ?? $user['phone_num'];
     $address = $_POST['address'] ?? $user['address'];
     
-    // 积分限制
-    if ($points_to_use > $user_points) {
-        $points_to_use = $user_points;
-    }
+    if ($points_to_use > $user_points) $points_to_use = $user_points;
     if ($points_to_use < 0) $points_to_use = 0;
     
-    // 精确计算折扣
     $points_discount = $points_to_use / 100;
     $after_discount = $subtotal - $points_discount;
     if ($after_discount < 0) $after_discount = 0;
     
-    // 运费计算（满 RM100 免邮）
-    $shipping_fee = 0;
+    // 运费：满 RM100 免邮
     if ($after_discount < 100) {
         $shipping_fee = 8.00;
     }
@@ -101,7 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
     .points-section { background: #fff3e0; padding: 20px; border-radius: 12px; margin: 20px 0; }
     .points-input { width: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
-    .points-info { font-size: 13px; color: #ff9800; margin-top: 8px; }
     .cart-item { display: flex; gap: 15px; padding: 15px 0; border-bottom: 1px solid #eee; }
     .cart-item img { width: 60px; height: 80px; object-fit: cover; border-radius: 8px; }
     .cart-item-info { flex: 1; }
@@ -136,13 +127,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
             
             <div class="points-section">
-                <label style="font-weight: 700;">🎁 Use Reward Points</label>
+                <label style="font-weight: 700;">🎁 Use Reward Points (100 points = RM 1)</label>
                 <div style="display: flex; gap: 15px; align-items: center; margin-top: 12px; flex-wrap: wrap;">
                     <input type="number" name="use_points" id="points_input" class="points-input" value="0" min="0" max="<?php echo $user_points; ?>" step="100">
                     <span>Available: <strong><?php echo number_format($user_points); ?></strong> points</span>
-                </div>
-                <div class="points-info">
-                    💡 100 points = RM 1.00 discount
                 </div>
             </div>
             
@@ -167,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         <div class="total-row">
             <span>Subtotal:</span>
-            <span>RM <?php echo number_format($subtotal, 2); ?></span>
+            <span id="subtotal_display">RM <?php echo number_format($subtotal, 2); ?></span>
         </div>
         
         <div class="total-row" id="discount_row">
@@ -188,10 +176,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="free-shipping-note" id="shipping_note">
             🚚 Free shipping on orders RM100+
         </div>
-        
-        <div style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 8px; font-size: 12px; color: #666; text-align: center;">
-            <i class="fas fa-shield-alt"></i> Secure payment powered by ToyyibPay
-        </div>
     </div>
 </div>
 
@@ -203,56 +187,29 @@ $(document).ready(function() {
     
     function updateTotals() {
         var points = parseInt($('#points_input').val()) || 0;
+        if (points > maxPoints) { points = maxPoints; $('#points_input').val(points); }
+        if (points < 0) { points = 0; $('#points_input').val(0); }
         
-        if (points > maxPoints) {
-            points = maxPoints;
-            $('#points_input').val(points);
-        }
-        if (points < 0) {
-            points = 0;
-            $('#points_input').val(0);
-        }
-        
-        // 计算折扣
         var discount = points / 100;
         var afterDiscount = subtotal - discount;
         if (afterDiscount < 0) afterDiscount = 0;
         
-        // 计算运费（满 RM100 免邮）
-        var shipping = 0;
-        if (afterDiscount < 100) {
-            shipping = 8.00;
-        }
+        var shipping = (afterDiscount < 100) ? 8.00 : 0;
         var total = afterDiscount + shipping;
         
-        // 更新显示
         $('#discount_amount').text('RM ' + discount.toFixed(2));
         $('#shipping_amount').text(shipping > 0 ? 'RM ' + shipping.toFixed(2) : 'FREE');
         $('#total_amount').text('RM ' + total.toFixed(2));
         
-        // 更新运费说明
         if (afterDiscount >= 100) {
             $('#shipping_note').html('✅ Congratulations! You qualify for <strong>FREE shipping</strong>');
-            $('#shipping_note').css('color', '#4caf50');
         } else {
             var need = (100 - afterDiscount).toFixed(2);
             $('#shipping_note').html('🚚 Add RM ' + need + ' more to get FREE shipping');
-            $('#shipping_note').css('color', '#ff9800');
-        }
-        
-        // 高亮折扣行
-        if (points > 0) {
-            $('#discount_row').css('background', '#e8f5e9');
-        } else {
-            $('#discount_row').css('background', 'transparent');
         }
     }
     
-    $('#points_input').on('input change', function() {
-        updateTotals();
-    });
-    
-    // 初始化
+    $('#points_input').on('input change', function() { updateTotals(); });
     updateTotals();
 });
 </script>

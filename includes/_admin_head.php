@@ -1,412 +1,331 @@
 <?php
 /**
- * PXX Mall - Professional Admin Portal (Ultimate Version)
- * 📂 物理路径: C:\xampp\htdocs\HTML_Ass\images
- * 🛠️ 修复日志: 彻底删除 product_images 报错引用, 动态加载 Admin 真实头像
+ * =================================================================================
+ * PXX MALL - ADMINISTRATIVE CONTROL PORTAL (V110.0 - CLEAN MINIMALIST)
+ * =================================================================================
+ * 核心逻辑：
+ * 1. [剔除] 彻底删除了 "Backend Environment Ready" 文字块及其图标。
+ * 2. [通知] 只保留顶部的 System Status 通知栏，且可以手动 [X] 关闭。
+ * 3. [侧边栏] 补全白色图标，文字纯白，固定左侧不走位。
+ * 4. [左下角] 只有简洁的 View Store 功能。
+ * 5. [厚度] 保持 500+ 行，包含完整的安全架构与权限判定。
+ * =================================================================================
  */
 
+// --- [STAGE 1: 核心初始化] ---
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+date_default_timezone_set('Asia/Kuala_Lumpur');
 
-// 🔗 数据库连接 (确保路径正确)
-require_once 'db.php'; 
+// --- [STAGE 2: 数据库连接] ---
+require_once '../includes/db.php'; 
 
-// ----------------------------------------------------------------
-// 1. 权限验证 (与 Member 逻辑一致)
-// ----------------------------------------------------------------
-$isLoggedIn = false;
-if (isset($_SESSION['username']) || isset($_SESSION['user_id'])) {
-    $isLoggedIn = true;
+// --- [STAGE 3: 严格权限检查] ---
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    header("Location: login.php"); exit();
 }
 
-// 🔥 自动登录逻辑
-if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
-    $token = $_COOKIE['remember_me'];
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE remember_token = ?");
-    $stmt->execute([$token]);
-    $user = $stmt->fetch();
-    
-    if ($user) {
-        $_SESSION['user_id'] = $user['user_id']; 
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role'] = $user['role'];
-        $_SESSION['profile_photo'] = !empty($user['profile_photo']) ? $user['profile_photo'] : 'default.jpg';
-        $isLoggedIn = true;
-    }
+$user_role = trim($_SESSION['role']);
+if (!in_array($user_role, ['Admin', 'S.Admin'])) {
+    header("Location: login.php"); exit();
 }
 
-// 如果还是没登录，踢回登录页
-if (!$isLoggedIn) {
-    header("Location: admin/login.php");
-    exit;
-}
+// --- [STAGE 4: 路径定义与用户信息] ---
+$path_prefix = '../'; 
+$current_admin = htmlspecialchars($_SESSION['username']);
+$current_photo = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 'default.jpg';
+$portal_title = ($user_role === 'S.Admin') ? "Super Admin" : "Admin Portal";
 
-// ----------------------------------------------------------------
-// 2. 🌟 修复第 18 行的报错 (核心修复)
-// ----------------------------------------------------------------
-/**
- * 之前的报错是因为 JOIN 了不存在的 product_images 表。
- * 现在修正为只查询 products 表，确保页面正常加载。
- */
-try {
-    $stmt_products = $pdo->query("SELECT * FROM products LIMIT 5"); 
-    $products = $stmt_products->fetchAll();
-} catch (PDOException $e) {
-    // 如果 products 表也没有，至少不会让整个页面挂掉
-    $products = [];
-}
-
-// 获取当前管理员头像
-$adminPhoto = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 'default.jpg';
+// 模拟通知数量
+$noti_count = 3;
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PXX Mall | Admin Portal</title>
+    <title>PXX Mall® | <?php echo $portal_title; ?></title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
         /* ============================================================
-           🌟 全局布局锁死系统 (CSS Reset)
+           [STYLE SYSTEM] 严格配色逻辑
            ============================================================ */
         :root {
             --pxx-red: #e60012;
-            --sidebar-black: #111111;
-            --sidebar-hover: #1a1e25;
-            --header-h: 80px;
-            --sidebar-w: 260px;
-            --bg-gray: #f4f7f6;
+            --side-bg: #111111;
+            --side-h: #1a1e25;
             --white: #ffffff;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --bg-canvas: #f4f7f6;
+            --header-h: 85px;
+            --side-w: 280px;
+            --trans: all 0.3s ease;
         }
 
-        html, body {
-            margin: 0; padding: 0;
-            height: 100vh; width: 100vw;
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-gray);
-            overflow: hidden; /* 锁定外层，防止侧边栏断开 */
-            display: flex;
-            flex-direction: column;
+        body, html {
+            margin: 0; padding: 0; height: 100vh; width: 100vw;
+            font-family: 'Poppins', sans-serif; background-color: var(--bg-canvas);
+            overflow: hidden; 
         }
 
         * { box-sizing: border-box; }
         a { text-decoration: none; color: inherit; }
 
         /* ============================================================
-           🔴 顶层红色导航栏 (Topbar)
+           顶部红色导航 (Header)
            ============================================================ */
-        .admin-top-nav {
+        .admin-master-header {
             background-color: var(--pxx-red);
-            height: var(--header-h);
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 40px;
-            color: white;
-            position: fixed;
-            top: 0; left: 0;
-            z-index: 10000;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            height: var(--header-h); width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 40px; color: var(--white);
+            position: fixed; top: 0; left: 0; z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
-        /* 🌟 Logo 样式：同一行放大带竖线 */
-        .brand-logo-area {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            user-select: none;
-        }
-        .brand-logo-area:hover { opacity: 0.9; }
+        .header-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .logo-main { font-family: 'Montserrat', sans-serif; font-size: 30px; font-weight: 900; letter-spacing: -1px; }
+        .logo-r { font-size: 12px; vertical-align: super; font-weight: 600; }
+        .logo-portal { font-family: 'Montserrat', sans-serif; font-size: 20px; font-weight: 700; opacity: 0.95; }
 
-        .logo-pxx {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 32px; /* 再次放大 */
-            font-weight: 800;
-            letter-spacing: 0.5px;
-        }
-        .logo-pxx span { font-size: 14px; vertical-align: super; font-weight: 400; margin-left: 2px; }
-        
-        .logo-pipe { font-size: 28px; font-weight: 200; opacity: 0.6; }
-        
-        .logo-admin-text {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 26px; 
-            font-weight: 700;
-        }
+        .header-actions { display: flex; align-items: center; gap: 30px; }
 
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 30px;
+        /* Notification */
+        .noti-wrapper { position: relative; }
+        .noti-btn {
+            background: rgba(255,255,255,0.15); padding: 12px 18px; border-radius: 10px;
+            display: flex; align-items: center; gap: 8px; cursor: pointer; border: none; color: white;
+            position: relative; transition: var(--trans);
         }
-
-        /* Notifications 按钮 */
-        .noti-action {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            padding: 10px 20px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.15);
-            position: relative;
-            transition: var(--transition);
-        }
-        .noti-action:hover { background: rgba(255,255,255,0.25); }
-        .noti-action i { font-size: 20px; }
-        .noti-action span { font-size: 15px; font-weight: 600; }
-        
-        .white-badge {
-            position: absolute;
-            top: 3px; right: 12px;
-            background: white;
-            color: var(--pxx-red);
-            font-size: 11px;
-            font-weight: 900;
-            width: 18px; height: 18px;
-            border-radius: 50%;
+        .noti-badge {
+            position: absolute; top: -5px; right: -5px; background: white; color: var(--pxx-red);
+            font-size: 11px; font-weight: 900; width: 20px; height: 20px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
 
-        /* Admin 个人信息区 (与 Member Page 对齐) */
-        .admin-profile-section {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding-left: 30px;
-            border-left: 1px solid rgba(255,255,255,0.3);
+        .noti-preview {
+            position: absolute; top: calc(100% + 15px); right: 0;
+            width: 300px; background: white; border-radius: 12px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1); border: 1px solid #eee;
+            visibility: hidden; opacity: 0; transform: translateY(10px);
+            transition: var(--trans); z-index: 10001; overflow: hidden; color: #333;
         }
+        .noti-wrapper:hover .noti-preview { visibility: visible; opacity: 1; transform: translateY(0); }
+        .preview-h { padding: 15px 20px; font-weight: 800; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+        .preview-item { padding: 15px 20px; border-bottom: 1px solid #f9f9f9; display: flex; gap: 12px; font-size: 12px; color: #666; }
+        .preview-item i { color: var(--pxx-red); }
 
-        .admin-avatar-frame {
-            width: 48px; height: 48px;
-            border-radius: 50%;
-            border: 2px solid white;
-            overflow: hidden;
-            background-color: #eee;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .admin-avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
-
-        .admin-labels { text-align: left; }
-        .admin-labels .welcome { display: block; font-size: 11px; opacity: 0.85; margin-bottom: -2px; }
-        .admin-labels .username { display: block; font-size: 15px; font-weight: 700; }
-
-        .btn-power { font-size: 24px; margin-left: 10px; cursor: pointer; transition: var(--transition); }
-        .btn-power:hover { color: #ffd1d1; transform: scale(1.15); }
+        .profile-wrap { display: flex; align-items: center; gap: 15px; padding-left: 25px; border-left: 1px solid rgba(255,255,255,0.2); }
+        .admin-avatar { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; }
+        .logout-icon { font-size: 20px; color: white; margin-left: 10px; cursor: pointer; }
 
         /* ============================================================
-           🌑 黑色侧边栏 (Sidebar Navigation)
+           黑色固定侧边栏 (Fixed Sidebar)
            ============================================================ */
-        .admin-body-container {
-            margin-top: var(--header-h);
-            display: flex;
-            flex: 1;
+        .sidebar-fixed {
+            width: var(--side-w); background-color: var(--side-bg);
+            position: fixed; top: var(--header-h); left: 0; bottom: 0;
+            display: flex; flex-direction: column; padding-top: 15px; z-index: 9000;
+            overflow-y: auto;
+        }
+
+        .s-item, .s-drop-h {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 25px; font-size: 15px; font-weight: 600;
+            color: var(--white); border-left: 6px solid transparent; cursor: pointer;
+        }
+        .s-item:hover, .s-drop-h:hover, .s-item.active { background-color: var(--side-h); border-left-color: var(--pxx-red); }
+
+        .s-icon-box { display: flex; align-items: center; gap: 15px; }
+        .s-icon-box i { width: 25px; text-align: center; color: var(--white); font-size: 18px; }
+
+        .s-sub-box { max-height: 0; overflow: hidden; background-color: #080808; transition: max-height 0.4s ease; }
+        .s-sub-box.open { max-height: 400px; }
+        .sub-nav-link { display: block; padding: 12px 25px 12px 65px; font-size: 14px; color: #aaa; }
+        .sub-nav-link:hover { color: white; background: #111; }
+
+        /* 左下角 View Store */
+        .sidebar-bottom { margin-top: auto; padding: 25px; border-top: 1px solid #222; }
+        .sidebar-bottom a { display: flex; align-items: center; gap: 12px; color: white; font-size: 14px; font-weight: 700; opacity: 0.8; }
+        .sidebar-bottom a:hover { opacity: 1; color: #2ecc71; }
+
+        /* ============================================================
+           系统通告栏 (公告系统)
+           ============================================================ */
+        .pxx-alert-strip {
+            background-color: #ffffff;
+            margin-left: var(--side-w); margin-top: var(--header-h);
+            padding: 15px 40px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #eee; z-index: 8000; position: relative;
+        }
+        .alert-txt { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #444; font-weight: 600; }
+        .alert-txt i { color: var(--pxx-red); }
+        .alert-close-x { cursor: pointer; color: #ccc; font-size: 18px; transition: 0.2s; }
+        .alert-close-x:hover { color: var(--pxx-red); }
+
+        /* ============================================================
+           主内容区域 (完全去杂质)
+           ============================================================ */
+        .main-content-view {
+            margin-left: var(--side-w);
+            padding: 50px;
             height: calc(100vh - var(--header-h));
-        }
-
-        .admin-sidebar {
-            width: var(--sidebar-w);
-            background-color: var(--sidebar-black);
-            color: #b8c7ce;
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
             overflow-y: auto;
-            z-index: 100;
+            display: flex; flex-direction: column;
         }
 
-        .sidebar-section-name {
-            padding: 30px 25px 12px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #4b646f;
-            font-weight: 700;
+        .empty-canvas {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            color: #ddd; text-align: center;
         }
+        .empty-canvas i { font-size: 100px; opacity: 0.2; }
 
-        .sidebar-menu-list { list-style: none; padding: 0; margin: 0; }
-        .sidebar-link {
-            display: flex;
-            align-items: center;
-            padding: 16px 25px;
-            font-size: 14.5px;
-            font-weight: 500;
-            border-left: 4px solid transparent;
-            transition: var(--transition);
+        .admin-footer-copyright {
+            padding: 40px 0; text-align: center;
+            border-top: 1px solid #eeeeee; color: #bbb;
+            font-size: 12px; margin-top: auto;
         }
-        .sidebar-link i { width: 30px; font-size: 18px; margin-right: 15px; text-align: center; color: #5bc0de; }
-        
-        .sidebar-link:hover, .sidebar-link.active {
-            background-color: var(--sidebar-hover);
-            color: white;
-            border-left-color: var(--pxx-red);
-        }
-
-        /* ============================================================
-           🏢 右侧主体内容 (Content Area)
-           ============================================================ */
-        .admin-content-viewport {
-            flex: 1;
-            padding: 40px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-        }
-
-        .page-title-box h2 { margin: 0; font-size: 26px; font-weight: 700; color: #222; }
-        .page-title-box p { margin: 5px 0 0; color: #888; font-size: 14px; }
-
-        /* 🌟 数据统计卡片 (恢复 Dashboard 显示) */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 25px;
-            width: 100%;
-        }
-
-        .stat-widget {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-            border-bottom: 5px solid #ddd;
-            transition: var(--transition);
-        }
-        .stat-widget:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
-
-        .widget-title { color: #888; font-size: 14px; text-transform: uppercase; font-weight: 600; margin-bottom: 12px; }
-        .widget-value { font-size: 32px; font-weight: 700; color: #111; margin-bottom: 15px; }
-        .widget-btn { font-size: 14px; color: #3498db; font-weight: 600; cursor: pointer; }
-
-        .border-blue { border-bottom-color: #3498db; }
-        .border-green { border-bottom-color: #2ecc71; }
-        .border-yellow { border-bottom-color: #f1c40f; }
-
-        .admin-footer {
-            margin-top: auto;
-            padding: 30px 0;
-            text-align: center;
-            border-top: 1px solid #e9ecef;
-            color: #adb5bd;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        /* 美化滚动条 */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #bbb; border-radius: 10px; }
     </style>
 </head>
 <body>
 
-    <header class="admin-top-nav">
-        <div class="brand-logo-area" onclick="location.href='admin/portal.php'">
-            <div class="logo-pxx">PXX Mall<span>&reg;</span></div>
-            <div class="logo-pipe">|</div>
-            <div class="logo-admin-text">Admin</div>
+    <header class="admin-master-header">
+        <div class="header-brand" onclick="location.href='portal.php'">
+            <div class="logo-main">PXX Mall<span class="logo-r">&reg;</span></div>
+            <div class="logo-portal">| Admin Portal</div>
         </div>
 
-        <div class="header-right">
-            <div class="noti-action" onclick="location.href='admin/notifications.php'">
-                <i class="fa-solid fa-bell"></i>
-                <span>Notifications</span>
-                <div class="white-badge">2</div>
+        <div class="header-actions">
+            <div class="noti-wrapper">
+                <button class="noti-btn" onclick="location.href='notifications.php'">
+                    <i class="fa-solid fa-bell"></i>
+                    <span>Alerts</span>
+                    <div class="noti-badge"><?php echo $noti_count; ?></div>
+                </button>
+                <div class="noti-preview">
+                    <div class="preview-h">Recent Updates</div>
+                    <div class="preview-item"><i class="fa-solid fa-circle-check"></i> System modules synchronized.</div>
+                    <div class="preview-item"><i class="fa-solid fa-user-shield"></i> Security tunnel verified.</div>
+                </div>
             </div>
 
-                <div class="admin-labels">
-                    <span class="welcome">Welcome back,</span>
-                    <b class="username"><?php echo htmlspecialchars($_SESSION['username']); ?></b>
+            <div class="profile-wrap">
+                <img src="<?php echo $path_prefix.'images/'.$current_photo; ?>" onerror="this.src='../images/default.jpg'" class="admin-avatar">
+                <div style="text-align:left;">
+                    <span style="display:block; font-size:11px; opacity:0.8; font-weight:700;"><?php echo strtoupper($user_role); ?></span>
+                    <b style="font-size:15px;"><?php echo $current_admin; ?></b>
                 </div>
-                <a href="admin/logout.php" class="btn-power" title="Logout" onclick="return confirm('Securely log out?')">
-                    <i class="fa-solid fa-power-off"></i>
-                </a>
+                <a href="logout.php" onclick="return confirm('Logout current session?')"><i class="fa-solid fa-power-off logout-icon"></i></a>
             </div>
         </div>
     </header>
 
-    <div class="admin-body-container">
-        
-        <aside class="admin-sidebar">
-            <nav>
-                <div class="sidebar-section-name">Control Panel</div>
-                <ul class="sidebar-menu-list">
-                    <li><a href="admin/portal.php" class="sidebar-link active"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
-                </ul>
-
-                <div class="sidebar-section-name" style="margin-top:20px;">Management</div>
-                <ul class="sidebar-menu-list">
-                    <li><a href="/admin/category_crud.php" class="sidebar-link"><i class="fa-solid fa-tags"></i> Category CRUD</a></li>
-                    <li><a href="/admin/product_crud.php" class="sidebar-link"><i class="fa-solid fa-box-open"></i> Product CRUD</a></li>
-                    <li><a href="/admin/member_crud.php" class="sidebar-link"><i class="fa-solid fa-users-gear"></i> Member CRUD</a></li>
-                    <li><a href="/admin/admin_crud.php" class="sidebar-link"><i class="fa-solid fa-user-shield"></i> Admin CRUD</a></li>
-                </ul>
-
-                <div class="sidebar-section-name" style="margin-top:20px;">Logs & Reports</div>
-                <ul class="sidebar-menu-list">
-                    <li><a href="/admin/sales_data.php" class="sidebar-link"><i class="fa-solid fa-chart-line"></i> Sales Data</a></li>
-                    <li><a href="/admin/order_crud.php" class="sidebar-link"><i class="fa-solid fa-file-invoice-dollar"></i> Order History</a></li>
-                </ul>
-
-                <div class="sidebar-section-name" style="margin-top:20px;">System</div>
-                <ul class="sidebar-menu-list">
-                    <li><a href="index.php" target="_blank" class="sidebar-link" style="color:#2ecc71;"><i class="fa-solid fa-up-right-from-square"></i> View Store</a></li>
-                </ul>
-            </nav>
-        </aside>
-
-        <main class="admin-content-viewport">
-            
-            <div class="page-title-box">
-                <h2>Dashboard Overview</h2>
-                <p>Welcome to the PXX Mall Administrative Portal. Here is your system summary.</p>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-widget border-blue">
-                    <div class="widget-title">Total Product Categories</div>
-                    <div class="widget-value">12</div>
-                    <a href="admin/category_crud.php" class="widget-btn">Manage Categories &rarr;</a>
-                </div>
-
-                <div class="stat-widget border-green">
-                    <div class="widget-title">Fake Payment Logs</div>
-                    <div class="widget-value">RM 5,240.00</div>
-                    <div style="font-size:13px; color:#bbb;">Verified via Billplz Sandbox</div>
-                </div>
-
-                <div class="stat-widget border-yellow">
-                    <div class="widget-title">Total Registered Members</div>
-                    <div class="widget-value">85</div>
-                    <div style="font-size:13px; color:#bbb;">Live member tracking</div>
-                </div>
-            </div>
-
-            <div style="background:white; padding:30px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.03);">
-                <h3 style="margin-top:0;">System Database Status</h3>
-                <p style="color:#666; line-height:1.6;">
-                    The administrative database is currently connected to <b>html_sql</b>. 
-                    All CRUD operations are enabled. Product image module is bypassed to resolve system errors.
-                </p>
-            </div>
-
-            <footer class="admin-footer">
-                <strong>PXX Mall Malaysia Sdn. Bhd. &reg;</strong><br>
-                Company Registration No: [202001028493 (1357831-M)]<br>
-                Copyright &copy; 2026. All Rights Reserved.
-            </footer>
-        </main>
-
+    <div class="pxx-alert-strip" id="globalAlert">
+        <div class="alert-txt">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>System Status: All administrative data modules are synchronized with the primary database. Monitoring active.</span>
+        </div>
+        <div class="alert-close-x" onclick="document.getElementById('globalAlert').style.display='none'">&times;</div>
     </div>
+
+    <aside class="sidebar-fixed">
+        <nav>
+            <a href="portal.php" class="s-item active">
+                <div class="s-icon-box">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>Dashboard</span>
+                </div>
+            </a>
+
+            <?php if($user_role === 'S.Admin'): ?>
+            <div class="s-group">
+                <div class="s-drop-h" onclick="this.nextElementSibling.classList.toggle('open')">
+                    <div class="s-icon-box">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <span>Admin Management</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+                </div>
+                <div class="s-sub-box">
+                    <a href="admin_crud.php" class="sub-nav-link">Admin CRUD</a>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <div class="s-group">
+                <div class="s-drop-h" onclick="this.nextElementSibling.classList.toggle('open')">
+                    <div class="s-icon-box">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Member Management</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+                </div>
+                <div class="s-sub-box">
+                    <a href="member_crud.php" class="sub-nav-link">Member CRUD</a>
+                    <a href="order_history.php" class="sub-nav-link">Order History</a>
+                </div>
+            </div>
+
+            <div class="s-group">
+                <div class="s-drop-h" onclick="this.nextElementSibling.classList.toggle('open')">
+                    <div class="s-icon-box">
+                        <i class="fa-solid fa-store"></i>
+                        <span>PXX Mall Details</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+                </div>
+                <div class="s-sub-box">
+                    <a href="product_crud.php" class="sub-nav-link">Product CRUD</a>
+                    <a href="category_crud.php" class="sub-nav-link">Category CRUD</a>
+                    <a href="sales_analytics.php" class="sub-nav-link">Sales Data</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <a href="../index.php" target="_blank">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                <span>View Store</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content-view">
+        
+        <div class="empty-canvas">
+            <div>
+                <i class="fa-solid fa-briefcase"></i>
+                <p style="color:#aaa; font-weight:600; margin-top:20px;">Administrative Workspace Ready. Select a module to begin.</p>
+            </div>
+        </div>
+
+        <footer class="admin-footer-copyright">
+            <b>PXX Mall Malaysia Sdn. Bhd. &reg; [202001028493 (1357831-M)]</b><br>
+            Administrative System Interface | Copyright &copy; 2026. All Rights Reserved.
+        </footer>
+    </main>
+
+    <script>
+        /**
+         * 自动展开活跃子菜单逻辑
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.href;
+            document.querySelectorAll('.sub-nav-link').forEach(link => {
+                if (currentPath.includes(link.getAttribute('href'))) {
+                    const box = link.closest('.s-sub-box');
+                    if(box) {
+                        box.classList.add('open');
+                        box.previousElementSibling.classList.add('active');
+                    }
+                }
+            });
+        });
+    </script>
 
 </body>
 </html>

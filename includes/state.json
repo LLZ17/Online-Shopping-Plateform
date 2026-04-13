@@ -1,0 +1,169 @@
+{
+  "Johor": {
+    "Johor Bahru": ["80000", "80100", "80200", "80300"],
+    "Iskandar Puteri": ["79200"],
+    "Batu Pahat": ["83000"],
+    "Muar": ["84000"],
+    "Kluang": ["86000"],
+    "Segamat": ["85000"],
+    "Kulai": ["81000"],
+    "Pontian": ["82000"],
+    "Pasir Gudang": ["81700"],
+    "Tangkak": ["84900"]
+  },
+
+  "Kedah": {
+    "Alor Setar": ["05000", "05100", "05200"],
+    "Sungai Petani": ["08000", "08100"],
+    "Kulim": ["09000"],
+    "Langkawi": ["07000"],
+    "Jitra": ["06000"],
+    "Baling": ["09100"],
+    "Pendang": ["06700"]
+  },
+
+  "Kelantan": {
+    "Kota Bharu": ["15000", "15100"],
+    "Pasir Mas": ["17000"],
+    "Tanah Merah": ["17500"],
+    "Machang": ["18500"],
+    "Gua Musang": ["18300"],
+    "Kuala Krai": ["18000"],
+    "Tumpat": ["16200"]
+  },
+
+  "Melaka": {
+    "Melaka City": ["75000", "75100", "75200", "75300"],
+    "Ayer Keroh": ["75450"],
+    "Alor Gajah": ["78000"],
+    "Jasin": ["77000"],
+    "Masjid Tanah": ["78300"]
+  },
+
+  "Negeri Sembilan": {
+    "Seremban": ["70000", "70100"],
+    "Nilai": ["71800"],
+    "Port Dickson": ["71000"],
+    "Tampin": ["73000"],
+    "Rembau": ["71400"],
+    "Jempol": ["72120"]
+  },
+
+  "Pahang": {
+    "Kuantan": ["25000", "25100"],
+    "Temerloh": ["28000"],
+    "Bentong": ["28700"],
+    "Raub": ["27600"],
+    "Pekan": ["26600"],
+    "Jerantut": ["27000"],
+    "Cameron Highlands": ["39000"]
+  },
+
+  "Perak": {
+    "Ipoh": ["30000", "30100", "30200"],
+    "Taiping": ["34000"],
+    "Teluk Intan": ["36000"],
+    "Sitiawan": ["32000"],
+    "Kampar": ["31900"],
+    "Manjung": ["32040"],
+    "Parit Buntar": ["34200"]
+  },
+
+  "Perlis": {
+    "Kangar": ["01000"],
+    "Arau": ["02600"],
+    "Padang Besar": ["02100"]
+  },
+
+  "Pulau Pinang": {
+    "George Town": ["10000", "10100", "10200"],
+    "Butterworth": ["12000"],
+    "Bayan Lepas": ["11900"],
+    "Bukit Mertajam": ["14000"],
+    "Nibong Tebal": ["14300"],
+    "Kepala Batas": ["13200"]
+  },
+
+  "Sabah": {
+    "Kota Kinabalu": ["88000", "88100"],
+    "Sandakan": ["90000"],
+    "Tawau": ["91000"],
+    "Lahad Datu": ["91100"],
+    "Keningau": ["89000"],
+    "Semporna": ["91300"],
+    "Kudat": ["89050"]
+  },
+
+  "Sarawak": {
+    "Kuching": ["93000"],
+    "Sibu": ["96000"],
+    "Miri": ["98000"],
+    "Bintulu": ["97000"],
+    "Sri Aman": ["95000"],
+    "Sarikei": ["96100"],
+    "Limbang": ["98700"]
+  },
+
+  "Selangor": {
+    "Shah Alam": ["40000", "40100", "40400"],
+    "Klang": ["41000", "41100", "41200"],
+    "Petaling Jaya": ["46000", "47300", "47400"],
+    "Subang Jaya": ["47500"],
+    "Puchong": ["47100"],
+    "Kajang": ["43000"],
+    "Bangi": ["43650"],
+    "Cheras": ["43200"],
+    "Rawang": ["48000"],
+    "Kuala Selangor": ["45000"],
+    "Kuala Langat": ["42700"],
+    "Hulu Selangor": ["44000"],
+    "Sepang": ["43900"],
+    "Sungai Buloh": ["47000"],
+    "Ampang": ["68000"],
+    "Cyberjaya": ["63000"],
+    "Seri Kembangan": ["43300"]
+  },
+
+  "Terengganu": {
+    "Kuala Terengganu": ["20000"],
+    "Dungun": ["23000"],
+    "Kemaman": ["24000"],
+    "Marang": ["21600"],
+    "Besut": ["22200"]
+  },
+
+  "Wilayah Persekutuan Kuala Lumpur": {
+    "Kuala Lumpur": [
+      "50000",
+      "50100",
+      "50200",
+      "50300",
+      "50400",
+      "50500",
+      "51000",
+      "52000",
+      "53000",
+      "54000",
+      "55000",
+      "56000",
+      "57000"
+    ],
+    "Setapak": ["53300"],
+    "Kepong": ["52100"],
+    "Cheras": ["56000"],
+    "Bangsar": ["59000"],
+    "Bukit Bintang": ["55100"],
+    "Sentul": ["51000"],
+    "Wangsa Maju": ["53300"],
+    "Segambut": ["51200"],
+    "Titiwangsa": ["53200"]
+  },
+
+  "Wilayah Persekutuan Putrajaya": {
+    "Putrajaya": ["62000"]
+  },
+
+  "Wilayah Persekutuan Labuan": {
+    "Labuan": ["87000"]
+  }
+}

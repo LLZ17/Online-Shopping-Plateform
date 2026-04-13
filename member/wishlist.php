@@ -1,5 +1,5 @@
-<?php require_once __DIR__ . '/../includes/_head.php';
-      require_once __DIR__ . '/../includes/db.php';?>
+<?php require_once __DIR__ . '/../includes/db.php';
+      require_once __DIR__ . '/../includes/_head.php';?>
 
 <style>
     /* 愿望清单专用样式 */
@@ -128,6 +128,28 @@
         padding: 50px 0;
         color: #999;
     }
+
+    .not-wishlist {
+        text-align: center;
+        color: rgba(128, 128, 128, 5);
+        font-size: 150%;
+    }
+
+    .not-wishlist-link {
+        display: flex;
+        justify-content: center;
+        color: rgba(128, 128, 128, 5);
+        font-size: 120%;
+        text-decoration: underline;
+    }
+
+    .not-wishlist-link:hover {
+        color: rgba(100, 149, 237, 5);
+    }
+
+    .wishlist-link:hover {
+        text-decoration: underline;
+    }
 </style>
 
 <?php
@@ -145,8 +167,17 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute([$_SESSION['user_id']]);
 $result = $stmt->fetchAll();
 
-?>
-<?php echo "$user_id This is a echo from wishlist.php line 150" ?>
+if (!$result): ?>
+<div class="wishlist-container">
+    <div class="wishlist-card">
+        <div class="wishlist-header">
+            <i class="fa-solid fa-heart"></i> My Wishlist
+        </div>
+        <p class = "not-wishlist">Seems nothing in your favouite list now!</p>
+        <a href = "itsme.php" class = "not-wishlist-link" >Go Shop and search what you like!</a>
+    </div>
+</div>
+<?php else: ?>
 <div class="wishlist-container">
     <div class="wishlist-card">
         <div class="wishlist-header">
@@ -170,7 +201,7 @@ $result = $stmt->fetchAll();
                         <div class="product-box">
                             <img src= "../images/<?php echo $r['product_image']; ?>" class="product-img" alt="<?php echo $r['name']; ?>">
                             <div class="product-info">
-                                <b><?php echo $r['name']; ?></b>
+                                <b><a href = "../products/listing.php" class = "wishlist-link"><?php echo $r['name']; ?></a></b>
                                 <span>Size: <?php echo $r['size'] ?> | Color: <?php echo $r['colour']; ?></span>
                             </div>
                         </div>
@@ -180,12 +211,13 @@ $result = $stmt->fetchAll();
                     <td><span style="color: #28a745; font-weight: 300;"><?php echo $r['status']; ?></span></td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 15px;">
-                            <button class="btn-add-cart" title="Move to Cart">Add to Cart</button>
+                            /*TODO*/<form method = "POST"><button class="btn-add-cart" title="Move to Cart">Add to Cart</button></form>
                             <i class="fa-solid fa-trash-can remove-icon" title="Remove from Wishlist"></i>
                         </div>
                     </td>
                 </tr>
 <?php endforeach ?>
+<?php endif ?>
 
                
             </tbody>
