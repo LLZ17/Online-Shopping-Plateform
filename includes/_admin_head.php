@@ -23,12 +23,12 @@ require_once '../includes/db.php';
 
 // --- [STAGE 3: 严格权限检查] ---
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
-    header("Location: login.php"); exit();
+    header("Location: admin/login.php"); exit();
 }
 
 $user_role = trim($_SESSION['role']);
 if (!in_array($user_role, ['Admin', 'S.Admin'])) {
-    header("Location: login.php"); exit();
+    header("Location: admin/login.php"); exit();
 }
 
 // --- [STAGE 4: 路径定义与用户信息] ---
@@ -46,7 +46,7 @@ $noti_count = 3;
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PXX Mall® | <?php echo $portal_title; ?></title>
+    <title>PXX Mall® | Admin Portal <?php echo $portal_title; ?></title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -194,14 +194,14 @@ $noti_count = 3;
 <body>
 
     <header class="admin-master-header">
-        <div class="header-brand" onclick="location.href='portal.php'">
+        <div class="header-brand" onclick="location.href='admin/portal.php'">
             <div class="logo-main">PXX Mall<span class="logo-r">&reg;</span></div>
             <div class="logo-portal">| Admin Portal</div>
         </div>
 
         <div class="header-actions">
             <div class="noti-wrapper">
-                <button class="noti-btn" onclick="location.href='notifications.php'">
+                <button class="noti-btn" onclick="location.href='admin/notifications.php'">
                     <i class="fa-solid fa-bell"></i>
                     <span>Alerts</span>
                     <div class="noti-badge"><?php echo $noti_count; ?></div>
@@ -219,7 +219,7 @@ $noti_count = 3;
                     <span style="display:block; font-size:11px; opacity:0.8; font-weight:700;"><?php echo strtoupper($user_role); ?></span>
                     <b style="font-size:15px;"><?php echo $current_admin; ?></b>
                 </div>
-                <a href="logout.php" onclick="return confirm('Logout current session?')"><i class="fa-solid fa-power-off logout-icon"></i></a>
+                <a href="admin/logout.php" onclick="return confirm('Logout current session?')"><i class="fa-solid fa-power-off logout-icon"></i></a>
             </div>
         </div>
     </header>
@@ -234,7 +234,7 @@ $noti_count = 3;
 
     <aside class="sidebar-fixed">
         <nav>
-            <a href="portal.php" class="s-item active">
+            <a href="admin/portal.php" class="s-item active">
                 <div class="s-icon-box">
                     <i class="fa-solid fa-gauge-high"></i>
                     <span>Dashboard</span>
@@ -251,7 +251,7 @@ $noti_count = 3;
                     <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
                 </div>
                 <div class="s-sub-box">
-                    <a href="admin_crud.php" class="sub-nav-link">Admin CRUD</a>
+                    <a href="admin/admin_crud.php" class="sub-nav-link">Admin CRUD</a>
                 </div>
             </div>
             <?php endif; ?>
@@ -265,7 +265,7 @@ $noti_count = 3;
                     <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
                 </div>
                 <div class="s-sub-box">
-                    <a href="member_crud.php" class="sub-nav-link">Member CRUD</a>
+                    <a href="admin/member_crud.php" class="sub-nav-link">Member CRUD</a>
                     <a href="order_history.php" class="sub-nav-link">Order History</a>
                 </div>
             </div>
@@ -279,9 +279,9 @@ $noti_count = 3;
                     <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
                 </div>
                 <div class="s-sub-box">
-                    <a href="product_crud.php" class="sub-nav-link">Product CRUD</a>
-                    <a href="category_crud.php" class="sub-nav-link">Category CRUD</a>
-                    <a href="sales_analytics.php" class="sub-nav-link">Sales Data</a>
+                    <a href="admin/product_crud.php" class="sub-nav-link">Product CRUD</a>
+                    <a href="admin/category_crud.php" class="sub-nav-link">Category CRUD</a>
+                    <a href="admin/order-crud.php" class="sub-nav-link">Sales Data</a>
                 </div>
             </div>
         </nav>
