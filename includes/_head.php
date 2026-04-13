@@ -21,7 +21,7 @@ $avatar_file = "default.jpg";
 
 // 🌟 核心：判定当前运行的文件夹层级 (解决相对路径报错)
 $current_page_dir = basename(dirname($_SERVER['PHP_SELF']));
-$is_subfolder = ($current_page_dir === 'admin' || $current_page_dir === 'member');
+$is_subfolder = ($current_page_dir === 'admin' || $current_page_dir === 'member'|| $current_page_dir === 'memberProducts');
 $path_prefix = $is_subfolder ? '../' : '';
 
 // 2. 获取用户数据：强制连接 SQL 获取最新头像
@@ -305,7 +305,7 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
                     </a>
                     <div class="user-dropdown">
                         <a href="<?php echo $path_prefix; ?>member/profile.php"><i class="fa-solid fa-user-circle"></i> My Account</a>
-                        <a href="<?php echo $path_prefix; ?>member/order_history.php"><i class="fa-solid fa-box"></i> My Orders</a>
+                        <a href="<?php echo $path_prefix; ?>member/orders_history.php"><i class="fa-solid fa-box"></i> My Orders</a>
                         <a href="<?php echo $path_prefix; ?>member/settings.php"><i class="fa-solid fa-gear"></i> My Settings</a>
                         <div style="height:1px; background:#eee; margin:5px 0;"></div>
                         <a href="<?php echo $path_prefix; ?>member/logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
