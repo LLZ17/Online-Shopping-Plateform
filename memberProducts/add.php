@@ -4,7 +4,6 @@ require_once '../includes/db.php';
 
 header('Content-Type: application/json');
 
-// 检查用户是否登录
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'Please login first']);
     exit();
@@ -22,7 +21,6 @@ if ($product_id <= 0) {
 $user_id = $_SESSION['user_id'];
 
 try {
-    // 检查商品是否存在
     $stmt = $pdo->prepare("SELECT * FROM products WHERE product_id = ?");
     $stmt->execute([$product_id]);
     $product = $stmt->fetch();
@@ -32,13 +30,11 @@ try {
         exit();
     }
 
-    // 检查库存
     if ($product['stock'] < $quantity) {
         echo json_encode(['success' => false, 'error' => 'Insufficient stock']);
         exit();
     }
 
-    // 检查购物车是否已有
     $stmt = $pdo->prepare("SELECT * FROM cart WHERE user_id = ? AND product_id = ? AND selected_size = ?");
     $stmt->execute([$user_id, $product_id, $selected_size]);
     $existing = $stmt->fetch();
