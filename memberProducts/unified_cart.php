@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
 <div class="cart-container">
     <h1>🛒 My Shopping Cart</h1>
     <?php if (empty($cart_items)): ?>
-        <div class="empty-cart"><p>Your cart is empty.</p><a href="../ViewAllProduct.php" class="btn btn-gray">Continue Shopping</a></div>
+        <div class="empty-cart"><p>Your cart is empty.</p><a href="listing.php" class="btn btn-gray">Continue Shopping</a></div>
     <?php else: ?>
         <form method="POST">
             <table>
@@ -88,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
             <div class="total">Total: RM <?php echo number_format($total, 2); ?></div>
             <div class="cart-actions">
                 <button type="submit" name="update_cart" class="btn btn-gray">Update Cart</button>
-                <a href="../ViewAllProduct.php" class="btn btn-gray">Continue Shopping</a>
-                <a href="checkout.php" class="btn">Proceed to Checkout →</a>
+                <a href="listing.php" class="btn btn-gray">Continue Shopping</a>
+                <a href="../member/checkout.php" class="btn">Proceed to Checkout →</a>
             </div>
         </form>
     <?php endif; ?>
