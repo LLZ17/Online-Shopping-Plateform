@@ -64,7 +64,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     <div id="edit-member-app" class="premium-form-card">
         <div class="form-header">
             <h2>Edit Member Profile</h2>
-            <p>UPDATING USER ID #<?= htmlspecialchars($id) ?></p>
+            <p>UPDATING USER ID #<?= htmlspecialchars($id) ?></P>
         </div>
         <div class="form-body">
             <form method="POST" action="">

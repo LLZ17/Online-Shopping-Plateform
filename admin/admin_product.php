@@ -55,7 +55,7 @@ $products = $pdo->query($sql)->fetchAll();
                 <th>Price (RM)</th>
                 <th style="text-align: right;">Management</th>
             </tr>
-        </thead>
+</thead>
         <tbody>
             <?php foreach ($products as $p): ?>
             <tr>

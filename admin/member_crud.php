@@ -7,7 +7,7 @@ require_once __DIR__ . '/../includes/db.php';
 
 $search = $_GET['search'] ?? '';
 $page   = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$limit  = 6; 
+$limit  = 6;
 
 $where = "1=1";
 $params = [];

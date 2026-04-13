@@ -29,5 +29,5 @@ try {
             <p>" . $e->getMessage() . "</p>
             <a href='product_crud.php'>Go Back</a>
          </div>");
-}
+}    
 ?>

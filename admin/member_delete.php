@@ -26,7 +26,7 @@ try {
 } catch (PDOException $e) {
     die("<div style='padding:50px; font-family:sans-serif;'>
             <h2 style='color:red;'>Delete Error 🚨</h2>
-            <p>Reason: " . $e->getMessage() . "</p>
+            <p>Reason: " . $e->getMessage() . "<?p>
             <a href='product_crud.php'>Go Back</a>
          </div>");
 }

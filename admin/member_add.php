@@ -143,7 +143,7 @@ if (file_exists($admin_head)) { include $admin_head; }
             myContent.style.background = '#f8fafc';
             myContent.style.zIndex = '9999';
             document.body.appendChild(myContent);
-        }
+}
     });
 </script>
 

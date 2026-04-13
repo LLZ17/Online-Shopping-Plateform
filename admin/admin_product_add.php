@@ -154,7 +154,7 @@ if (file_exists($admin_head)) { include $admin_head; }
                 previewImg.src = event.target.result;
                 previewImg.style.display = 'block'; 
                 if(placeholder) placeholder.style.display = 'none'; 
-            }
+}
             reader.readAsDataURL(file);
         }
    });
