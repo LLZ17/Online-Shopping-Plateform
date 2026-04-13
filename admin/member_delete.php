@@ -1,25 +1,33 @@
 <?php
-// TEE DE YONG's Part: Delete Member Logic
+// TEE DE YONG's Part: Product Delete (Fixed & Direct)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-require_once '../includes/_base.php'; 
-require_once '../includes/db.php';     
+require_once __DIR__ . '/../includes/db.php'; 
 
+// 1. 获取 ID
 $id = $_GET['id'] ?? '';
 
-if ($id) {
-    // 🔴 关键点：请确认 WHERE 后面的列名（比如 user_id）和你刚才在 Edit 里用的一模一样！
-    $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
-    
-    if ($stmt->execute([$id])) {
-        // 删除成功后，弹窗提示并跳回列表
-        echo "<script>alert('🗑️ Member deleted successfully!'); window.location.href='member_crud.php';</script>";
-        exit;
-    }
+// 如果 ID 是空的，说明列表页传参失败
+if (empty($id)) {
+    echo "<script>alert('⚠️ No Product ID received! Check your list page links.'); window.location.href='product_crud.php';</script>";
+    exit;
 }
 
-// 如果没有拿到 ID 或者删除失败，直接静默退回列表
-header("Location: member_crud.php");
-exit;
+try {
+    // 💡 使用 product_id 执行删除
+    $stmt = $pdo->prepare("DELETE FROM products WHERE product_id = ?");
+    $stmt->execute([$id]);
+
+    // 2. 成功后直接跳回
+    echo "<script>alert('🗑️ Product deleted successfully!'); window.location.href='product_crud.php';</script>";
+    exit;
+
+} catch (PDOException $e) {
+    die("<div style='padding:50px; font-family:sans-serif;'>
+            <h2 style='color:red;'>Delete Error 🚨</h2>
+            <p>Reason: " . $e->getMessage() . "</p>
+            <a href='product_crud.php'>Go Back</a>
+         </div>");
+}
 ?>

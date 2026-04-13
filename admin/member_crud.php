@@ -1,142 +1,137 @@
 <?php
-// TEE DE YONG's Part: Member Management (Premium Layout)
+// TEE DE YONG's Part: Member CRUD (Enlarged Premium UI)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// 1. 确保正确的相对路径
-require_once '../includes/_base.php'; 
-require_once '../includes/db.php';     
+require_once __DIR__ . '/../includes/db.php'; 
 
-// 2. 获取会员数据 (带搜索功能)
 $search = $_GET['search'] ?? '';
-$sql = "SELECT * FROM users"; // 假设你的会员表叫 users
-if ($search) {
-    $sql .= " WHERE name LIKE " . $pdo->quote("%$search%") . " OR email LIKE " . $pdo->quote("%$search%");
-}
-$sql .= " ORDER BY user_id DESC";
-$members = $pdo->query($sql)->fetchAll();
+$page   = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$limit  = 6; 
 
-// 3. 引入侧边栏
-include '../includes/_admin_head.php'; 
+$where = "1=1";
+$params = [];
+if ($search !== '') {
+    $where .= " AND (real_name LIKE ? OR email LIKE ? OR username LIKE ?)";
+    $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%";
+}
+
+$offset = ($page - 1) * $limit;
+
+try {
+    $stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM users WHERE $where");
+    $stmtTotal->execute($params);
+    $totalMembers = $stmtTotal->fetchColumn();
+    $totalPages = ceil($totalMembers / $limit);
+
+    $sql = "SELECT * FROM users WHERE $where ORDER BY user_id DESC LIMIT $limit OFFSET $offset";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $members = $stmt->fetchAll();
+} catch (PDOException $e) {
+    die("<div style='padding:50px;'>Error: " . $e->getMessage() . "</div>");
+}
+
+$admin_head = __DIR__ . '/../includes/_admin_head.php';
+if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
 <style>
-    /* 清场代码：隐藏 Dashboard 多余内容 */
-    .admin-content-viewport > .page-title-box, 
-    .admin-content-viewport > .stats-grid,
-    .admin-content-viewport > div[style*="background:white"] {
-        display: none !important;
-    }
+    .page-title-box { display: none !important; }
+    html, body { background: #f0f2f5 !important; font-family: 'Inter', sans-serif; }
     
-    html, body { 
-        background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%) !important; 
-        overflow: auto !important; 
-    }
+    /* 💡 放大点 1：增加容器最大宽度 */
+    .main-container { max-width: 1400px; margin: 40px auto; padding: 0 30px; }
+    
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+    .top-bar h1 { font-size: 40px; font-weight: 900; color: #111; margin: 0; letter-spacing: -2px; }
+    .btn-add-pro { background: #2563eb; color: white; padding: 16px 32px; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(37,99,235,0.2); font-size: 16px; }
 
-    .crud-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    .filter-card { background: white; padding: 25px; border-radius: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 40px; display: flex; gap: 20px; }
+    .input-pro { flex: 1; padding: 16px 24px; border: 2px solid #edf2f7; border-radius: 14px; font-weight: 600; font-size: 16px; outline: none; }
+    .btn-search { background: #111; color: white; padding: 16px 45px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; font-size: 16px; }
 
-    /* 顶部标题栏 */
-    .action-header {
-        display: flex; justify-content: space-between; align-items: center;
-        background: white; padding: 30px 40px; border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.04); margin-bottom: 30px;
-    }
-    .action-header h1 { margin: 0; font-size: 28px; font-weight: 800; color: #111; }
-    .action-header p { margin: 5px 0 0; color: #888; font-size: 15px; }
+    .member-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 35px; margin-bottom: 50px; }
 
-    /* 搜索栏 */
-    .search-wrapper { position: relative; width: 350px; }
-    .search-wrapper input {
-        width: 100%; padding: 15px 20px 15px 50px; border-radius: 15px;
-        border: 2px solid #f1f1f1; background: #f9f9f9; font-size: 15px;
-        transition: 0.3s; outline: none; box-sizing: border-box;
-    }
-    .search-wrapper input:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 4px rgba(59,130,246,0.1); }
-    .search-icon { position: absolute; left: 20px; top: 18px; color: #aaa; font-size: 16px; }
+    /* 💡 放大点 2：增加卡片内边距 */
+    .member-card { background: white; border-radius: 30px; padding: 35px; border: 1px solid #f1f5f9; transition: 0.4s; position: relative; }
+    .member-card:hover { transform: translateY(-8px); box-shadow: 0 25px 50px rgba(0,0,0,0.08); }
+    
+    .id-badge { position: absolute; top: 30px; right: 30px; background: #f1f5f9; color: #64748b; padding: 6px 15px; border-radius: 12px; font-size: 12px; font-weight: 900; }
+    
+    /* 💡 放大点 3：头像和名字放大 */
+    .user-profile { display: flex; align-items: center; gap: 25px; margin-bottom: 30px; }
+    .avatar-circle { width: 90px; height: 90px; border-radius: 28px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #2563eb; font-weight: 900; }
+    
+    .name-info h3 { margin: 0; font-size: 26px; font-weight: 800; color: #1e293b; }
+    .name-info p { margin: 4px 0 0; font-size: 16px; color: #94a3b8; font-weight: 600; }
 
-    /* 会员卡片网格 */
-    .member-grid { 
-        display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; 
-    }
+    .detail-list { border-top: 2px solid #f8fafc; padding-top: 25px; }
+    .detail-item { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 16px; font-weight: 600; }
+    .detail-label { color: #94a3b8; }
+    .detail-value { color: #334155; }
 
-    .m-card {
-        background: white; border-radius: 20px; padding: 30px;
-        text-align: center; border: 1px solid #f1f1f1;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.02); transition: 0.3s;
-    }
-    .m-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.08); border-color: #e2e8f0; }
+    .action-row { display: flex; gap: 15px; margin-top: 30px; }
+    .btn-edit-pro { flex: 1; text-align: center; padding: 18px; background: #f8fafc; color: #334155; border-radius: 16px; text-decoration: none; font-weight: 800; font-size: 15px; border: 2px solid #e2e8f0; }
+    .btn-edit-pro:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .btn-del-pro { width: 60px; display: flex; align-items: center; justify-content: center; background: #fff1f0; color: #ef4444; border-radius: 16px; text-decoration: none; font-size: 20px; }
 
-    /* 动态头像 */
-    .avatar {
-        width: 80px; height: 80px; border-radius: 50%;
-        background: linear-gradient(135deg, #3b82f6, #2dd4bf);
-        color: white; font-size: 32px; font-weight: 800;
-        display: flex; align-items: center; justify-content: center;
-        margin: 0 auto 20px auto; box-shadow: 0 8px 15px rgba(59,130,246,0.3);
-    }
-
-    .m-name { font-size: 20px; font-weight: 800; color: #111; margin: 0 0 5px 0; }
-    .m-email { font-size: 14px; color: #888; margin: 0 0 15px 0; word-break: break-all; }
-    .m-id { display: inline-block; background: #f1f5f9; color: #475569; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 20px; }
-
-    /* 操作按钮 */
-    .m-actions { display: flex; gap: 10px; border-top: 1px solid #f1f1f1; padding-top: 20px; }
-    .btn-action {
-        flex: 1; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 700;
-        text-decoration: none; transition: 0.2s; text-align: center;
-    }
-    .btn-edit { background: #f8fafc; color: #333; }
-    .btn-edit:hover { background: #e2e8f0; }
-    .btn-del { background: #fff1f0; color: #e60012; }
-    .btn-del:hover { background: #ffe4e1; }
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; padding-bottom: 60px; }
+    .page-btn { min-width: 55px; height: 55px; display: flex; align-items: center; justify-content: center; background: white; border-radius: 16px; text-decoration: none; font-weight: 800; font-size: 18px; border: 2px solid #edf2f7; transition: 0.3s; }
+    .page-btn.active { background: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 10px 20px rgba(37,99,235,0.2); }
 </style>
 
-<div id="premium-member-content" class="crud-container">
-    
-    <div class="action-header">
-        <div>
-            <h1>Member Directory</h1>
-            <p>Total registered users: <b><?= count($members) ?></b></p>
-        </div>
-        
-        <form method="get" class="search-wrapper">
-            <div class="search-icon">🔍</div>
-            <input type="text" name="search" placeholder="Search name or email..." value="<?= htmlspecialchars($search) ?>">
-        </form>
+<div id="member-app" class="main-container" style="display:none;">
+    <div class="top-bar">
+        <h1>User Directory</h1>
+        <a href="member_add.php" class="btn-add-pro">+ NEW MEMBER</a>
     </div>
+
+    <form method="GET" class="filter-card">
+        <input type="text" name="search" class="input-pro" placeholder="Search members..." value="<?= htmlspecialchars($search) ?>">
+        <button type="submit" class="btn-search">SEARCH</button>
+    </form>
 
     <div class="member-grid">
         <?php foreach ($members as $m): ?>
-        <div class="m-card">
-            <div class="avatar"><?= strtoupper(substr($m['username'] ?? 'U', 0, 1)) ?></div>
-            
-            <h3 class="m-name"><?= htmlspecialchars($m['username'] ?? 'Unknown User') ?></h3>
-            
-            <p class="m-email"><?= htmlspecialchars($m['email'] ?? 'No email provided') ?></p>
-            
-            <div class="m-id">System ID: #<?= $m['user_id'] ?></div>
-            
-            <div class="m-actions">
-                <a href="member_edit.php?id=<?= $m['user_id'] ?>" class="btn-action btn-edit">Edit Profile</a>
-                <a href="member_delete.php?id=<?= $m['user_id'] ?>" class="btn-action btn-del" onclick="return confirm('Delete this member completely?')">Remove</a>
+        <div class="member-card">
+            <div class="id-badge">ID: <?= $m['user_id'] ?></div>
+            <div class="user-profile">
+                <div class="avatar-circle"><?= mb_substr($m['real_name'], 0, 1) ?></div>
+                <div class="name-info">
+                    <h3><?= htmlspecialchars($m['real_name']) ?></h3>
+                    <p>@<?= htmlspecialchars($m['username']) ?></p>
+                </div>
+            </div>
+            <div class="detail-list">
+                <div class="detail-item"><span class="detail-label">Email</span><span class="detail-value"><?= $m['email'] ?></span></div>
+                <div class="detail-item"><span class="detail-label">Phone</span><span class="detail-value"><?= $m['phone_num'] ?? 'N/A' ?></span></div>
+                <div class="detail-item"><span class="detail-label">Gender</span><span class="detail-value"><?= $m['gender'] ?? 'N/A' ?></span></div>
+            </div>
+            <div class="action-row">
+                <a href="member_edit.php?id=<?= $m['user_id'] ?>" class="btn-edit-pro">EDIT PROFILE</a>
+                <a href="member_delete.php?id=<?= $m['user_id'] ?>" class="btn-del-pro" onclick="return confirm('Delete user?')">🗑️</a>
             </div>
         </div>
         <?php endforeach; ?>
-   
     </div>
 
+    <?php if ($totalPages > 1): ?>
+    <div class="pagination">
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+            <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>" class="page-btn <?= ($i == $page) ? 'active' : '' ?>"><?= $i ?></a>
+        <?php endfor; ?>
+    </div>
+    <?php endif; ?>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const viewport = document.querySelector('.admin-content-viewport');
-        const content = document.getElementById('premium-member-content');
-        if (viewport && content) {
-            viewport.innerHTML = ''; 
-            viewport.appendChild(content);
-        }
+        const app = document.getElementById('member-app');
+        app.style.display = 'block';
+        let v = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
+        if (v) { v.innerHTML = ''; v.appendChild(app); }
     });
 </script>
 
-</main>
-<?php include '../includes/_foot.php'; ?>
+<?php $foot = __DIR__ . '/../includes/_foot.php'; if (file_exists($foot)) { include $foot; } ?>

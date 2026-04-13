@@ -1,76 +1,174 @@
 <?php
-require_once 'includes/_base.php';
-require_once 'includes/db.php';
+// TEE DE YONG's Part: Admin Portal Dashboard (Top 5 Leaderboard)
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-$_title = 'Admin | Dashboard';
-include 'includes/_admin_head.php';
+require_once __DIR__ . '/../includes/db.php'; 
 
-// 1. 核心 SQL 逻辑：从 orders 表里统计每个产品出现的次数，取出前 5 名
-// 这里的逻辑是：统计 orders 表中 product_id 出现的频率
-$sql_top = "SELECT p.name, p.price, COUNT(o.order_id) as total_sold,
-            (SELECT image_path FROM product_images WHERE product_id = p.product_id LIMIT 1) as thumb
-            FROM products p
-            JOIN orders o ON p.product_id = o.product_id
-            GROUP BY p.product_id
-            ORDER BY total_sold DESC
-            LIMIT 5";
+// ==========================================
+// 🏆 获取 Top 5 商品逻辑
+// 提示: 如果你的数据库有 'sales' (销量) 字段，请把 'price DESC' 改成 'sales DESC'
+// ==========================================
+try {
+    $sql = "SELECT * FROM products ORDER BY price DESC LIMIT 5";
+    $stmt = $pdo->query($sql);
+    $topProducts = $stmt->fetchAll();
+} catch (PDOException $e) {
+    die("<div style='padding:20px; color:red;'>Database Error: " . $e->getMessage() . "</div>");
+}
 
-$top_products = $pdo->query($sql_top)->fetchAll();
-
-// 2. 额外统计：总订单数和总销售额 (顺便展示你的技术)
-$total_orders = $pdo->query("SELECT COUNT(*) FROM orders")->fetchColumn();
-$total_revenue = $pdo->query("SELECT SUM(total_price) FROM orders")->fetchColumn();
+// 引入头部
+$admin_head = __DIR__ . '/../includes/_admin_head.php';
+if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
-<div class="container" style="padding: 20px;">
-    <h1>Admin Dashboard</h1>
-    
-    <div style="display: flex; gap: 20px; margin-bottom: 30px;">
-        <div style="flex: 1; padding: 20px; background: #007bff; color: white; border-radius: 8px;">
-            <h3>Total Orders</h3>
-            <p style="font-size: 24px; font-weight: bold;"><?= $total_orders ?></p>
-        </div>
-        <div style="flex: 1; padding: 20px; background: #28a745; color: white; border-radius: 8px;">
-            <h3>Total Revenue</h3>
-            <p style="font-size: 24px; font-weight: bold;">RM <?= number_format($total_revenue ?? 0, 2) ?></p>
-        </div>
+<style>
+    /* 清理干扰 */
+    .page-title-box { display: none !important; }
+    html, body { background: #f8fafc !important; }
+
+    /* 仪表盘主容器 */
+    .dashboard-container { 
+        max-width: 1100px; 
+        margin: 30px auto; 
+        font-family: 'Inter', sans-serif; 
+    }
+
+    /* 欢迎标题 */
+    .dash-header { margin-bottom: 30px; }
+    .dash-header h1 { font-size: 32px; font-weight: 900; color: #111; margin: 0; letter-spacing: -1px; }
+    .dash-header p { color: #64748b; font-weight: 600; margin-top: 5px; }
+
+    /* 排行榜卡片 */
+    .top5-card { 
+        background: #fff; 
+        border-radius: 20px; 
+        box-shadow: 0 15px 35px rgba(0,0,0,0.04); 
+        border: 1px solid rgba(0,0,0,0.05); 
+        overflow: hidden;
+        max-width: 600px; /* 适合作为 Dashboard 的一个 Widget */
+    }
+
+    .top5-header { 
+        background: linear-gradient(135deg, #111 0%, #222 100%); 
+        padding: 20px 30px; 
+        display: flex; 
+        align-items: center; 
+        gap: 15px;
+    }
+    .top5-header h2 { color: #fff; margin: 0; font-size: 20px; font-weight: 800; }
+    .top5-icon { font-size: 24px; }
+
+    /* 排行榜列表 */
+    .top5-list { padding: 0; margin: 0; list-style: none; }
+    .top5-item { 
+        display: flex; 
+        align-items: center; 
+        padding: 20px 30px; 
+        border-bottom: 1px solid #f1f5f9; 
+        transition: 0.3s;
+    }
+    .top5-item:last-child { border-bottom: none; }
+    .top5-item:hover { background: #f8fafc; }
+
+    /* 排名数字设计 */
+    .rank-badge { 
+        width: 36px; height: 36px; 
+        border-radius: 12px; 
+        display: flex; align-items: center; justify-content: center; 
+        font-weight: 900; font-size: 16px; 
+        margin-right: 20px;
+        background: #f1f5f9; color: #94a3b8;
+    }
+    /* 前三名专属高亮颜色 (金银铜) */
+    .rank-1 { background: #fef08a; color: #854d0e; box-shadow: 0 4px 10px rgba(254,240,138,0.5); }
+    .rank-2 { background: #e2e8f0; color: #475569; box-shadow: 0 4px 10px rgba(226,232,240,0.5); }
+    .rank-3 { background: #fed7aa; color: #9a3412; box-shadow: 0 4px 10px rgba(254,215,170,0.5); }
+
+    .item-details { flex: 1; }
+    .item-name { margin: 0; font-size: 16px; font-weight: 800; color: #1e293b; }
+    .item-id { margin: 4px 0 0; font-size: 12px; font-weight: 700; color: #94a3b8; }
+    .item-price { font-size: 18px; font-weight: 900; color: #e60012; }
+</style>
+
+<div id="dashboard-app" class="dashboard-container" style="display:none;">
+    <div class="dash-header">
+        <h1>System Dashboard</h1>
+        <p>Welcome back! Here is the overview of your PXX Mall data.</p>
     </div>
 
-    <hr>
-
-    <h2>🔥 Top 5 Best Selling Products</h2>
-    <table border="1" width="100%" style="border-collapse: collapse; margin-top: 15px; text-align: center;">
-        <tr style="background-color: #f8f9fa;">
-            <th>Rank</th>
-            <th>Photo</th>
-            <th>Product Name</th>
-            <th>Price</th>
-            <th>Total Sold</th>
-        </tr>
-
-        <?php 
-        $rank = 1;
-        foreach ($top_products as $tp): 
-        ?>
-        <tr>
-            <td><strong>#<?= $rank++ ?></strong></td>
-            <td>
-                <?php if ($tp['thumb']): ?>
-                    <img src="images/<?= $tp['thumb'] ?>" style="height: 50px; width: auto; padding: 5px;">
-                <?php else: ?>
-                    <span style="color: #ccc;">No Photo</span>
-                <?php endif; ?>
-            </td>
-            <td><?= $tp['name'] ?></td>
-            <td>RM <?= number_format($tp['price'], 2) ?></td>
-            <td style="color: red; font-weight: bold;"><?= $tp['total_sold'] ?> Units</td>
-        </tr>
-        <?php endforeach; ?>
-
-        <?php if (empty($top_products)): ?>
-            <tr><td colspan="5" style="padding: 20px;">No sales data available yet.</td></tr>
-        <?php endif; ?>
-    </table>
+    <div class="top5-card">
+        <div class="top5-header">
+            <div class="top5-icon">👑</div>
+            <h2>Top 5 Selling Products</h2>
+        </div>
+        <ul class="top5-list">
+            <?php if (count($topProducts) > 0): ?>
+                <?php foreach ($topProducts as $index => $p): ?>
+                    <?php 
+                        $rank = $index + 1; 
+                        // 给前三名分配特殊颜色 class
+                        $rankClass = ($rank <= 3) ? "rank-{$rank}" : "";
+                    ?>
+                    <li class="top5-item">
+                        <div class="rank-badge <?= $rankClass ?>"><?= $rank ?></div>
+                        <div class="item-details">
+                            <h3 class="item-name"><?= htmlspecialchars($p['name']) ?></h3>
+                            <p class="item-id">Product ID: #<?= $p['product_id'] ?></p>
+                        </div>
+                        <div class="item-price">RM <?= number_format($p['price'], 2) ?></div>
+                    </li>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <li class="top5-item" style="justify-content: center; color: #94a3b8; font-weight: 600;">
+                    No product data available.
+                </li>
+            <?php endif; ?>
+        </ul>
+    </div>
 </div>
 
-<?php include 'includes/_foot.php'; ?>
+<script>
+    // ⚔️ 仪表盘专属追踪脚本，确保你的 Widget 能在主页显示
+    document.addEventListener("DOMContentLoaded", function() {
+        const myContent = document.getElementById('dashboard-app');
+        if (!myContent) return;
+        myContent.style.display = 'block';
+
+        let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, .page-content, main');
+        
+        if (!viewport) {
+            const allElements = document.body.getElementsByTagName('*');
+            for (let el of allElements) {
+                if (el.textContent && el.textContent.includes("Administrative Workspace Ready")) {
+                    viewport = el.parentElement;
+                    break;
+                }
+            }
+        }
+
+        if (viewport) {
+            viewport.innerHTML = ''; 
+            viewport.style.setProperty('overflow-y', 'auto', 'important');
+            viewport.style.setProperty('height', '100vh', 'important');
+            viewport.style.setProperty('padding-bottom', '50px', 'important');
+            viewport.appendChild(myContent);
+        } else {
+            myContent.style.position = 'fixed';
+            myContent.style.top = '60px'; 
+            myContent.style.right = '0';
+            myContent.style.width = 'calc(100vw - 250px)'; 
+            myContent.style.height = '100vh';
+            myContent.style.overflowY = 'auto';
+            myContent.style.background = '#f8fafc';
+            myContent.style.zIndex = '9999';
+            myContent.style.padding = '30px';
+            document.body.appendChild(myContent);
+        }
+    });
+</script>
+
+<?php 
+$foot = __DIR__ . '/../includes/_foot.php';
+if (file_exists($foot)) { include $foot; } 
+?>
