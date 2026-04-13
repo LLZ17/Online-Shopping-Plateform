@@ -627,7 +627,7 @@ if (file_exists($pxx_head_file)) {
                     <span style="color: #888; font-size: 14px; line-height: 2;">******** (Recommended: Change every 90 days)</span>
                 </div>
                 <div class="sec-action-link">
-                    <a href="change_password.php" class="blue-link-action">Update Password</a>
+                    <a href="reset_password.php" class="blue-link-action">Update Password</a>
                 </div>
             </div>
 
