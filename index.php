@@ -866,44 +866,7 @@ function addToWishlist(productId) {
 }
 </script>
 
-<!-- 增强页脚 -->
-<div class="footer-enhanced">
-    <div class="footer-grid">
-        <div class="footer-col">
-            <h4>PXX Mall</h4>
-            <a href="#">About Us</a>
-            <a href="#">Contact Us</a>
-            <a href="#">Careers</a>
-            <a href="#">Store Locator</a>
-        </div>
-        <div class="footer-col">
-            <h4>Customer Service</h4>
-            <a href="#">Help Center</a>
-            <a href="#">Returns & Exchanges</a>
-            <a href="#">Shipping Info</a>
-            <a href="#">Payment Methods</a>
-        </div>
-        <div class="footer-col">
-            <h4>My Account</h4>
-            <a href="member/login.php">Sign In</a>
-            <a href="member/orders_history.php">My Orders</a>
-            <a href="member/profile.php">My Profile</a>
-            <a href="member/wishlist.php">Wishlist</a>
-        </div>
-        <div class="footer-col">
-            <h4>Follow Us</h4>
-            <div class="social-icons">
-                <a href="#"><i class="fab fa-facebook-f"></i></a>
-                <a href="#"><i class="fab fa-instagram"></i></a>
-                <a href="#"><i class="fab fa-twitter"></i></a>
-                <a href="#"><i class="fab fa-youtube"></i></a>
-            </div>
-        </div>
-    </div>
-    <div class="copyright">
-        <p>PXX Mall Malaysia Sdn. Bhd.® [202001028493 (1357831-M)]</p>
-        <p>Copyright © 2026 All Rights Reserved.</p>
-    </div>
+
 </div>
 
 <?php require_once 'includes/_foot.php'; ?>

@@ -3,7 +3,7 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-require_once '../includes/_base.php'; 
+require_once '../includes/admin-base.php'; 
 require_once '../includes/db.php';     
 
 $search = $_GET['search'] ?? '';
