@@ -245,62 +245,6 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
     </form>
 </div>
 
-       <div class="icon-section">
-    
-    <!-- Notifications -->
-    <div class="dropdown-wrapper">
-        <a href="notifications.php" class="icon-link">
-            <div class="icon-wrapper">
-                <i class="fa-solid fa-bell"></i>
-                <span class="icon-badge">2</span>
-            </div>
-            <span>Notifications</span>
-        </a>
-    </div>
-
-    <!-- Wishlist -->
-    <div class="dropdown-wrapper">
-        <a href="wishlist.php" class="icon-link">
-            <div class="icon-wrapper">
-                <i class="fa-solid fa-heart"></i>
-                <span class="icon-badge">5</span>
-            </div>
-            <span>Wishlist</span>
-        </a>
-    </div>
-
-<!-- Your Cart Link -->
-<div class="dropdown-wrapper">
-    <a href="../member_cart/unified_cart.php" class="icon-link">
-        <div class="icon-wrapper">
-            <i class="fa-solid fa-cart-shopping"></i>
-            <span class="icon-badge">0</span>
-        </div>
-        <span>Cart</span>
-    </a>
-</div>
-
-<!-- Your Orders Link -->
-<div class="dropdown-wrapper">
-    <a href="../memberOrders/history.php" class="icon-link">
-        <div class="icon-wrapper">
-            <i class="fa-solid fa-receipt"></i>
-        </div>
-        <span>Orders</span>
-    </a>
-</div>
-    <!-- User -->
-    <div class="dropdown-wrapper">
-        <?php if ($isLoggedIn): ?>
-            <a href="profile.php" class="icon-link">
-                <div class="icon-wrapper">
-                    <img src="images/<?php echo $avatar; ?>" class="user-avatar" alt="Avatar">
-            <form action="<?php echo $path_prefix; ?>search.php" method="GET" class="search-container">
-                <input type="text" name="query" class="search-input" placeholder="Search for Men and Women clothes">
-                <button type="submit" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </form>
-        </div>
-
         <div class="nav-actions">
             
             <div class="nav-item <?php echo $isLoggedIn ? 'hover-trigger' : ''; ?>">
