@@ -21,7 +21,7 @@ $avatar_file = "default.jpg";
 
 // 🌟 核心：判定当前运行的文件夹层级 (解决相对路径报错)
 $current_page_dir = basename(dirname($_SERVER['PHP_SELF']));
-$is_subfolder = ($current_page_dir === 'admin' || $current_page_dir === 'member');
+$is_subfolder = ($current_page_dir === 'admin' || $current_page_dir === 'member' || $current_page_dir === 'memberProducts');  
 $path_prefix = $is_subfolder ? '../' : '';
 
 // 2. 获取用户数据：强制连接 SQL 获取最新头像
@@ -244,63 +244,6 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
         <button type="submit" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
     </form>
 </div>
-
-       <div class="icon-section">
-    
-    <!-- Notifications -->
-    <div class="dropdown-wrapper">
-        <a href="notifications.php" class="icon-link">
-            <div class="icon-wrapper">
-                <i class="fa-solid fa-bell"></i>
-                <span class="icon-badge">2</span>
-            </div>
-            <span>Notifications</span>
-        </a>
-    </div>
-
-    <!-- Wishlist -->
-    <div class="dropdown-wrapper">
-        <a href="wishlist.php" class="icon-link">
-            <div class="icon-wrapper">
-                <i class="fa-solid fa-heart"></i>
-                <span class="icon-badge">5</span>
-            </div>
-            <span>Wishlist</span>
-        </a>
-    </div>
-
-<!-- Your Cart Link -->
-<div class="dropdown-wrapper">
-    <a href="../member_cart/unified_cart.php" class="icon-link">
-        <div class="icon-wrapper">
-            <i class="fa-solid fa-cart-shopping"></i>
-            <span class="icon-badge">0</span>
-        </div>
-        <span>Cart</span>
-    </a>
-</div>
-
-<!-- Your Orders Link -->
-<div class="dropdown-wrapper">
-    <a href="../memberOrders/history.php" class="icon-link">
-        <div class="icon-wrapper">
-            <i class="fa-solid fa-receipt"></i>
-        </div>
-        <span>Orders</span>
-    </a>
-</div>
-    <!-- User -->
-    <div class="dropdown-wrapper">
-        <?php if ($isLoggedIn): ?>
-            <a href="profile.php" class="icon-link">
-                <div class="icon-wrapper">
-                    <img src="images/<?php echo $avatar; ?>" class="user-avatar" alt="Avatar">
-            <form action="<?php echo $path_prefix; ?>search.php" method="GET" class="search-container">
-                <input type="text" name="query" class="search-input" placeholder="Search for Men and Women clothes">
-                <button type="submit" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </form>
-        </div>
-
         <div class="nav-actions">
             
             <div class="nav-item <?php echo $isLoggedIn ? 'hover-trigger' : ''; ?>">
@@ -361,7 +304,7 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
                     </a>
                     <div class="user-dropdown">
                         <a href="<?php echo $path_prefix; ?>member/profile.php"><i class="fa-solid fa-user-circle"></i> My Account</a>
-                        <a href="<?php echo $path_prefix; ?>member/order_history.php"><i class="fa-solid fa-box"></i> My Orders</a>
+                        <a href="<?php echo $path_prefix; ?>member/orders_history.php"><i class="fa-solid fa-box"></i> My Orders</a>
                         <a href="<?php echo $path_prefix; ?>member/settings.php"><i class="fa-solid fa-gear"></i> My Settings</a>
                         <div style="height:1px; background:#eee; margin:5px 0;"></div>
                         <a href="<?php echo $path_prefix; ?>member/logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
@@ -393,4 +336,3 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
 
 </body>
 </html>
-<?php endif; ?>

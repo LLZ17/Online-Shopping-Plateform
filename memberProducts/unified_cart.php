@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/_head.php';
+require_once '../includes/db.php';
+require_once '../includes/_head.php';
 
 if (!isset($_SESSION['user_id'])) {
     echo "<script>alert('Please login first'); window.location.href='../login.php';</script>";
@@ -66,11 +66,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
 <div class="cart-container">
     <h1>🛒 My Shopping Cart</h1>
     <?php if (empty($cart_items)): ?>
-        <div class="empty-cart"><p>Your cart is empty.</p><a href="../memberProducts/listing.php" class="btn btn-gray">Continue Shopping</a></div>
+        <div class="empty-cart"><p>Your cart is empty.</p><a href="../ViewAllProduct.php" class="btn btn-gray">Continue Shopping</a></div>
     <?php else: ?>
         <form method="POST">
             <table>
-                <thead><tr><th>Product</th><th>Price</th><th>Quantity</th><th>Subtotal</th><th></th></tr></thead>
+                <thead>
+                    <tr><th>Product</th><th>Price</th><th>Quantity</th><th>Subtotal</th><th></th></tr>
+                </thead>
                 <tbody>
                     <?php foreach ($cart_items as $item): $subtotal = $item['price'] * $item['quantity']; ?>
                         <tr>
@@ -86,10 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
             <div class="total">Total: RM <?php echo number_format($total, 2); ?></div>
             <div class="cart-actions">
                 <button type="submit" name="update_cart" class="btn btn-gray">Update Cart</button>
-                <a href="../index.php" class="btn btn-gray">Continue Shopping</a>
+                <a href="../ViewAllProduct.php" class="btn btn-gray">Continue Shopping</a>
                 <a href="checkout.php" class="btn">Proceed to Checkout →</a>
             </div>
         </form>
     <?php endif; ?>
 </div>
-<?php require_once __DIR__ . '/../includes/_foot.php'; ?>
+<?php require_once '../includes/_foot.php'; ?>

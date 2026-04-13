@@ -1,36 +1,43 @@
 <?php
-/**
- * PXX MALL - 支付跳转整合脚本
- * 开发者：4人项目组
- */
+session_start();
+require_once __DIR__ . '/../includes/db.php';
 
-// --- 1. 配置部分 (原本在 config.php) ---
-$userSecretKey = '2pl08i3j-hekc-jxfo-218a-02h0ummfdwm3'; // 从 ToyyibPay Settings -> Personal 获取
-$categoryCode  = 'jmf56yjy'; // 从 ToyyibPay Category -> List 获取
+if (!isset($_SESSION['pending_order'])) {
+    die("No pending order. Please go back to checkout.");
+}
 
-// 这里的 URL 必须指向你的 return.php 存放位置
-$baseUrl = "http://localhost/pxxmall/"; 
-$returnUrl = $baseUrl . "return.php";
+$pending_order = $_SESSION['pending_order'];
+
+// 获取订单信息
+$total = $pending_order['final_total'] ?? $pending_order['total'];
+$name = $pending_order['name'];
+$email = $pending_order['email'];
+$phone = $pending_order['phone'];
+
+$userSecretKey = '2pl08i3j-hekc-jxfo-218a-02h0ummfdwm3';
+$categoryCode = 'jmf56yjy';
+$baseUrl = "http://localhost:8001/";
+$returnUrl = $baseUrl . "payment_return.php";
 
 $apiUrl = 'https://dev.toyyibpay.com/index.php/api/createBill';
 $gatewayUrl = 'https://dev.toyyibpay.com/';
 
 $orderId = "PXX-" . date("His") . "-" . rand(10, 99);
-$billAmount = $pending_order['total'] * 100;  // 使用实际订单金额
+$billAmount = $total * 100;
 
 $data = array(
     'userSecretKey' => $userSecretKey,
     'categoryCode' => $categoryCode,
-    'billName' => 'PXX Mall Order',
+    'billName' => 'PXX Mall Fashion Order',
     'billDescription' => 'Payment for Order ' . $orderId,
     'billPriceSetting' => 1,
     'billPayorInfo' => 1,
     'billAmount' => $billAmount,
     'billReturnUrl' => $returnUrl,
     'billExternalReferenceNo' => $orderId,
-    'billTo' => $pending_order['name'],
-    'billEmail' => $pending_order['email'],
-    'billPhone' => $pending_order['phone']
+    'billTo' => $name,
+    'billEmail' => $email,
+    'billPhone' => $phone
 );
 
 $curl = curl_init();
@@ -38,10 +45,11 @@ curl_setopt($curl, CURLOPT_POST, 1);
 curl_setopt($curl, CURLOPT_URL, $apiUrl);
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-
+curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);  // 添加这行
+curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);  // 添加这行
 $result = curl_exec($curl);
 $errors = curl_error($curl);
-curl_close($curl);
+($curl);
 
 if ($errors) {
     die("CURL Error: " . $errors);
@@ -50,7 +58,6 @@ if ($errors) {
 $obj = json_decode($result);
 
 if (isset($obj[0]->BillCode)) {
-    $_SESSION['payment_order_number'] = $orderId;
     header("Location: " . $gatewayUrl . $obj[0]->BillCode);
     exit;
 } else {

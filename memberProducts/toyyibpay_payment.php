@@ -45,12 +45,11 @@ curl_setopt($curl, CURLOPT_POST, 1);
 curl_setopt($curl, CURLOPT_URL, $apiUrl);
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-
+curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);  // 添加这行
+curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);  // 添加这行
 $result = curl_exec($curl);
 $errors = curl_error($curl);
-curl_close($curl);
+($curl);
 
 if ($errors) {
     die("CURL Error: " . $errors);
