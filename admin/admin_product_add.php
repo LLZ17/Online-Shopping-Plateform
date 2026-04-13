@@ -1,120 +1,135 @@
 <?php
-// TEE DE YONG's Part: Add New Product Form (Premium Layout - Fixed)
+// TEE DE YONG's Part: Add Product (Grid Layout & Luxury UI)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-require_once '../includes/_base.php'; 
-require_once '../includes/db.php';     
+require_once __DIR__ . '/../includes/db.php'; 
 
-// 处理表单提交 (插入新数据，不需要验证 ID)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = $_POST['name'] ?? '';
     $price = $_POST['price'] ?? 0;
     $description = $_POST['description'] ?? '';
-    
-    // 写入数据库
+
     $stmt = $pdo->prepare("INSERT INTO products (name, price, description) VALUES (?, ?, ?)");
     if ($stmt->execute([$name, $price, $description])) {
-        echo "<script>alert('✨ New product added successfully!'); window.location.href='product_crud.php';</script>";
+        echo "<script>alert('✨ Product successfully added!'); window.location.href='product_crud.php';</script>";
         exit;
     }
 }
 
-// 引用头文件
-include '../includes/_admin_head.php'; 
+$admin_head = __DIR__ . '/../includes/_admin_head.php';
+if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
 <style>
-    /* 清场代码：隐藏 Dashboard 多余内容 */
-    .admin-content-viewport > .page-title-box, 
-    .admin-content-viewport > .stats-grid,
-    .admin-content-viewport > div[style*="background:white"] {
-        display: none !important;
+    /* 强力接管页面高度，防止被截断 */
+    .admin-content-viewport { 
+        height: auto !important; 
+        min-height: 100vh !important; 
+        padding-bottom: 60px !important; 
+        overflow-y: visible !important; 
     }
-    
-    html, body { 
-        background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%) !important; 
-        overflow: auto !important; 
+    .admin-content-viewport > .page-title-box, 
+    .admin-content-viewport > div[style*="background:white"] { display: none !important; }
+
+    /* 奢华卡片主体 */
+    .premium-form-card {
+        max-width: 650px; 
+        margin: 20px auto; 
+        background: #ffffff; 
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.08); 
+        border: 1px solid rgba(0,0,0,0.04);
+        overflow: hidden;
     }
 
-    .add-container { 
-        max-width: 1000px; 
-        margin: 50px auto 100px auto; 
-        background: white; 
-        border-radius: 20px; 
-        box-shadow: 0 15px 40px rgba(0,0,0,0.06); 
+    /* 顶部高级黑金 */
+    .form-header { 
+        background: #111; 
+        padding: 25px 35px; 
+        border-bottom: 4px solid #e60012;
+    }
+    .form-header h2 { margin: 0; color: white; font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+
+    /* 表单内容区 */
+    .form-body { padding: 30px 35px; }
+    
+    /* 💡 核心优化：网格布局（左右分栏） */
+    .grid-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr; /* 名字占2份，价格占1份 */
+        gap: 20px;
+        margin-bottom: 20px;
     }
     
-    .add-header { 
-        background: #e60012; /* 红色头部，和编辑页面的黑色区分开 */
-        color: white; padding: 30px 50px; 
-        display: flex; justify-content: space-between; align-items: center;
-        border-radius: 20px 20px 0 0; 
-    }
-    .add-header h2 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 1px; }
-    .add-header .badge { background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+    .form-group { margin-bottom: 20px; }
+    .grid-row .form-group { margin-bottom: 0; /* 在网格内不需要额外的底部边距 */ }
     
-    .form-body { padding: 40px 50px 50px 50px; } 
-    
-    .form-row { display: flex; gap: 30px; margin-bottom: 30px; }
-    .form-row .form-group { flex: 1; margin-bottom: 0; }
-    
-    .form-group { margin-bottom: 30px; }
-    .form-group label { display: block; font-weight: 700; color: #1a202c; margin-bottom: 10px; font-size: 14px; text-transform: uppercase; }
-    
-    .form-group input, .form-group textarea { 
-        width: 100%; padding: 18px 20px; border-radius: 12px; 
-        border: 2px solid transparent; font-size: 16px; font-weight: 500;
-        color: #333; background: #f4f7f6; font-family: inherit; transition: 0.3s;
-        box-sizing: border-box; 
-    }
-    .form-group input:focus, .form-group textarea:focus { border-color: #e60012; background: white; outline: none; box-shadow: 0 0 0 4px rgba(230,0,18,0.1); }
-    
-    .action-row {
-        display: flex; align-items: center; justify-content: space-between;
-        margin-top: 40px; padding-top: 30px; border-top: 1px solid #eee;
+    .form-group label { 
+        display: block; font-weight: 800; color: #64748b; 
+        margin-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
     }
     
+    /* 输入框设计 */
+    .input-style {
+        width: 100%; padding: 14px 18px; border-radius: 12px; border: 2px solid #f1f5f9;
+        font-size: 14px; font-weight: 600; color: #1e293b; background: #f8fafc;
+        transition: all 0.3s ease; box-sizing: border-box;
+    }
+    .input-style:focus { border-color: #e60012; background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(230,0,18,0.08); }
+
+    /* 💡 底部操作区：距离拉开 */
+    .btn-row { 
+        display: flex; 
+        justify-content: space-between; /* 完美分隔 Cancel 和 Confirm */
+        align-items: center;
+        margin-top: 10px; 
+        padding-top: 25px; 
+        border-top: 1px solid #f1f5f9; 
+    }
+    
+    /* 提交按钮：保持红色的视觉冲击力 */
     .btn-submit { 
-        background: #111; /* Add 按钮设为纯黑，显得很酷 */
-        color: white; padding: 18px 50px; 
-        border: none; border-radius: 12px; font-size: 16px; font-weight: 800; 
-        cursor: pointer; transition: 0.3s;
+        background: linear-gradient(135deg, #e60012 0%, #ff1a2d 100%); 
+        color: white; padding: 14px 35px; border: none; border-radius: 12px; 
+        font-size: 14px; font-weight: 900; cursor: pointer; 
+        box-shadow: 0 8px 20px rgba(230,0,18,0.2);
+        transition: all 0.3s ease;
     }
-    .btn-submit:hover { background: #333; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
-    
-    .btn-cancel { color: #888; text-decoration: none; font-weight: 600; font-size: 15px; transition: 0.2s; }
-    .btn-cancel:hover { color: #111; }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(230,0,18,0.3); }
+
+    .btn-back { color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 800; padding-left: 5px; transition: 0.3s; }
+    .btn-back:hover { color: #1e293b; }
 </style>
 
-<div id="horizontal-add-form" class="add-container">
-    <div class="add-header">
-        <h2>Add New Product</h2>
-        <div class="badge">New Entry</div>
+<div id="add-product-optimized" class="premium-form-card">
+    <div class="form-header">
+        <h2>New Catalog Entry</h2>
     </div>
-    
     <div class="form-body">
-        <form method="post" action="">
-            <div class="form-row">
+        <form method="POST">
+            
+            <div class="grid-row">
                 <div class="form-group">
-                    <label>Product Name</label>
-                    <input type="text" name="name" required placeholder="What are you selling?">
+                    <label>Inventory Name</label>
+                    <input type="text" name="name" class="input-style" required placeholder="e.g. Signature Shirt">
                 </div>
                 <div class="form-group">
                     <label>Price (RM)</label>
-                    <input type="number" step="0.01" name="price" required placeholder="0.00">
+                    <input type="number" step="0.01" name="price" class="input-style" required placeholder="0.00">
                 </div>
             </div>
-            
+
             <div class="form-group">
-                <label>Detailed Description</label>
-                <textarea name="description" rows="5" placeholder="Enter the product details here..."></textarea>
+                <label>Product Narrative</label>
+                <textarea name="description" class="input-style" rows="2" placeholder="Briefly describe the product..."></textarea>
+            </div>
+
+            <div class="btn-row">
+                <a href="product_crud.php" class="btn-back">← CANCEL</a>
+                <button type="submit" class="btn-submit">CONFIRM ENTRY</button>
             </div>
             
-            <div class="action-row">
-                <a href="product_crud.php" class="btn-cancel">← Cancel & Return</a>
-                <button type="submit" class="btn-submit">+ CREATE PRODUCT</button>
-            </div>
         </form>
     </div>
 </div>
@@ -122,7 +137,7 @@ include '../includes/_admin_head.php';
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const viewport = document.querySelector('.admin-content-viewport');
-        const content = document.getElementById('horizontal-add-form');
+        const content = document.getElementById('add-product-optimized');
         if (viewport && content) {
             viewport.innerHTML = ''; 
             viewport.appendChild(content);
@@ -130,5 +145,7 @@ include '../includes/_admin_head.php';
     });
 </script>
 
-</main>
-<?php include '../includes/_foot.php'; ?>
+<?php 
+$foot = __DIR__ . '/../includes/_foot.php';
+if (file_exists($foot)) { include $foot; } 
+?>
