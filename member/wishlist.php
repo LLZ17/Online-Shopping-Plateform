@@ -1,5 +1,5 @@
-<?php require_once __DIR__ . '/../includes/_head.php';
-      require_once __DIR__ . '/../includes/db.php';?>
+<?php require_once __DIR__ . '/../includes/db.php';
+      require_once __DIR__ . '/../includes/_head.php';?>
 
 <style>
     /* 愿望清单专用样式 */
