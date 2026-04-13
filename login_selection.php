@@ -11,7 +11,7 @@ include 'includes/_head.php';
         align-items: center;
         min-height: 85vh; 
         position: relative;
-        background-image: url('images/pxxbg.jpeg'); 
+        background-image: url('images/bg.jpeg'); 
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
@@ -27,7 +27,7 @@ include 'includes/_head.php';
     content: "";
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.45); /* 🌑 遮罩黑度，0.45 左右最合适 */
+    background: rgba(0, 0, 0, 0.45); /*
     z-index: 1;
 }
 
@@ -45,7 +45,7 @@ include 'includes/_head.php';
 }
 
 .role-container p {
-    color: rgba(255, 255, 255, 0.9); /* 🌟 改为浅白色 */
+    color: rgb(255, 255, 255); /* 🌟 改为浅白色 */
     text-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 

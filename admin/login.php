@@ -25,28 +25,39 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
 ?>
 
 <style>
-    /* 🔥 极简纯白风格：全局背景白色，无阴影 */
+    /* 🔥 全局背景图逻辑：确保图片 100% 清晰 */
     body {
-        background-color: #ffffff; 
         margin: 0; padding: 0;
         font-family: 'Segoe UI', Arial, sans-serif;
+        /* 🌟 确保路径正确：从 admin 文件夹跳回根目录找 images */
+        background-image: url('../images/bg.jpeg'); 
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+        background-color: #ffffff;
     }
 
     /* 隐藏浏览器原生图标 */
     input::-ms-reveal, input::-ms-clear { display: none; }
 
+    /* 🌟 核心修正 1：去掉所有背景遮罩，并为底部 Coming Soon 留出空间 */
     .login-wrapper { 
         display: flex; justify-content: center; align-items: center; 
-        min-height: 100vh; background-color: #ffffff; 
+        min-height: 100vh; 
+        background: transparent; /* 完全透明，露出背景图 */
+        padding-bottom: 80px; /* 向上推，防止压到图片底部的文字 */
+        box-sizing: border-box;
     }
     
-    /* 🔥 卡片：纯白 + 1.5px 细边框 + 无阴影 */
+    /* 🔥 核心修正 2：卡片保持纯白不透明，去掉模糊效果 */
     .login-card { 
-        background: #ffffff; 
+        background: #ffffff; /* 🌟 纯白，确保文字清晰 */
         width: 100%; max-width: 500px; 
         border-radius: 20px; 
         border: 1.5px solid #eeeeee; 
-        box-shadow: none !important; 
+        /* 使用轻微阴影增加层次感，但不遮挡背景细节 */
+        box-shadow: 0 15px 40px rgba(0,0,0,0.1) !important; 
         text-align: center; overflow: hidden; 
     }
 
@@ -75,7 +86,6 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
         font-weight: 700; font-size: 24px; color: #333; 
     }
     
-    /* 输入框样式：去掉阴影 */
     .form-group input { 
         width: 100%; padding: 18px; 
         border: 2px solid #f0f0f0; 
@@ -87,7 +97,6 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
     }
     .form-group input:focus { border-color: <?php echo $color; ?>; }
 
-    /* 密码切换容器 */
     .input-container { position: relative; width: 100%; display: flex; align-items: center; }
     .input-container input { padding-right: 60px; }
     .toggle-pw { 
@@ -101,7 +110,6 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
     }
     .remember-row input { width: 22px; height: 22px; }
 
-    /* 登录按钮：去掉阴影 */
     .login-btn { 
         width: 100%; padding: 20px; 
         background: <?php echo $color; ?>; color: white; 
@@ -124,22 +132,22 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
         margin-top: 10px; color: #999; text-decoration: none;
     }
 
-    /* 🔥 Need Help 弹窗专用样式：缩小 + 允许内部滚动 */
+    /* Need Help 弹窗专用样式 */
     .modal-overlay {
         display: none; position: fixed; z-index: 9999; 
         left: 0; top: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.4); 
+        background: rgba(0,0,0,0.5); 
     }
     .modal-box {
         background: #ffffff; margin: 12% auto; 
-        width: 320px; /* 缩小宽度 */
-        max-height: 350px; /* 限制高度 */
+        width: 320px; 
+        max-height: 350px; 
         border-radius: 15px; overflow: hidden; 
         display: flex; flex-direction: column; 
-        border: 1.5px solid #eeeeee; box-shadow: none;
+        border: 1.5px solid #eeeeee;
     }
     .modal-body {
-        padding: 25px; overflow-y: auto; /* 核心：允许上下滑动 */
+        padding: 25px; overflow-y: auto;
         text-align: left; font-size: 15px; line-height: 1.6; color: #444;
     }
 </style>
@@ -151,7 +159,7 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
         </div>
 
         <div class="card-body">
-            <div class="welcome-text">Welcome to PXX Mall Admin Portal!</div>
+            <div class="welcome-text">Admin Access Required</div>
             
             <?php if(isset($_SESSION['error'])): ?>
                 <div style="background:#fff5f5; color:#dc2626; padding:15px; border-radius:10px; margin-bottom:25px; text-align:left; border: 1px solid #fee2e2;">
@@ -164,13 +172,13 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
                 
                 <div class="form-group">
                     <label>Admin Username</label>
-                    <input type="text" name="username" value="<?php echo htmlspecialchars($saved_user); ?>" placeholder="Enter your username" required>
+                    <input type="text" name="username" value="<?php echo htmlspecialchars($saved_user); ?>" placeholder="Enter username" required>
                 </div>
 
                 <div class="form-group">
                     <label>Password</label>
                     <div class="input-container">
-                        <input type="password" name="password" id="pw_main" placeholder="Enter your password" required>
+                        <input type="password" name="password" id="pw_main" placeholder="Enter password" required>
                         <i class="fas fa-eye toggle-pw" onclick="togglePassword('pw_main', this)"></i>
                     </div>
                 </div>
@@ -191,7 +199,7 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
 
                 <hr style="border: 0; border-top: 1.5px solid #eeeeee; margin: 10px 0;">
                 <a href="../login_selection.php" class="back-btn">
-                    <i class="fas fa-arrow-left"></i> Back to Login Selection page
+                    <i class="fas fa-arrow-left"></i> Back to Login Selection
                 </a>
             </div>
         </div>
@@ -202,10 +210,9 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
     <div class="modal-box">
         <div class="modal-body">
             <h3 style="color:<?php echo $color; ?>; margin-top:0;">Admin Login Support</h3>
-            <p><strong>Security Policy:</strong> This area is restricted to authorized personnel only. Login attempts are monitored.</p>
-            <p><strong>Account Blocked?</strong> Accounts lock for 30s after 3 failed attempts.</p>
-            <p><strong>Reset Access:</strong> If you lose your security key, please contact the Superadmin or IT department directly. External access requires VPN.</p>
-            <p><strong>Browser Info:</strong> Please ensure you are using a modern browser like Chrome or Edge for the best experience.</p>
+            <p><strong>Security:</strong> Restricted area. Unauthorized access attempts will be logged.</p>
+            <p><strong>Lockout:</strong> Accounts lock for 30s after 3 failed attempts.</p>
+            <p><strong>Credentials:</strong> Please use your issued administrative credentials. Member accounts cannot log in here.</p>
         </div>
         <div style="padding:15px; text-align:center; border-top:1px solid #eee;">
             <button onclick="toggleModal(false)" style="padding:10px 30px; background:<?php echo $color; ?>; color:white; border:none; border-radius:6px; cursor:pointer;">Got it</button>
@@ -214,15 +221,11 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
 </div>
 
 <script>
-// 控制弹窗显示/隐藏
 function toggleModal(show) { 
     const modal = document.getElementById('helpModal');
-    if(modal) {
-        modal.style.display = show ? 'block' : 'none';
-    }
+    if(modal) { modal.style.display = show ? 'block' : 'none'; }
 }
 
-// 切换密码可见性
 function togglePassword(id, icon) {
     const input = document.getElementById(id);
     if (input.type === "password") {
@@ -234,12 +237,9 @@ function togglePassword(id, icon) {
     }
 }
 
-// 点击背景关闭弹窗
 window.onclick = function(event) {
     const modal = document.getElementById('helpModal');
-    if (event.target == modal) {
-        toggleModal(false);
-    }
+    if (event.target == modal) { toggleModal(false); }
 }
 </script>
 

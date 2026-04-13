@@ -235,8 +235,8 @@ $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
         
         <div class="search-section">
     <form action="ViewAllProduct.php" method="GET" class="search-container" style="display: flex; gap: 10px;">
-        <input type="text" name="query" class="search-input" placeholder="Search for products...">
-        <select name="category" style="padding: 0 15px; border: none; background: white; border-radius: 6px; font-size: 14px;">
+        <input type="text" name="query" class="search-input" placeholder="Search for Clothing">
+        <select name="category" style="padding: 0 8px; border: none; background: white; border-radius: 6px; font-size: 12px; width: 80px; cursor: pointer;">
             <option value="">All</option>
             <option value="Men">👔 Men</option>
             <option value="Women">👗 Women</option>
