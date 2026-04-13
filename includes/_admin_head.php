@@ -313,6 +313,78 @@ $noti_count = 3;
             <span>System Status: All administrative modules are operating within normal parameters. Real-time data feed is active.</span>
         </div>
         <div class="announce-close-x" onclick="document.getElementById('globalNotice').style.display='none'">&times;</div>
+    <div class="admin-body-container">
+        
+        <aside class="admin-sidebar">
+            <nav>
+                <div class="sidebar-section-name">Control Panel</div>
+                <ul class="sidebar-menu-list">
+                    <li><a href="admin/portal.php" class="sidebar-link active"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
+                </ul>
+
+                <div class="sidebar-section-name" style="margin-top:20px;">Management</div>
+                <ul class="sidebar-menu-list">
+                    <li><a href="/admin/category_crud.php" class="sidebar-link"><i class="fa-solid fa-tags"></i> Category CRUD</a></li>
+                    <li><a href="/admin/product_crud.php" class="sidebar-link"><i class="fa-solid fa-box-open"></i> Product CRUD</a></li>
+                    <li><a href="/admin/member_crud.php" class="sidebar-link"><i class="fa-solid fa-users-gear"></i> Member CRUD</a></li>
+                    <li><a href="/admin/admin_crud.php" class="sidebar-link"><i class="fa-solid fa-user-shield"></i> Admin CRUD</a></li>
+                </ul>
+
+                <div class="sidebar-section-name" style="margin-top:20px;">Logs & Reports</div>
+                <ul class="sidebar-menu-list">
+                    <li><a href="/admin/sales_data.php" class="sidebar-link"><i class="fa-solid fa-chart-line"></i> Sales Data</a></li>
+                    <li><a href="/admin/order_crud.php" class="sidebar-link"><i class="fa-solid fa-file-invoice-dollar"></i> Order History</a></li>
+                </ul>
+
+                <div class="sidebar-section-name" style="margin-top:20px;">System</div>
+                <ul class="sidebar-menu-list">
+                    <li><a href="index.php" target="_blank" class="sidebar-link" style="color:#2ecc71;"><i class="fa-solid fa-up-right-from-square"></i> View Store</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="admin-content-viewport">
+            
+            <div class="page-title-box">
+                <h2>Dashboard Overview</h2>
+                <p>Welcome to the PXX Mall Administrative Portal. Here is your system summary.</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-widget border-blue">
+                    <div class="widget-title">Total Product Categories</div>
+                    <div class="widget-value">12</div>
+                    <a href="admin/category_crud.php" class="widget-btn">Manage Categories &rarr;</a>
+                </div>
+
+                <div class="stat-widget border-green">
+                    <div class="widget-title">Fake Payment Logs</div>
+                    <div class="widget-value">RM 5,240.00</div>
+                    <div style="font-size:13px; color:#bbb;">Verified via Billplz Sandbox</div>
+                </div>
+
+                <div class="stat-widget border-yellow">
+                    <div class="widget-title">Total Registered Members</div>
+                    <div class="widget-value">85</div>
+                    <div style="font-size:13px; color:#bbb;">Live member tracking</div>
+                </div>
+            </div>
+
+            <div style="background:white; padding:30px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.03);">
+                <h3 style="margin-top:0;">System Database Status</h3>
+                <p style="color:#666; line-height:1.6;">
+                    The administrative database is currently connected to <b>html_sql</b>. 
+                    All CRUD operations are enabled. Product image module is bypassed to resolve system errors.
+                </p>
+            </div>
+
+            <footer class="admin-footer">
+                <strong>PXX Mall Malaysia Sdn. Bhd. &reg;</strong><br>
+                Company Registration No: [202001028493 (1357831-M)]<br>
+                Copyright &copy; 2026. All Rights Reserved.
+            </footer>
+        </main>
+
     </div>
 
     <aside class="sidebar-fixed-black">

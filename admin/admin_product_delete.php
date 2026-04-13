@@ -1,21 +1,26 @@
 <?php
-require_once 'includes/_base.php';
-require_once 'includes/db.php';
+// TEE DE YONG's Part: Delete Product Logic
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-// 获取要删除的产品 ID (注意：数据库里叫 product_id)
+// 1. 修复了这里的路径，加上了 ../
+require_once '../includes/_base.php'; 
+require_once '../includes/db.php';     
+
 $id = $_GET['id'] ?? '';
 
 if ($id) {
-    // 1. 先删除关联的图片记录 (保持数据库整洁，这也是你的 Part)
-    $stmt_img = $pdo->prepare("DELETE FROM product_images WHERE product_id = ?");
-    $stmt_img->execute([$id]);
-
-    // 2. 删除产品本身
+    // 2. 执行删除操作 (在 products 表里删除对应的 product_id)
     $stmt = $pdo->prepare("DELETE FROM products WHERE product_id = ?");
-    $stmt->execute([$id]);
-
-    echo "<script>alert('Product deleted successfully!'); window.location='admin_product.php';</script>";
-} else {
-    header("Location: admin_product.php");
+    
+    if ($stmt->execute([$id])) {
+        // 删除成功后，弹窗提示并跳回产品列表
+        echo "<script>alert('🗑️ Product deleted successfully!'); window.location.href='product_crud.php';</script>";
+        exit;
+    }
 }
+
+// 如果没有拿到 ID 或者删除失败，直接静默退回列表
+header("Location: product_crud.php");
+exit;
 ?>
