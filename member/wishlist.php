@@ -1,14 +1,42 @@
-<?php session_start(); /* Blocked From Not logged In User */
+<?php 
+session_start(); 
+
+// 1. 安全拦截：未登录用户重定向
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login_selection.php");
     exit();
-}else {
-    require_once __DIR__ . '/../includes/db.php';
-    require_once __DIR__ . '/../includes/_head.php';
-    }?>
+}
+
+require_once __DIR__ . '/../includes/db.php';
+
+// ==========================================
+// 2. 新增：移除愿望清单数据的逻辑 (PHP 处理层)
+// ==========================================
+if (isset($_GET['remove_id'])) {
+    $product_to_remove = $_GET['remove_id'];
+    $current_user = $_SESSION['user_id'];
+
+    try {
+        // 使用预处理语句，确保只删除“当前登录用户”名下的“特定产品”
+        $delete_sql = "DELETE FROM `favourites` WHERE `product_id` = ? AND `user_id` = ?";
+        $delete_stmt = $pdo->prepare($delete_sql);
+        $delete_stmt->execute([$product_to_remove, $current_user]);
+
+        // 删除后重定向回本页，实现刷新效果并清除 URL 中的 remove_id 参数
+        header("Location: wishlist.php");
+        exit();
+    } catch (PDOException $e) {
+        die("Error removing item: " . $e->getMessage());
+    }
+}
+
+require_once __DIR__ . '/../includes/_head.php';
+?>
 
 <style>
-    /* 愿望清单专用样式 */
+    /* ==========================================
+       愿望清单专用样式
+       ========================================== */
     .wishlist-container {
         max-width: 1200px;
         margin: 40px auto;
@@ -34,15 +62,9 @@ if (!isset($_SESSION['user_id'])) {
         padding-bottom: 15px;
     }
 
-    .wishlist-header i {
-        color: #e60012;
-    }
+    .wishlist-header i { color: #e60012; }
 
-    /* 表格样式 */
-    .wishlist-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
+    .wishlist-table { width: 100%; border-collapse: collapse; }
 
     .wishlist-table th {
         text-align: left;
@@ -58,12 +80,7 @@ if (!isset($_SESSION['user_id'])) {
         vertical-align: middle;
     }
 
-    /* 商品展示 */
-    .product-box {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-    }
+    .product-box { display: flex; align-items: center; gap: 20px; }
 
     .product-img {
         width: 80px;
@@ -73,23 +90,11 @@ if (!isset($_SESSION['user_id'])) {
         object-fit: cover;
     }
 
-    .product-info b {
-        display: block;
-        font-size: 16px;
-        color: #222;
-        margin-bottom: 5px;
-    }
+    .product-info b { display: block; font-size: 16px; color: #222; margin-bottom: 5px; }
 
-    .product-info span {
-        font-size: 13px;
-        color: #999;
-    }
+    .product-info span { font-size: 13px; color: #999; }
 
-    .price-tag {
-        font-weight: bold;
-        color: #e60012;
-        font-size: 18px;
-    }
+    .price-tag { font-weight: bold; color: #e60012; font-size: 18px; }
 
     .qty-input {
         width: 60px;
@@ -98,8 +103,6 @@ if (!isset($_SESSION['user_id'])) {
         border-radius: 4px;
         text-align: center;
     }
-
-    /* 操作按钮 */
 
     .btn-add-cart {
         background-color: #e60012;
@@ -113,9 +116,7 @@ if (!isset($_SESSION['user_id'])) {
         transition: 0.3s;
     }
 
-    .btn-add-cart:hover {
-        background-color: #333;
-    }
+    .btn-add-cart:hover { background-color: #333; }
 
     .remove-icon {
         color: #ccc;
@@ -124,48 +125,27 @@ if (!isset($_SESSION['user_id'])) {
         transition: 0.3s;
     }
 
-    .remove-icon:hover {
-        color: #e60012;
-    }
+    .remove-icon:hover { color: #e60012; }
 
-    /* 为空时的状态 */
-    .empty-wishlist {
-        text-align: center;
-        padding: 50px 0;
-        color: #999;
-    }
-
-    .not-wishlist {
-        text-align: center;
-        color: rgba(128, 128, 128, 5);
-        font-size: 150%;
-    }
+    .not-wishlist { text-align: center; color: gray; font-size: 150%; }
 
     .not-wishlist-link {
         display: flex;
         justify-content: center;
-        color: rgba(128, 128, 128, 5);
+        color: gray;
         font-size: 120%;
         text-decoration: underline;
     }
 
-    .not-wishlist-link:hover {
-        color: rgba(100, 149, 237, 5);
-    }
-
-    .wishlist-link:hover {
-        text-decoration: underline;
-    }
+    .not-wishlist-link:hover { color: cornflowerblue; }
 </style>
 
 <?php
-
+// 3. 获取当前用户的愿望清单数据
 $user_id = $_SESSION['user_id'];
-
-$sql = "SELECT p.* FROM products p JOIN favourites f  ON p.product_id = f.product_id WHERE f.user_id = ?";
-
+$sql = "SELECT p.* FROM products p JOIN favourites f ON p.product_id = f.product_id WHERE f.user_id = ?";
 $stmt = $pdo->prepare($sql);
-$stmt->execute([$_SESSION['user_id']]);
+$stmt->execute([$user_id]);
 $result = $stmt->fetchAll();
 
 if (!$result): ?>
@@ -174,8 +154,8 @@ if (!$result): ?>
         <div class="wishlist-header">
             <i class="fa-solid fa-heart"></i> My Wishlist
         </div>
-        <p class = "not-wishlist">Seems nothing in your favouite list now!</p>
-        <a href = "itsme.php" class = "not-wishlist-link" >Go Shop and search what you like!</a>
+        <p class="not-wishlist">Seems nothing in your favourite list now!</p>
+        <a href="itsme.php" class="not-wishlist-link">Go Shop and search what you like!</a>
     </div>
 </div>
 <?php else: ?>
@@ -200,37 +180,42 @@ if (!$result): ?>
                 <tr>
                     <td>
                         <div class="product-box">
-                            <img src= "../images/<?php echo $r['product_image']; ?>" class="product-img" alt="<?php echo $r['name']; ?>">
+                            <img src="../images/<?php echo htmlspecialchars($r['product_image']); ?>" class="product-img" alt="<?php echo htmlspecialchars($r['name']); ?>">
                             <div class="product-info">
-                                <b><a href = "../products/listing.php" class = "wishlist-link"><?php echo $r['name']; ?></a></b>
+                                <b><a href="../products/listing.php" class="wishlist-link"><?php echo htmlspecialchars($r['name']); ?></a></b>
                                 <span>Size: <?php echo $r['size'] ?> | Color: <?php echo $r['colour']; ?></span>
                             </div>
                         </div>
                     </td>
-                    <td><span class="price-tag">RM <?php echo $r['price']; ?></span></td>
+                    <td><span class="price-tag">RM <?php echo number_format($r['price'], 2); ?></span></td>
                     <td><input type="number" value="1" class="qty-input"></td>
-                    <td><span style="color: #28a745; font-weight: 300;"><?php echo $r['status']; ?></span></td>
+                    <td><span style="color: #28a745; font-weight: 300;"><?php echo $r['status'] ?? 'In Stock'; ?></span></td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 15px;">
-                            <form method = "GET"><input type = "hidden" name = "ITSME" value = "ITSME">
-                            <button class="btn-add-cart" title="Move to Cart">Add to Cart</button></form>
-                        </input>
-                            <i class="fa-solid fa-trash-can remove-icon" title="Remove from Wishlist"></i>
+                            <form method="GET">
+                                <input type="hidden" name="ITSME" value="ITSME">
+                                <button class="btn-add-cart" title="Move to Cart">Add to Cart</button>
+                            </form>
+                            
+                            <a href="wishlist.php?remove_id=<?php echo $r['product_id']; ?>" 
+                               onclick="return confirm('Confirm remove this item from wishlist?')">
+                                <i class="fa-solid fa-trash-can remove-icon" title="Remove from Wishlist"></i>
+                            </a>
                         </div>
                     </td>
                 </tr>
-<?php endforeach ?>
-<?php endif ?>
-
-               
+<?php endforeach; ?>
             </tbody>
         </table>
-
-        </div>
+    </div>
 </div>
+<?php endif; ?>
 
-<?php if ($_SERVER['REQUEST_METHOD'] == "GET" && $_GET['ITSME'] == 'ITSME') {
-    echo "FUCK OYU";
+<?php 
+// 临时调试逻辑
+if ($_SERVER['REQUEST_METHOD'] == "GET" && isset($_GET['ITSME']) && $_GET['ITSME'] == 'ITSME') {
+    echo "<p style='text-align:center;'>Testing Add to Cart Action triggered.</p>";
 }
 
-require_once __DIR__ . '/../includes/_foot.php'; ?>
+require_once __DIR__ . '/../includes/_foot.php'; 
+?>
