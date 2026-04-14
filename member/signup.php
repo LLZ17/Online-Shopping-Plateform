@@ -1,7 +1,12 @@
 <?php
 /**
+ * =================================================================================
  * PXX MALL - PROFESSIONAL MULTI-STEP REGISTRY (ENTERPRISE STABLE)
- * Updated with Cinematic Background & Parallax Effects
+ * =================================================================================
+ * 1. Security Phase: Username & Password (Length & Match)
+ * 2. Profile Phase: Personal Info, Email Regex, Birthday Lock
+ * 3. Logistics Phase: Triple Address, JSON Dynamic States/Cities
+ * =================================================================================
  */
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
@@ -15,6 +20,7 @@ define('PXX_HEAD', $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPA
 define('PXX_FOOT', $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_foot.php');
 
 if (file_exists(PXX_DB)) { require_once PXX_DB; } else { die("FATAL ERROR: DB CONNECTOR MISSING."); }
+if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
 
 // [SECTION 2: 智能 m-ID 生成器]
 function generatePXXID($pdo) {
@@ -29,6 +35,7 @@ function generatePXXID($pdo) {
 // [SECTION 3: 最终提交处理器]
 $pxx_server_error = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['final_save'])) {
+    // 基础资料
     $u_user = trim($_POST['username'] ?? '');
     $u_pass = $_POST['password'] ?? '';
     $u_real = trim($_POST['real_name'] ?? '');
@@ -37,6 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['final_save'])) {
     $u_phone = trim($_POST['phone_num'] ?? '');
     $u_email = trim($_POST['email'] ?? '');
     
+    // 地址物理合并逻辑
     $a1 = trim($_POST['address_line1'] ?? '');
     $a2 = trim($_POST['address_line2'] ?? '');
     $a3 = trim($_POST['address_line3'] ?? '');
@@ -68,59 +76,93 @@ if (file_exists(PXX_HEAD)) { include_once PXX_HEAD; }
 ?>
 
 <style>
-    /* =================================================================================
-    🌟 PXX MALL - ULTIMATE CINEMATIC BACKGROUND SYSTEM
-    ================================================================================= */
     :root { 
         --pxx-red: #e60012; 
         --pxx-error: #ff4d4f; 
-        --pxx-glass: #ffffff; /* 纯白背景确保内容清晰 */
+        --pxx-glass: rgba(255, 255, 255, 0.98); 
     }
 
-    html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        min-height: 100vh;
-        background-color: #000 !important; /* 防止图片加载前的闪烁 */
+    body { 
+        font-family: 'Inter', system-ui, sans-serif; 
+        margin: 0; 
+        background: #f0f2f5; 
+        overflow-x: hidden; /* 电脑端防止细微溢出 */
     }
 
-    .pxx-auth-viewport { 
-        min-height: 100vh;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 80px 0;
-        position: relative;
-        
-        /* 🌟 背景配置：叠加渐变遮罩 + 背景图 */
-        background: 
-            linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4)), 
-            url('../images/bg.jpeg'); 
-        
-        background-size: cover;
-        background-position: center center;
-        background-attachment: fixed; /* 电脑端视差效果 */
-        background-repeat: no-repeat;
-    }
+    /* =================================================================================
+   PXX MALL - ULTIMATE BACKGROUND REPAIR (DESKTOP ONLY)
+   逻辑：彻底移除干扰底色，强制图片视差置顶
+   ================================================================================= */
 
-    /* 🌟 注册卡片：增强悬浮感 */
+/* 🔥 修复重点 1：彻底清理底色干扰（必须使用 !important 垂直展开优先级） */
+:root { 
+    --pxx-red: #e60012; 
+    --pxx-error: #ff4d4f; 
+    --pxx-glass: rgba(255, 255, 255, 1); /* 既然背景图出了，卡片必须纯白，全不透明 */
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100vh;
+    /* 彻底消灭 #f0f2f5 灰色，改为透明 */
+    background: transparent !important; 
+    background-color: transparent !important;
+}
+
+/* 🔥 修复重点 2：路径修正 & 电脑端视差参数 */
+.pxx-auth-viewport { 
+    min-height: 100vh;
+    width: 100vw; /* 锁定视口宽度 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 0;
+    
+    /* 物理路径：../ 代表退出 member 文件夹，进入根目录的 images */
+    background-image: url('../images/bg.jpeg'); 
+    
+    /* 极简电脑端参数：铺满、居中、固定 */
+    background-size: cover;          /* 强制铺满全屏，不留白 */
+    background-position: center center; /* 图片居中对齐 */
+    background-attachment: fixed;    /* 滚动时背景固定，产生高级视差效果 */
+    background-repeat: no-repeat;    /* 禁止图片重复 */
+    
+    /* 再次加固：确保 viewport 容器本身没有底色干扰 */
+    background-color: transparent !important; 
+}
+
+/* 🔥 修复重点 3：增强卡片对比度（既然去掉了背景遮罩） */
+.pxx-wizard-card {
+    width: 1100px; /* 电脑端固定宽度 */
+    background: var(--pxx-glass) !important;
+    border-radius: 24px;
+    /* 加深阴影，让卡片在复杂的背景图上跳出来 */
+    box-shadow: 0 50px 180px rgba(0,0,0,0.8) !important; 
+    overflow: hidden;
+    border-top: 15px solid var(--pxx-red);
+    position: relative;
+    z-index: 10; /* 确保卡片在图片上面 */
+    animation: cardAppear 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes cardAppear { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* --- [注册卡片 - 1100px 稳定布局] --- */
     .pxx-wizard-card { 
-        width: 1100px; 
-        background: var(--pxx-glass) !important; 
+        width: 1100px; /* 电脑端直接固定宽度，不抖动 */
+        background: var(--pxx-glass); 
         border-radius: 24px; 
-        /* 极致阴影，模拟图片中的景深感 */
-        box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6) !important; 
+        box-shadow: 0 50px 150px rgba(0,0,0,0.6); 
         overflow: hidden; 
         border-top: 15px solid var(--pxx-red);
+        animation: cardFadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
         position: relative;
-        z-index: 10;
-        animation: pxxEntry 1s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
-    @keyframes pxxEntry { 
-        from { opacity: 0; transform: translateY(60px); } 
+    @keyframes cardFadeIn { 
+        from { opacity: 0; transform: translateY(50px); } 
         to { opacity: 1; transform: translateY(0); } 
     }
 
@@ -332,52 +374,101 @@ if (file_exists(PXX_HEAD)) { include_once PXX_HEAD; }
 
 <script>
     let curStep = 1;
-    let locData = {};
+    let locData = {}; // 用于存储完整的 JSON 数据
 
+    // 1. 初始化：日期限制
     const bdayInput = document.getElementById('f_bday');
     if(bdayInput) bdayInput.max = new Date().toISOString().split('T')[0];
 
+    /**
+     * 🔥 核心修复 1：适配嵌套 JSON 结构
+     */
     async function initLocationData() {
-        const path = '../includes/state.json';
-        try {
-            const res = await fetch(path);
-            if (res.ok) {
-                locData = await res.json();
-                renderStates();
-            }
-        } catch (e) { console.error("🚨 Failed to load location data."); }
+        // 尝试加载路径
+        const paths = ['../includes/state.json', 'includes/state.json', '/HTML_Ass/includes/state.json'];
+        
+        for (let path of paths) {
+            try {
+                const res = await fetch(path);
+                if (res.ok) {
+                    locData = await res.json();
+                    console.log("✅ PXX Success: JSON Data Loaded from " + path);
+                    renderStates();
+                    return;
+                }
+            } catch (e) { console.warn("PXX Notice: Trying next path..."); }
+        }
+        console.error("🚨 PXX Critical: Failed to load location data.");
     }
 
     function renderStates() {
         const sDrop = document.getElementById('f_state');
         if(!sDrop) return;
-        Object.keys(locData).forEach(state => {
+        sDrop.innerHTML = '<option value="">Select State</option>';
+        
+        // 获取 State 名字 (如 Johor, Selangor...)
+        Object.keys(locData).forEach(stateName => {
             let opt = document.createElement('option');
-            opt.value = state;
-            opt.innerText = state;
+            opt.value = stateName;
+            opt.innerText = stateName;
             sDrop.appendChild(opt);
         });
     }
 
+    /**
+     * 🔥 核心修复 2：联动加载城市
+     * 适配结构：locData[state][cityName]
+     */
     function loadCities() {
-        const state = document.getElementById('f_state').value;
+        const selectedState = document.getElementById('f_state').value;
         const cDrop = document.getElementById('f_city');
+        const pInput = document.getElementById('f_pcode'); // 获取邮编框，方便自动填充
+        
         cDrop.innerHTML = '<option value="">Select City</option>';
-        if (state && locData[state]) {
+        
+        if (selectedState && locData[selectedState]) {
             cDrop.disabled = false;
-            Object.keys(locData[state]).forEach(city => {
+            cDrop.style.background = "#fff";
+            
+            // 🔥 这里的关键：提取嵌套对象里的 Key 作为城市名
+            const cities = Object.keys(locData[selectedState]); 
+            
+            cities.forEach(cityName => {
                 let opt = document.createElement('option');
-                opt.value = city;
-                opt.innerText = city;
+                opt.value = cityName;
+                opt.innerText = cityName;
                 cDrop.appendChild(opt);
             });
+            console.log("✅ Cities rendered for: " + selectedState);
         } else {
             cDrop.disabled = true;
+            cDrop.style.background = "#f9f9f9";
         }
         validateStep3();
     }
 
-    function validateEmail(e) { return /^[^@]+@\w+(\.\w+)+$/.test(e); }
+    /**
+     * 🌟 附加功能：当选了城市，自动填入第一个对应的 Postcode
+     */
+    function handleCityChange() {
+        const state = document.getElementById('f_state').value;
+        const city = document.getElementById('f_city').value;
+        const pInput = document.getElementById('f_pcode');
+
+        if (state && city && locData[state][city]) {
+            // 获取该城市对应的邮编列表的第一个
+            const postcodes = locData[state][city];
+            if (postcodes.length > 0) {
+                pInput.value = postcodes[0]; 
+            }
+        }
+        validateStep3();
+    }
+
+    // --- [校验逻辑 - 保持原有专业性] ---
+    function validateEmail(e) {
+        return /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(e);
+    }
 
     function validateStep1() {
         const u = document.getElementById('f_user').value;
@@ -393,7 +484,8 @@ if (file_exists(PXX_HEAD)) { include_once PXX_HEAD; }
         const b = document.getElementById('f_bday').value;
         const p = document.getElementById('f_phone').value;
         const e = document.getElementById('f_mail').value;
-        const isValid = (r.length > 2 && b && p.length >= 9 && validateEmail(e));
+        const isEmailOk = validateEmail(e);
+        const isValid = (r.length > 2 && b && p.length >= 9 && isEmailOk);
         document.getElementById('btnN').disabled = !isValid;
         return isValid;
     }
@@ -420,7 +512,7 @@ if (file_exists(PXX_HEAD)) { include_once PXX_HEAD; }
             btnN.innerHTML = "Initialize PXX Account";
             btnN.onclick = () => document.getElementById('pxxRegForm').submit();
         } else {
-            btnN.innerHTML = "Next Phase";
+            btnN.innerHTML = "Next Phase <i class='fas fa-chevron-right'></i>";
             btnN.onclick = () => nav(1);
         }
         document.getElementById('f_bar').style.width = (curStep * 33.33) + "%";
@@ -429,5 +521,4 @@ if (file_exists(PXX_HEAD)) { include_once PXX_HEAD; }
 
     window.onload = initLocationData;
 </script>
-
 <?php if (file_exists(PXX_FOOT)) { include_once PXX_FOOT; } ?>

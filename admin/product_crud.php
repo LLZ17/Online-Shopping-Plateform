@@ -1,197 +1,136 @@
 <?php
-// TEE DE YONG's Part: Professional Product CRUD (Optimization)
+// TEE DE YONG's Part: Product CRUD (Max RM Restored + Enlarged UI)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-require_once '../includes/_base.php'; 
-require_once '../includes/db.php';     
+require_once __DIR__ . '/../includes/db.php'; 
 
-// 引用头文件
-include '../includes/_admin_head.php'; 
+$search    = $_GET['search'] ?? '';
+$min_price = $_GET['min_price'] ?? '';
+$max_price = $_GET['max_price'] ?? ''; // 💡 确保接收 Max 参数
+$page      = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$limit     = 6; 
 
-// 1. 处理搜索逻辑
-$search = $_GET['search'] ?? '';
-$sql = "SELECT * FROM products"; 
-if ($search) {
-    $sql .= " WHERE name LIKE " . $pdo->quote("%$search%") . " OR description LIKE " . $pdo->quote("%$search%");
+$where = "1=1";
+$params = [];
+if ($search !== '') { $where .= " AND name LIKE ?"; $params[] = "%$search%"; }
+if ($min_price !== '') { $where .= " AND price >= ?"; $params[] = (float)$min_price; }
+if ($max_price !== '') { $where .= " AND price <= ?"; $params[] = (float)$max_price; }
+
+$offset = ($page - 1) * $limit;
+
+try {
+    $stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM products WHERE $where");
+    $stmtTotal->execute($params);
+    $totalProducts = $stmtTotal->fetchColumn();
+    $totalPages = ceil($totalProducts / $limit);
+
+    $sql = "SELECT * FROM products WHERE $where ORDER BY product_id DESC LIMIT $limit OFFSET $offset";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $products = $stmt->fetchAll();
+} catch (PDOException $e) {
+    die("<div style='padding:20px; color:red;'>Error: " . $e->getMessage() . "</div>");
 }
-$sql .= " ORDER BY product_id DESC";
-$products = $pdo->query($sql)->fetchAll();
+
+$admin_head = __DIR__ . '/../includes/_admin_head.php';
+if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
 <style>
-    /* ============================================================
-       🚀 布局优化：清场并美化容器
-       ============================================================ */
-    .admin-content-viewport > .page-title-box, 
-    .admin-content-viewport > .stats-grid,
-    .admin-content-viewport > div[style*="background:white"] {
-        display: none !important;
-    }
-
-    html, body { background-color: #f0f2f5 !important; overflow: auto !important; height: auto !important; }
-
-    .crud-container { padding: 30px; max-width: 1400px; margin: 0 auto; }
-
-    /* ============================================================
-       🎨 顶栏与搜索框美化
-       ============================================================ */
-    .action-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-    }
-
-    .search-wrapper {
-        position: relative;
-        width: 350px;
-    }
-    .search-wrapper input {
-        width: 100%;
-        padding: 12px 20px 12px 45px;
-        border-radius: 30px;
-        border: 1px solid #ddd;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-        outline: none;
-        transition: 0.3s;
-    }
-    .search-wrapper input:focus { border-color: #e60012; box-shadow: 0 4px 15px rgba(230,0,18,0.1); }
-    .search-wrapper i { position: absolute; left: 18px; top: 15px; color: #999; }
-
-    /* ============================================================
-       📦 产品卡片美化
-       ============================================================ */
-    .product-grid { 
-        display: grid; 
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-        gap: 25px; 
-    }
-
-    .p-card {
-        background: white;
-        border-radius: 16px;
-        overflow: hidden;
-        border: 1px solid #edf2f7;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    .p-card:hover { transform: translateY(-10px); box-shadow: 0 20px 30px rgba(0,0,0,0.08); }
-
-    .p-img-box {
-        height: 220px;
-        background: #f8f9fa;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-    }
-    .p-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .page-title-box { display: none !important; }
+    html, body { background: #f0f2f5 !important; }
     
-    .stock-badge {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-    }
-    .in-stock { background: #e8f5e9; color: #2e7d32; }
-    .out-stock { background: #ffebee; color: #c62828; }
+    .main-container { max-width: 1400px; margin: 40px auto; padding: 0 30px; }
+    
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+    .top-bar h1 { font-size: 40px; font-weight: 900; color: #111; margin: 0; letter-spacing: -2px; }
+    .btn-add-pro { background: #e60012; color: white; padding: 16px 32px; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(230,0,18,0.2); font-size: 16px; }
 
-    .p-info { padding: 20px; }
-    .p-category { font-size: 11px; color: #e60012; font-weight: 600; text-transform: uppercase; }
-    .p-name { font-size: 18px; font-weight: 700; color: #2d3748; margin: 8px 0; height: 48px; overflow: hidden; }
-    .p-price { font-size: 22px; font-weight: 800; color: #1a202c; }
+    /* 💡 重新优化的过滤栏布局 */
+    .filter-card { background: white; padding: 25px; border-radius: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 40px; display: flex; gap: 15px; align-items: center; }
+    .input-pro { padding: 16px 20px; border: 2px solid #edf2f7; border-radius: 14px; font-weight: 600; font-size: 15px; outline: none; transition: 0.3s; }
+    .input-pro:focus { border-color: #e60012; background: #fff; }
+    
+    /* 搜索框占大头，Min/Max 占小头 */
+    .search-field { flex: 3; }
+    .price-field { flex: 1; min-width: 120px; }
+    
+    .btn-search { background: #111; color: white; padding: 16px 40px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; font-size: 16px; transition: 0.3s; }
+    .btn-search:hover { background: #333; }
 
-    .p-footer {
-        display: flex;
-        gap: 10px;
-        padding-top: 15px;
-        border-top: 1px solid #f1f1f1;
-        margin-top: 15px;
-    }
-    .btn-icon {
-        flex: 1;
-        padding: 10px;
-        border-radius: 10px;
-        text-align: center;
-        font-size: 13px;
-        font-weight: 600;
-        transition: 0.2s;
-        text-decoration: none;
-    }
-    .btn-edit { background: #f1f5f9; color: #475569; }
-    .btn-edit:hover { background: #e2e8f0; }
-    .btn-del { background: #fff1f0; color: #e60012; }
-    .btn-del:hover { background: #ffccc7; }
+    .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 35px; margin-bottom: 50px; }
+    .product-card { background: white; border-radius: 30px; overflow: hidden; border: 1px solid #f1f5f9; transition: 0.4s; display: flex; flex-direction: column; }
+    .product-card:hover { transform: translateY(-8px); box-shadow: 0 25px 50px rgba(0,0,0,0.08); }
+    
+    .img-area { height: 280px; background: #f8fafc; overflow: hidden; }
+    .img-area img { width: 100%; height: 100%; object-fit: cover; }
+    
+    .info-area { padding: 35px; flex: 1; display: flex; flex-direction: column; }
+    .item-id { font-size: 12px; font-weight: 900; color: #e60012; margin-bottom: 12px; }
+    .item-title { font-size: 26px; font-weight: 800; color: #1e293b; margin: 0 0 15px 0; line-height: 1.3; }
+    .item-price { font-size: 30px; font-weight: 900; color: #0f172a; margin-bottom: 25px; }
+
+    .action-row { display: flex; gap: 15px; margin-top: auto; padding-top: 25px; border-top: 2px solid #f8fafc; }
+    .btn-edit { flex: 1; text-align: center; padding: 18px; background: #f8fafc; color: #334155; border-radius: 16px; text-decoration: none; font-weight: 800; font-size: 15px; border: 2px solid #e2e8f0; }
+    .btn-edit:hover { background: #e60012; color: #fff; border-color: #e60012; }
+    .btn-del { width: 60px; display: flex; align-items: center; justify-content: center; background: #fff1f0; color: #ef4444; border-radius: 16px; text-decoration: none; font-size: 20px; }
+
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; padding-bottom: 60px; }
+    .page-btn { min-width: 55px; height: 55px; display: flex; align-items: center; justify-content: center; background: white; border-radius: 16px; text-decoration: none; font-weight: 800; font-size: 18px; border: 2px solid #edf2f7; transition: 0.3s; }
+    .page-btn.active { background: #e60012; color: white; border-color: #e60012; box-shadow: 0 10px 20px rgba(230,0,18,0.2); }
 </style>
 
-<div id="optimized-product-content" class="crud-container">
-    <div class="action-header">
-        <div>
-            <h1 style="font-size: 30px; font-weight: 800; color: #1a202c; margin: 0;">Product Inventory</h1>
-            <p style="color: #718096; margin-top: 5px;">Total active listings: <b><?= count($products) ?></b></p>
-        </div>
-        
-        <div style="display: flex; gap: 15px;">
-            <form method="get" class="search-wrapper">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" name="search" placeholder="Quick find product..." value="<?= htmlspecialchars($search) ?>">
-            </form>
-            <a href="admin_product_add.php" style="background: #e60012; color: white; padding: 12px 25px; border-radius: 30px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 15px rgba(230,0,18,0.2);">
-                <i class="fa-solid fa-plus"></i> New Product
-            </a>
-        </div>
+<div id="product-app" class="main-container" style="display:none;">
+    <div class="top-bar">
+        <h1>Inventory Control</h1>
+        <a href="admin_product_add.php" class="btn-add-pro">+ NEW PRODUCT</a>
     </div>
+
+    <form method="GET" class="filter-card">
+        <input type="text" name="search" class="input-pro search-field" placeholder="Search product name..." value="<?= htmlspecialchars($search) ?>">
+        <input type="number" step="0.01" name="min_price" class="input-pro price-field" placeholder="Min RM" value="<?= htmlspecialchars($min_price) ?>">
+        <input type="number" step="0.01" name="max_price" class="input-pro price-field" placeholder="Max RM" value="<?= htmlspecialchars($max_price) ?>">
+        <button type="submit" class="btn-search">FILTER</button>
+    </form>
 
     <div class="product-grid">
         <?php foreach ($products as $p): ?>
-        <div class="p-card">
-            <div class="p-img-box">
-                <?php if(!empty($p['image'])): ?>
-                    <img src="../images/<?= $p['image'] ?>" alt="product">
-                <?php else: ?>
-                    <i class="fa-solid fa-image" style="font-size: 50px; color: #e2e8f0;"></i>
-                <?php endif; ?>
-                
-                <?php $stock = $p['stock'] ?? 10; ?>
-                <span class="stock-badge <?= $stock > 0 ? 'in-stock' : 'out-stock' ?>">
-                    <?= $stock > 0 ? 'In Stock' : 'Out of Stock' ?>
-                </span>
+        <div class="product-card">
+            <div class="img-area">
+                <?php if(!empty($p['image_path'])): ?>
+                    <img src="../<?= htmlspecialchars($p['image_path']) ?>">
+                <?php else: ?><div style="height:100%; display:flex; align-items:center; justify-content:center; font-size:80px; color:#cbd5e1;">🛍️</div><?php endif; ?>
             </div>
-
-            <div class="p-info">
-                <div class="p-category">Catalog ID #<?= $p['product_id'] ?></div>
-                <div class="p-name"><?= htmlspecialchars($p['name']) ?></div>
-                <div class="p-price">RM <?= number_format($p['price'], 2) ?></div>
-
-                <div class="p-footer">
-                    <a href="admin_product_edit.php?id=<?= $p['product_id'] ?>" class="btn-icon btn-edit">
-                        <i class="fa-solid fa-pen-to-square"></i> Edit
-                    </a>
-                    <a href="admin_product_delete.php?id=<?= $p['product_id'] ?>" class="btn-icon btn-del" onclick="return confirm('Archive this product?')">
-                        <i class="fa-solid fa-trash"></i>
-                    </a>
+            <div class="info-area">
+                <div class="item-id">SKU #<?= $p['product_id'] ?></div>
+                <h3 class="item-title"><?= htmlspecialchars($p['name']) ?></h3>
+                <div class="item-price">RM <?= number_format($p['price'], 2) ?></div>
+                <div class="action-row">
+                    <a href="admin_product_edit.php?id=<?= $p['product_id'] ?>" class="btn-edit">EDIT SPECS</a>
+                    <a href="admin_product_delete.php?id=<?= $p['product_id'] ?>" class="btn-del" onclick="return confirm('Delete item?')">🗑️</a>
                 </div>
             </div>
         </div>
         <?php endforeach; ?>
     </div>
+
+    <?php if ($totalPages > 1): ?>
+    <div class="pagination">
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+            <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&min_price=<?= urlencode($min_price) ?>&max_price=<?= urlencode($max_price) ?>" class="page-btn <?= ($i == $page) ? 'active' : '' ?>"><?= $i ?></a>
+        <?php endfor; ?>
+    </div>
+    <?php endif; ?>
 </div>
 
 <script>
-    // 注入内容
     document.addEventListener("DOMContentLoaded", function() {
-        const viewport = document.querySelector('.admin-content-viewport');
-        const content = document.getElementById('optimized-product-content');
-        if (viewport && content) {
-            viewport.innerHTML = ''; // 强行清场朋友的内容
-            viewport.appendChild(content);
-        }
+        const app = document.getElementById('product-app');
+        app.style.display = 'block';
+        let v = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
+        if (v) { v.innerHTML = ''; v.appendChild(app); }
     });
 </script>
 
-</main>
-<?php include '../includes/_foot.php'; ?>
+<?php $foot = __DIR__ . '/../includes/_foot.php'; if (file_exists($foot)) { include $foot; } ?>

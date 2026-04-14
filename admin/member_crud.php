@@ -90,6 +90,11 @@ $members = $pdo->query($sql)->fetchAll();
         </form>
     </div>
 
+    <form method="GET" class="filter-card">
+        <input type="text" name="search" class="input-pro" placeholder="Search members..." value="<?= htmlspecialchars($search) ?>">
+        <button type="submit" class="btn-search">SEARCH</button>
+    </form>
+
     <div class="member-grid">
         <?php foreach ($members as $m): ?>
         <div class="member-card">

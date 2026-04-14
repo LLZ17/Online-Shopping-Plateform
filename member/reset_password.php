@@ -16,33 +16,30 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
-// --- [STAGE 2: 数据库依赖] ---
+// --- [STAGE 2: 数据库连接引用] ---
 require_once '../includes/db.php';
 
 // --- [STAGE 3: 页面基础变量] ---
-$color = '#28a745'; 
-$page_title = "PXX Mall | Secure Reset";
+$color = '#28a745'; // Member 专属翠绿色
+$page_title = "PXX Mall | New Password";
 
-// 引用公共头部
+// 引用公共头部 (确保侧边栏和资源路径正确)
 include '../includes/_head.php'; 
 
-// --- [STAGE 4: 高级逻辑处理引擎] ---
+// --- [STAGE 4: 前端反馈处理] ---
 $error_msg = "";
 $success_msg = "";
 
-// 🌟 演示逻辑：假设我们要重置的是当前 Session 记录的 Email
-// 如果你还没做 Session 传递，这里可以先指定一个测试账号
-$user_email = $_SESSION['reset_email'] ?? 'member@example.com'; 
-
+// 处理来自同一页面的提交逻辑（为了演示方便，我们将逻辑写在一起）
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $new_pass = $_POST['new_password'] ?? '';
     $confirm_pass = $_POST['confirm_password'] ?? '';
 
-    // 1. 长度校验
+    // 🌟 核心逻辑 1：至少六个字
     if (strlen($new_pass) < 6) {
-        $error_msg = "Security Policy: Password must be at least 6 characters.";
+        $error_msg = "Security Error: Password must be at least 6 characters.";
     } 
-    // 2. 一致性校验
+    // 🌟 核心逻辑 2：密码必须一样
     elseif ($new_pass !== $confirm_pass) {
         $error_msg = "Validation Error: Passwords do not match.";
     } 
@@ -86,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         --pxx-green-dark: #218838;
         --pxx-white: #ffffff;
         --pxx-border: #f0f0f0;
-        --trans: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        --transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     }
 
     body {
@@ -96,13 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
-        /* 🌟 核心修正：允许页面滚动，看到页脚 */
-        overflow-y: auto !important; 
-        min-height: 100vh;
+        overflow: hidden;
     }
 
-    /* 背景模糊层 */
-    .glass-mask {
+    /* 毛玻璃背景增强 */
+    .blur-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(3px);
@@ -112,10 +107,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .reset-viewport { 
         position: relative; z-index: 10;
         display: flex; justify-content: center; align-items: center; 
-        min-height: 100vh; padding: 50px 20px; /* 增加上下间距 */
+        min-height: 100vh; padding: 20px;
     }
 
-    /* 🌟 卡片主体 */
+    /* 🌟 重置卡片主体 */
     .reset-card { 
         background: var(--pxx-white); 
         width: 100%; max-width: 480px; 
@@ -124,31 +119,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         box-shadow: 0 25px 70px rgba(0,0,0,0.15); 
         text-align: center; 
         overflow: hidden; 
-        animation: cardEnter 0.6s ease-out;
+        animation: slideInUp 0.6s ease-out;
     }
 
-    @keyframes cardEnter {
-        from { opacity: 0; transform: translateY(40px); }
+    @keyframes slideInUp {
+        from { opacity: 0; transform: translateY(50px); }
         to { opacity: 1; transform: translateY(0); }
     }
 
+    /* 顶部 Banner */
     .card-banner { 
         background-color: var(--pxx-green); 
-        padding: 40px 20px; 
+        padding: 45px 20px; 
         color: var(--pxx-white); 
     }
     .card-banner h2 {
         margin: 0; font-size: 26px; font-weight: 900; 
         letter-spacing: 1.5px; text-transform: uppercase;
-        font-family: 'Montserrat', sans-serif;
     }
 
-    .card-form-body { padding: 45px 50px; }
+    .card-content { padding: 45px 50px; }
 
-    /* 表单组件 */
+    /* 表单控件 */
     .form-group { margin-bottom: 25px; text-align: left; }
     .form-group label { 
-        display: block; margin-bottom: 12px; 
+        display: block; margin-bottom: 10px; 
         font-weight: 700; font-size: 17px; color: #333; 
     }
     
@@ -156,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         width: 100%; padding: 18px 20px; 
         border: 2px solid var(--pxx-border); 
         border-radius: 14px; font-size: 16px; 
-        outline: none; transition: var(--trans); 
+        outline: none; transition: var(--transition); 
         background: #fafafa;
     }
     .form-input:focus { 
@@ -173,10 +168,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         border-radius: 14px; 
         font-weight: 900; font-size: 20px; 
         cursor: pointer; 
-        transition: var(--trans);
+        transition: var(--transition);
         text-transform: uppercase;
+        margin-top: 10px;
     }
-    .btn-update:hover { 
+    .btn-submit:hover { 
         background: var(--pxx-green-dark);
         transform: translateY(-2px);
     }
@@ -204,13 +200,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="reset-viewport">
     <div class="reset-card">
         <div class="card-banner">
-            <h2>Secure Reset</h2>
+            <h2>New Password</h2>
         </div>
 
-        <div class="card-form-body">
+        <div class="card-content">
             
             <?php if($error_msg): ?>
-                <div class="alert alert-error">
+                <div class="alert-box alert-red">
                     <i class="fas fa-times-circle"></i>
                     <?php echo $error_msg; ?>
                 </div>

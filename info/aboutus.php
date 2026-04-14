@@ -57,57 +57,59 @@ include('../includes/_info_head.php');
             text-align: justify;
         }
 
-        /* 4-Person Team Grid */
-        .team-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 25px;
-            margin-top: 30px;
-        }
-
-        .team-card {
-            background: #fff;
-            padding: 30px 20px;
-            text-align: center;
-            border-radius: 4px;
-            border: 2px solid #FF0000;
-            transition: all 0.3s ease;
-        }
-
-        .team-card:hover {
-            background-color: #FF0000;
-            color: #fff;
-            transform: translateY(-10px);
-            box-shadow: 0 10px 20px rgba(255, 0, 0, 0.2);
-        }
-
-        .team-card h3 {
-            color: #FF0000;
-            margin-bottom: 10px;
-            font-size: 1.4rem;
-        }
-
-        .team-card:hover h3 {
-            color: #fff;
-        }
-
-        .team-card p {
-            font-size: 0.9rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
         strong {
             color: #FF0000;
         }
         
-        /* Highlight Box */
+        /* Highlight Box for Journey */
         .highlight-box {
             background: #fff5f5;
             border-right: 4px solid #FF0000;
             padding: 25px;
             margin: 20px 0;
             font-style: italic;
+        }
+
+        /* Retail Store Gallery - 3 Images */
+        .store-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .store-photo {
+            width: 100%;
+            height: 250px;
+            background-color: #f0f0f0; /* Gray placeholder */
+            border: 2px solid #FF0000;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Placeholder image text */
+        .store-photo::after {
+            content: "STORE PHOTO";
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* Once you have real images, use this structure:
+        .store-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        */
+
+        .store-photo:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(255, 0, 0, 0.2);
         }
     </style>
 </head>
@@ -116,67 +118,47 @@ include('../includes/_info_head.php');
 <div class="about-container">
     <div class="about-header">
         <h1>ABOUT PXX Mall</h1>
-        <p>Your best online clothing platform.</p>
+        <p>Your Ultimate Fashion Destination Since 2020.</p>
     </div>
 
     <div class="content-section">
-        <h2>Our Story</h2>
+        <h2>Our Journey</h2>
         <div class="content-text">
             <p>
-                Founded in <strong>2020</strong>, <strong>PXX Mall</strong> emerged as a premier online fashion destination dedicated to bringing the latest trends to your doorstep. 
-                We believe that fashion is more than just clothing—it is a powerful form of self-expression. 
-                Our curation focuses on high-quality <strong>Men's and Women's clothing</strong> designed for the modern individual.
+                Founded in <strong>2020</strong>, during the peak of the global <strong>pandemic era</strong>, 
+                <strong>PXX Mall</strong> started as a small, resilient digital boutique. While the world was changing, 
+                our passion for fashion remained constant. We recognized a growing need for quality, comfortable, and affordable apparel that people could trust from the safety of their homes.
             </p>
             <div class="highlight-box">
-                "What started as a small online clothing platform has evolved into a thriving community for fashion enthusiasts. From casual streetwear to elegant professional attire, we ensure style is accessible to everyone."
+                "What began with a curated selection of essential Men's and Women's apparel gradually scaled up, fueled by our unwavering commitment to quality and our community's trust. Each garment we delivered became a testament to our perseverance."
             </div>
             <p>
-                As a digital-first retailer, we eliminate the overhead costs of traditional brick-and-mortar stores. 
-                This allows us to provide premium fabrics and cutting-edge designs at competitive prices, ensuring that every piece delivered to you meets our rigorous quality standards.
+                As an online retailer, we prioritized premium fabrics and cutting-edge designs, streamlining our operations to provide the best value directly to our customers. This focus allowed us to expand our collections and refine our services, ensuring every customer experience was seamless.
             </p>
         </div>
     </div>
 
     <div class="content-section">
-        <h2>Why Choose Us?</h2>
+        <h2>From Digital to Physical</h2>
         <div class="content-text">
             <p>
-                <strong>Trend-Driven Design:</strong> Our team monitors global fashion runways and street culture to ensure our collections are always ahead of the curve.<br>
-                <strong>Premium Quality:</strong> From breathable cotton tees to precision-tailored blazers, we prioritize comfort and durability in every thread.<br>
-                <strong>Seamless Shopping:</strong> With secure payments and localized logistics, we bring the ultimate shopping experience directly to your screen.
+                Today, we are thrilled to welcome you not just through our screens, but through our doors. 
+                Our journey has brought us full circle with the opening of our first <strong>Retail Flagship Store</strong> in Kuala Lumpur. 
+                This physical space allows you to experience the quality and fit of our fashion lines firsthand.
             </p>
         </div>
-    </div>
 
-    <div class="content-section">
-        <h2>Meet Our Team</h2>
-        <div class="team-grid">
-            <div class="team-card">
-                <h3>Member 1</h3>
-                <p>Founder & CEO</p>
-            </div>
-            <div class="team-card">
-                <h3>Member 2</h3>
-                <p>Creative Director</p>
-            </div>
-            <div class="team-card">
-                <h3>Member 3</h3>
-                <p>Marketing Head</p>
-            </div>
-            <div class="team-card">
-                <h3>Member 4</h3>
-                <p>Lead Developer</p>
-            </div>
-        </div>
+        <div class="store-gallery">
+            <div class="store-photo"></div> <div class="store-photo"></div> <div class="store-photo"></div> </div>
     </div>
 </div>
 
 <?php 
-// Footer implementation
+// Referencing your footer
 if(file_exists('../includes/_foot.php')) {
     include('../includes/_foot.php');
 } else {
-    echo '<footer style="text-align:center; padding:30px; color:#FF0000; border-top:2px solid #FF0000; font-weight:bold;">© 2026 PXX Mall. All Rights Reserved.</footer>';
+    echo '<footer style="text-align:center; padding:30px; color:#FF0000; border-top:2px solid #FF0000; font-weight:bold;">© 2026 PXX Mall (Student Project). All Rights Reserved.</footer>';
 }
 ?>
 
