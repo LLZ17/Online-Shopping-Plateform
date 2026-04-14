@@ -1,302 +1,360 @@
 <?php
 /**
- * =================================================================================
- * PXX MALL - ENTERPRISE NEW ADMIN DEPLOYMENT (V1.0)
- * =================================================================================
- * 功能：独立的添加管理员页面
- * 包含字段：user_id (自动生成 ad1001+), username, password, real_name, gender, 
- * phone_num, email, address, Postcode, City, State, role 等完整资料。
- * =================================================================================
+ * PXX Mall - Admin CRUD (Ultimate Anti-Overlap & Flexible Grid)
+ * 📂 Features: Dynamic Grid, Visible Roles, Scrollable Modal, Delete Alert
  */
-
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-// 1. 物理挂载基础核心与数据库
-require_once '../includes/db.php';     
+// 1. 引入数据库
+require_once '../includes/db.php'; 
 
-$pxx_msg = '';
-$pxx_msg_type = '';
-
-// -----------------------------------------------------------------------------
-// 【智能 ID 生成器】自动寻找 ad 开头的最大数字并 +1
-// -----------------------------------------------------------------------------
-function generateNewAdminID($pdo) {
-    $stmt = $pdo->query("SELECT user_id FROM users WHERE user_id LIKE 'ad%' ORDER BY CAST(SUBSTRING(user_id, 3) AS UNSIGNED) DESC LIMIT 1");
-    $last_id = $stmt->fetchColumn();
-    if (!$last_id) return "ad1001";
-    $num = (int)substr($last_id, 2);
-    return "ad" . ($num + 1);
+// ============================================================
+// 🌟 AJAX 局部刷新接口
+// ============================================================
+if (isset($_GET['action']) && $_GET['action'] == 'fetch_admins') {
+    ob_clean(); 
+    renderAdminList($pdo);
+    exit; 
 }
 
-// -----------------------------------------------------------------------------
-// 【表单提交处理逻辑】
-// -----------------------------------------------------------------------------
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deploy_admin'])) {
-    
-    // 基础鉴权与数据提取
-    $a_user    = trim($_POST['username']);
-    $a_pass    = $_POST['password'];
-    $a_conf    = $_POST['confirm_password'];
-    $a_role    = $_POST['role']; // Admin or S.Admin
-    
-    // 详细资料提取
-    $a_real    = trim($_POST['real_name'] ?? '');
-    $a_gend    = $_POST['gender'] ?? 'Male';
-    $a_phone   = trim($_POST['phone_num'] ?? '');
-    $a_email   = trim($_POST['email'] ?? '');
-    $a_addr    = trim($_POST['address'] ?? '');
-    $a_pcode   = trim($_POST['postcode'] ?? '');
-    $a_city    = trim($_POST['city'] ?? '');
-    $a_state   = trim($_POST['state'] ?? '');
+/**
+ * 🌟 列表渲染函数
+ */
+function renderAdminList($pdo) {
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE role IN ('Admin', 'S.Admin') ORDER BY created_at DESC");
+    $stmt->execute();
+    $admins = $stmt->fetchAll();
 
-    // 1. 校验密码一致性
-    if ($a_pass !== $a_conf) {
-        $pxx_msg = "SECURITY ALERT: Passwords do not match.";
-        $pxx_msg_type = "error";
-    } elseif (strlen($a_pass) < 6) {
-        $pxx_msg = "SECURITY ALERT: Password must be at least 6 characters.";
-        $pxx_msg_type = "error";
-    } else {
-        // 2. 查重：确保 Username 唯一
-        $check = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
-        $check->execute([$a_user]);
+    if (!$admins) {
+        echo '<div style="padding:40px; text-align:center; color:#999; background:#fff; border-radius:12px;">No administrators found.</div>';
+        return;
+    }
+
+    $counter = 1; 
+    foreach ($admins as $admin) {
+        $photoFile = !empty($admin['profile_photo']) ? $admin['profile_photo'] : 'default.jpg';
+        $finalAvatar = '../images/' . $photoFile;
         
-        if ($check->fetchColumn() > 0) {
-            $pxx_msg = "CONFLICT: The username '$a_user' is already in use.";
-            $pxx_msg_type = "error";
-        } else {
-            try {
-                // 3. 执行物理插入
-                $new_ad_id = generateNewAdminID($pdo);
-                $hash_pass = password_hash($a_pass, PASSWORD_DEFAULT);
-                $now = date("Y-m-d H:i:s");
+        // 角色和状态的 CSS 类名 (使用 stripos 忽略大小写，防止读取不到)
+        $roleClass = (stripos($admin['role'], 'S.') !== false) ? 'sadmin' : 'admin';
+        $statusClass = strtolower($admin['status']);
 
-                // 强制默认值：新 Admin 默认 Active，并且邮箱/手机状态设为 Verified
-                $sql = "INSERT INTO users (
-                            user_id, username, password_hashed, real_name, gender, 
-                            phone_num, email, address, Postcode, City, State, 
-                            role, status, email_status, phone_status, points, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', 'Verified', 'Verified', 0, ?)";
-                
-                $stmt = $pdo->prepare($sql);
-                $status = $stmt->execute([
-                    $new_ad_id, $a_user, $hash_pass, $a_real, $a_gend, 
-                    $a_phone, $a_email, $a_addr, $a_pcode, $a_city, $a_state, 
-                    $a_role, $now
-                ]);
+        // 物理合并地址
+        $combinedAddr = htmlspecialchars($admin['address']) . ", " . 
+                        htmlspecialchars($admin['Postcode']) . " " . 
+                        htmlspecialchars($admin['City']) . ", " . 
+                        htmlspecialchars($admin['State']);
+        ?>
+        <div class="pxx-list-card">
+            <div class="col-index"><?php echo $counter++; ?></div>
 
-                if ($status) {
-                    echo "<script>alert('System Administrator [$new_ad_id] successfully deployed!'); window.location.href='admin_manage.php';</script>";
-                    exit;
-                }
-            } catch (PDOException $e) {
-                $pxx_msg = "DATABASE ERROR: " . $e->getMessage();
-                $pxx_msg_type = "error";
-            }
-        }
+            <div class="col-id">#<?php echo $admin['user_id']; ?></div>
+
+            <div class="col-profile">
+                <img src="<?php echo $finalAvatar; ?>" onerror="this.src='../images/default.jpg'" class="list-avatar">
+                <div class="name-box">
+                    <strong><?php echo htmlspecialchars($admin['real_name'] ?: 'N/A'); ?></strong>
+                    <span>@<?php echo htmlspecialchars($admin['username']); ?></span>
+                </div>
+            </div>
+
+            <div class="col-contact">
+                <div class="contact-line"><i class="fa-solid fa-envelope"></i> <?php echo htmlspecialchars($admin['email'] ?: 'N/A'); ?></div>
+                <div class="contact-line"><i class="fa-solid fa-phone"></i> <?php echo htmlspecialchars($admin['phone_num'] ?: 'N/A'); ?></div>
+            </div>
+
+            <div class="col-status">
+                <span class="status-pill <?php echo $statusClass; ?>"><?php echo strtoupper($admin['status']); ?></span>
+                <span class="role-pill <?php echo $roleClass; ?>"><?php echo strtoupper($admin['role']); ?></span>
+            </div>
+
+            <div class="col-actions">
+                <button class="btn-primary-detail" onclick='openModal("detail", <?php echo json_encode($admin); ?>, "<?php echo $combinedAddr; ?>")'>
+                    Profile Detail
+                </button>
+                <button class="btn-crud edit" onclick='openModal("edit", <?php echo json_encode($admin); ?>)'>
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button class="btn-crud delete" onclick="confirmDelete('<?php echo $admin['user_id']; ?>')">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        </div>
+        <?php
     }
 }
 
-// 物理加载 Header
-include '../includes/_admin_head.php'; 
+// 获取总人数
+$totalStmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role IN ('Admin', 'S.Admin')");
+$totalCount = $totalStmt->fetchColumn();
+
+// 2. 引用头部
+if (file_exists('../includes/admin_head.php')) {
+    include_once '../includes/admin_head.php';
+}
 ?>
 
 <style>
-    /* 屏蔽默认模板可能带有的多余组件 */
-    .admin-content-viewport > .page-title-box, 
-    .admin-content-viewport > .stats-grid { display: none !important; }
-    
-    body { background: #f4f7f6; font-family: 'Inter', sans-serif; }
-    
-    .deploy-container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+    /* =========================================
+       🎨 核心 UI 系统
+       ========================================= */
+    :root {
+        --pxx-red: #ef4444;
+        --pxx-green: #10b981;
+        --pxx-blue: #3182ce;
+        --pxx-bg: #f8f9fc;
+        --border: #edf2f7;
+    }
 
-    /* 顶部标头 */
-    .deploy-header {
-        background: #111; padding: 35px 50px; border-radius: 20px;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.15); margin-bottom: 30px;
+    body { background-color: var(--pxx-bg) !important; margin: 0; padding-bottom: 60px; font-family: 'Inter', sans-serif; }
+    .admin-main-viewport { padding: 40px; max-width: 1550px; margin: 0 auto; }
+
+    /* 顶部导航控制栏 */
+    .crud-header {
         display: flex; justify-content: space-between; align-items: center;
+        background: white; padding: 25px 40px; border-radius: 16px;
+        margin-bottom: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.02);
     }
-    .deploy-header h1 { margin: 0; font-size: 32px; font-weight: 900; color: #fff; letter-spacing: -1px; }
-    .deploy-header p { margin: 8px 0 0; color: #eab308; font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+    .header-info h2 { margin: 0; font-size: 24px; font-weight: 800; color: #2d3748; }
+    .header-info p { margin: 5px 0 0; color: #718096; font-size: 14px; }
+
+    .btn-top {
+        padding: 12px 24px; border-radius: 10px; border: none; font-weight: 700;
+        cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s;
+    }
+    .btn-refresh { background: #34495e; color: white; }
+    .btn-add { background: #e60012; color: white; }
+
+    /* =========================================
+       🌟 卡片排版 (核心修复：max-content 确保内容不被挤压)
+       ========================================= */
+    .admin-list-container { display: flex; flex-direction: column; gap: 14px; }
+
+    .pxx-list-card {
+        background: white; border-radius: 12px; padding: 22px 30px;
+        display: grid; 
+        /* 1. 序号: 40px 
+           2. ID: 100px (足够拉开与头像的距离)
+           3. 头像/名字: 240px
+           4. 联系方式: 1fr (自动吸收剩余空间)
+           5. 状态和角色: max-content (确保标签绝不被压缩)
+           6. 按钮组: max-content (确保按钮完整显示)
+        */
+        grid-template-columns: 40px 100px 240px 1fr max-content max-content;
+        align-items: center; border: 1px solid var(--border); transition: 0.2s;
+        gap: 20px; 
+    }
+    .pxx-list-card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-color: #cbd5e0; }
+
+    .col-index { font-weight: 800; color: #cbd5e0; font-size: 16px; text-align: center; }
+    .col-id { font-weight: 700; color: #a0aec0; font-size: 15px; }
+
+    .col-profile { display: flex; align-items: center; gap: 18px; }
+    .list-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #eee; }
+    .name-box strong { display: block; font-size: 16px; color: #1a202c; }
+    .name-box span { font-size: 13px; color: #718096; }
+
+    .col-contact { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #4a5568; }
+    .contact-line i { width: 18px; color: #cbd5e0; margin-right: 8px; }
+
+    /* 状态与角色 (使用 flex 并排) */
+    .col-status { display: flex; flex-direction: row; gap: 10px; align-items: center; white-space: nowrap; }
+    .status-pill { padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+    .active { background: #e6fffa; color: #38b2ac; }
+    .blocked { background: #fff5f5; color: #f56565; }
+
+    .role-pill { padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid var(--border); }
+    .sadmin { background: #fff1f0; color: #e60012; }
+    .admin { background: #ebf8ff; color: #3182ce; }
+
+    /* 操作按钮组 */
+    .col-actions { display: flex; justify-content: flex-end; gap: 12px; align-items: center; }
     
-    .btn-return { 
-        background: rgba(255,255,255,0.1); color: #fff; padding: 12px 25px; border-radius: 10px; 
-        font-weight: 800; text-decoration: none; border: 1px solid rgba(255,255,255,0.2); transition: 0.3s; 
-    }
-    .btn-return:hover { background: #fff; color: #111; }
-
-    /* 表单卡片主体 */
-    .deploy-card { 
-        background: #fff; border-radius: 20px; padding: 50px; 
-        box-shadow: 0 10px 40px rgba(0,0,0,0.06); border-top: 10px solid #eab308; 
-    }
-
-    /* 警告/错误提示框 */
-    .alert-box { padding: 20px; border-radius: 12px; margin-bottom: 35px; font-weight: 800; display: flex; align-items: center; gap: 15px; }
-    .alert-error { background: #fff1f0; color: #cf1322; border-left: 6px solid #ff4d4f; }
-    .alert-success { background: #f6ffed; color: #389e0d; border-left: 6px solid #52c41a; }
-
-    /* 表单控件布局 */
-    .section-title { font-size: 18px; font-weight: 900; color: #111; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; margin: 40px 0 25px 0; text-transform: uppercase; letter-spacing: 1px; }
-    .section-title:first-child { margin-top: 0; }
-    .section-title i { color: #eab308; margin-right: 10px; }
-
-    .pxx-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 25px; }
-    .pxx-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; margin-bottom: 25px; }
+    .btn-primary-detail { background: #ebf4ff; color: var(--pxx-blue); border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+    .btn-primary-detail:hover { background: var(--pxx-blue); color: white; }
     
-    .f-field { display: flex; flex-direction: column; gap: 10px; position: relative; }
-    .f-field label { font-size: 13px; font-weight: 800; color: #444; text-transform: uppercase; }
-    
-    .f-input, .f-select { 
-        width: 100%; padding: 16px 20px; border: 2px solid #eee; border-radius: 10px; 
-        font-size: 15px; outline: none; transition: 0.3s; background: #fafafa; box-sizing: border-box;
-    }
-    .f-input:focus, .f-select:focus { border-color: #eab308; background: #fff; box-shadow: 0 0 0 5px rgba(234, 179, 8, 0.1); }
-    .f-input.error { border-color: #ff4d4f; background: #fff1f0; }
+    .btn-crud { width: 44px; height: 44px; border-radius: 8px; border: none; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; }
+    .edit { background: var(--pxx-green); }
+    .edit:hover { background: #059669; }
+    .delete { background: var(--pxx-red); }
+    .delete:hover { background: #dc2626; }
 
-    /* 提交按钮 */
-    .btn-submit { 
-        width: 100%; background: #eab308; color: #111; border: none; padding: 22px; 
-        border-radius: 12px; font-size: 18px; font-weight: 900; cursor: pointer; 
-        transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-top: 30px; 
+    /* =========================================
+       🌟 增强型可滑动弹窗 (Modal)
+       ========================================= */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10001;
+        backdrop-filter: blur(4px);
     }
-    .btn-submit:hover { background: #111; color: #eab308; transform: translateY(-3px); box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
-    .btn-submit:disabled { background: #ddd; color: #888; cursor: not-allowed; transform: none; box-shadow: none; }
+    .modal-content {
+        background: white; width: 850px; border-radius: 20px; padding: 45px; position: relative;
+        max-height: 85vh; /* 限制高度开启滑动 */
+        overflow-y: auto; 
+        box-shadow: 0 30px 70px rgba(0,0,0,0.2);
+    }
+    .close-modal { position: absolute; top: 25px; right: 30px; font-size: 32px; cursor: pointer; color: #cbd5e0; }
+
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 10px; }
+    .fld-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .fld-box label { font-size: 11px; font-weight: 800; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px; }
+    .fld-box input, .fld-box select, .fld-box textarea { padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 14px; }
+    .fld-box input:focus { border-color: var(--pxx-blue); outline: none; }
+
+    /* 弹窗底部按钮 */
+    .btn-save { background: var(--pxx-green); color: white; border: none; padding: 16px; border-radius: 10px; font-weight: 800; cursor: pointer; margin-top: 10px; font-size: 15px; }
+    .btn-cancel { background: #f1f5f9; color: #475569; border: none; padding: 16px; border-radius: 10px; font-weight: 800; cursor: pointer; margin-top: 10px; font-size: 15px; }
+
+    .fa-spin-fast { animation: spin 0.6s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
 
-<div id="premium-deploy-content" class="deploy-container">
-    
-    <div class="deploy-header">
-        <div>
-            <h1>Deploy Administrator</h1>
-            <p><i class="fas fa-shield-alt"></i> Grant Enterprise Access Level</p>
+<div class="admin-main-viewport">
+    <div class="crud-header">
+        <div class="header-info">
+            <h2>Administrative Workspace</h2>
+            <p>Direct database management for all Admin roles. 
+                <strong style="color:var(--pxx-red); margin-left:15px;">Total Admins: <?php echo $totalCount; ?></strong>
+            </p>
         </div>
-        <a href="admin_manage.php" class="btn-return"><i class="fas fa-arrow-left"></i> Return to Directory</a>
+        <div style="display:flex; gap:15px;">
+            <button class="btn-top btn-refresh" id="refreshBtn"><i class="fa-solid fa-arrows-rotate"></i> Refresh Records</button>
+            <button class="btn-top btn-add" onclick="openModal('add')"><i class="fa-solid fa-plus"></i> Create Admin</button>
+        </div>
     </div>
 
-    <div class="deploy-card">
-        
-        <?php if($pxx_msg): ?>
-            <div class="alert-box <?= $pxx_msg_type == 'error' ? 'alert-error' : 'alert-success' ?>">
-                <i class="fas <?= $pxx_msg_type == 'error' ? 'fa-exclamation-triangle' : 'fa-check-circle' ?>"></i> 
-                <?= $pxx_msg ?>
-            </div>
-        <?php endif; ?>
+    <div class="admin-list-container" id="adminList">
+        <?php renderAdminList($pdo); ?>
+    </div>
+</div>
 
-        <form method="POST" action="">
+<div class="modal-overlay" id="adminModal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitle" style="margin:0; color:#2d3748;">Profile Detail</h2>
+        <hr style="border:0; border-top:1px solid #edf2f7; margin: 25px 0;">
+
+        <form id="adminForm" action="process_admin.php" method="POST">
+            <input type="hidden" name="user_id" id="m_user_id">
             
-            <div class="section-title"><i class="fas fa-key"></i> Security Credentials</div>
-            
-            <div class="pxx-grid-2">
-                <div class="f-field">
-                    <label>Unique Username *</label>
-                    <input type="text" name="username" class="f-input" placeholder="System login handle" required autofocus>
-                </div>
-                <div class="f-field">
-                    <label>Privilege Role *</label>
-                    <select name="role" class="f-select" required>
-                        <option value="Admin">Standard Admin (Manage Products/Orders)</option>
-                        <option value="S.Admin">Super Admin (Full System Access)</option>
+            <div class="modal-grid">
+                <div class="fld-box"><label>Username / Handle</label><input type="text" name="username" id="m_username" required></div>
+                <div class="fld-box"><label>Legal Real Name</label><input type="text" name="real_name" id="m_real_name"></div>
+                <div class="fld-box"><label>System Permission Role</label>
+                    <select name="role" id="m_role">
+                        <option value="Admin">Admin</option>
+                        <option value="S.Admin">S.Admin</option>
                     </select>
                 </div>
-            </div>
-
-            <div class="pxx-grid-2">
-                <div class="f-field">
-                    <label>Login Password *</label>
-                    <input type="password" name="password" id="p_main" class="f-input" placeholder="Min 6 characters" required oninput="validatePasswords()">
+                <div class="fld-box"><label>Account Status</label>
+                    <select name="status" id="m_status">
+                        <option value="Active">Active</option>
+                        <option value="Blocked">Blocked</option>
+                    </select>
                 </div>
-                <div class="f-field">
-                    <label>Confirm Password *</label>
-                    <input type="password" name="confirm_password" id="p_conf" class="f-input" placeholder="Match password" required oninput="validatePasswords()">
-                    <span id="p_warn" style="color:#ff4d4f; font-size:12px; font-weight:700; display:none; margin-top:5px;">Passwords do not match.</span>
-                </div>
-            </div>
-
-            <div class="section-title"><i class="fas fa-id-card"></i> Personal Identity</div>
-
-            <div class="pxx-grid-2">
-                <div class="f-field">
-                    <label>Full Real Name</label>
-                    <input type="text" name="real_name" class="f-input" placeholder="As per official documents">
-                </div>
-                <div class="f-field">
-                    <label>Gender</label>
-                    <select name="gender" class="f-select">
+                
+                <div class="fld-box"><label>Account Created At</label><input type="text" id="m_created_at" readonly style="background:#f8fafc; color:#94a3b8;"></div>
+                <div class="fld-box"><label>Last Login Session</label><input type="text" id="m_last_login" readonly style="background:#f8fafc; color:#94a3b8;"></div>
+                
+                <div class="fld-box"><label>Assigned Gender</label>
+                    <select name="gender" id="m_gender">
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                     </select>
                 </div>
+                <div class="fld-box"><label>Email</label><input type="email" name="email" id="m_email"></div>
+            </div>
+            
+            <div class="fld-box">
+                <label>Combined Mailing Address (Full Location)</label>
+                <textarea id="m_full_address" rows="2" readonly style="background:#f8fafc; line-height:1.6;"></textarea>
             </div>
 
-            <div class="pxx-grid-2">
-                <div class="f-field">
-                    <label>Contact Number</label>
-                    <input type="text" name="phone_num" class="f-input" placeholder="01X-XXXXXXX">
-                </div>
-                <div class="f-field">
-                    <label>Email Address</label>
-                    <input type="email" name="email" class="f-input" placeholder="admin@pxxmall.com">
-                </div>
+            <div style="margin-top:25px; display:flex; flex-direction:column;" id="modalFooter">
+                <button type="submit" class="btn-save">Save Database Changes</button>
+                <button type="button" class="btn-cancel" onclick="closeModal()">Cancel & Close</button>
             </div>
-
-            <div class="section-title"><i class="fas fa-map-marker-alt"></i> Location Details</div>
-
-            <div class="f-field" style="margin-bottom: 25px;">
-                <label>Full Address</label>
-                <input type="text" name="address" class="f-input" placeholder="Unit, Building, Street Name...">
-            </div>
-
-            <div class="pxx-grid-3">
-                <div class="f-field">
-                    <label>Postcode</label>
-                    <input type="text" name="postcode" class="f-input" placeholder="5-Digit Code">
-                </div>
-                <div class="f-field">
-                    <label>City</label>
-                    <input type="text" name="city" class="f-input" placeholder="City Name">
-                </div>
-                <div class="f-field">
-                    <label>State</label>
-                    <input type="text" name="state" class="f-input" placeholder="State Name">
-                </div>
-            </div>
-
-            <input type="hidden" name="deploy_admin" value="1">
-            <button type="submit" id="btn_deploy" class="btn-submit">Authorize & Deploy Admin</button>
-
         </form>
     </div>
 </div>
 
 <script>
-    // 强制重绘，适配你的后台模板框架
-    document.addEventListener("DOMContentLoaded", function() {
-        const vp = document.querySelector('.admin-content-viewport');
-        const ct = document.getElementById('premium-deploy-content');
-        if (vp && ct) { vp.innerHTML = ''; vp.appendChild(ct); }
+// =========================================
+// 🚀 AJAX Refresh + Success Prompt
+// =========================================
+document.getElementById('refreshBtn').onclick = function() {
+    const icon = this.querySelector('i');
+    icon.classList.add('fa-spin-fast');
+    
+    fetch('admin_crud.php?action=fetch_admins')
+    .then(res => res.text())
+    .then(html => {
+        setTimeout(() => {
+            document.getElementById('adminList').innerHTML = html;
+            icon.classList.remove('fa-spin-fast');
+            alert('✅ Admin Records Synchronized Successfully!');
+        }, 500);
     });
+};
 
-    // 前端安全：即时密码验证
-    function validatePasswords() {
-        const p1 = document.getElementById('p_main');
-        const p2 = document.getElementById('p_conf');
-        const warn = document.getElementById('p_warn');
-        const btn = document.getElementById('btn_deploy');
+function openModal(mode, data = null, fullAddress = "") {
+    const modal = document.getElementById('adminModal');
+    const title = document.getElementById('modalTitle');
+    const footer = document.getElementById('modalFooter');
+    const form = document.getElementById('adminForm');
 
-        if (p2.value === "") {
-            p2.classList.remove('error'); warn.style.display = 'none'; btn.disabled = false; return;
-        }
+    modal.style.display = 'flex';
+    form.reset();
 
-        if (p1.value !== p2.value || p1.value.length < 6) {
-            p2.classList.add('error'); warn.style.display = 'block'; btn.disabled = true;
-        } else {
-            p2.classList.remove('error'); warn.style.display = 'none'; btn.disabled = false;
-        }
+    if(mode === 'detail') {
+        title.innerText = "Viewing Detail: " + data.user_id;
+        footer.innerHTML = '<button type="button" class="btn-cancel" onclick="closeModal()" style="width:100%">Close Details</button>';
+        fillData(data, true, fullAddress);
+    } else {
+        title.innerText = (mode === 'edit') ? "Edit Administrator" : "Create New Admin";
+        footer.innerHTML = '<button type="submit" class="btn-save">Save Database Changes</button><button type="button" class="btn-cancel" onclick="closeModal()">Cancel & Close</button>';
+        fillData(data || {}, false, fullAddress);
     }
+}
+
+function fillData(data, disabled, fullAddress) {
+    document.getElementById('m_user_id').value = data.user_id || '';
+    document.getElementById('m_username').value = data.username || '';
+    document.getElementById('m_real_name').value = data.real_name || '';
+    document.getElementById('m_role').value = data.role || 'Admin';
+    document.getElementById('m_status').value = data.status || 'Active';
+    document.getElementById('m_gender').value = data.gender || 'Male';
+    document.getElementById('m_email').value = data.email || '';
+    
+    document.getElementById('m_created_at').value = data.created_at || 'N/A';
+    document.getElementById('m_last_login').value = data.last_login || 'N/A';
+    document.getElementById('m_full_address').value = fullAddress || 'No address data provided';
+
+    const inputs = document.querySelectorAll('#adminForm input, #adminForm select, #adminForm textarea');
+    inputs.forEach(el => {
+        if(el.id === 'm_created_at' || el.id === 'm_last_login' || el.id === 'm_full_address') {
+            el.disabled = true;
+        } else if(el.type !== 'hidden') {
+            el.disabled = disabled;
+        }
+    });
+}
+
+function closeModal() { document.getElementById('adminModal').style.display = 'none'; }
+
+// 删除确认
+function confirmDelete(id) {
+    if(confirm("🚨 WARNING: You are about to permanently delete Admin " + id + ".\nClick OK to proceed.")) {
+        window.location.href = "process_admin.php?delete=" + id;
+    }
+}
 </script>
 
-<?php include '../includes/_foot.php'; ?>
+<?php 
+// 3. 引用页脚
+if (file_exists('../includes/_foot.php')) {
+    include_once '../includes/_foot.php';
+}
+?>

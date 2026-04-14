@@ -1,14 +1,13 @@
 <?php
 /**
  * =================================================================================
- * PXX MALL - ADMINISTRATIVE CONTROL PORTAL (V110.0 - CLEAN MINIMALIST)
+ * PXX MALL - ADMINISTRATIVE CONTROL PORTAL (V110.2 - ALERT REMOVED)
  * =================================================================================
  * 核心逻辑：
- * 1. [剔除] 彻底删除了 "Backend Environment Ready" 文字块及其图标。
- * 2. [通知] 只保留顶部的 System Status 通知栏，且可以手动 [X] 关闭。
+ * 1. [新增] 在 View Store 上方加入了 View Database 链接，直连 phpMyAdmin。
+ * 2. [移除] 彻底移除了顶部的 System Status 弹窗通知栏。
  * 3. [侧边栏] 补全白色图标，文字纯白，固定左侧不走位。
- * 4. [左下角] 只有简洁的 View Store 功能。
- * 5. [厚度] 保持 500+ 行，包含完整的安全架构与权限判定。
+ * 4. [权限] 包含完整的安全架构与权限判定。
  * =================================================================================
  */
 
@@ -148,29 +147,23 @@ $noti_count = 3;
         .sub-nav-link { display: block; padding: 12px 25px 12px 65px; font-size: 14px; color: #aaa; }
         .sub-nav-link:hover { color: white; background: #111; }
 
-        /* 左下角 View Store */
-        .sidebar-bottom { margin-top: auto; padding: 25px; border-top: 1px solid #222; }
-        .sidebar-bottom a { display: flex; align-items: center; gap: 12px; color: white; font-size: 14px; font-weight: 700; opacity: 0.8; }
-        .sidebar-bottom a:hover { opacity: 1; color: #2ecc71; }
-
-        /* ============================================================
-           系统通告栏 (公告系统)
-           ============================================================ */
-        .pxx-alert-strip {
-            background-color: #ffffff;
-            margin-left: var(--side-w); margin-top: var(--header-h);
-            padding: 15px 40px; display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #eee; z-index: 8000; position: relative;
+        /* 左下角底部链接区域 */
+        .sidebar-bottom { margin-top: auto; padding: 20px 25px; border-top: 1px solid #222; }
+        .sidebar-bottom a { 
+            display: flex; align-items: center; gap: 12px; 
+            color: white; font-size: 14px; font-weight: 700; 
+            opacity: 0.8; margin-bottom: 15px; 
+            transition: var(--trans);
         }
-        .alert-txt { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #444; font-weight: 600; }
-        .alert-txt i { color: var(--pxx-red); }
-        .alert-close-x { cursor: pointer; color: #ccc; font-size: 18px; transition: 0.2s; }
-        .alert-close-x:hover { color: var(--pxx-red); }
+        .sidebar-bottom a:last-child { margin-bottom: 0; }
+        .sidebar-bottom a:hover { opacity: 1; color: #2ecc71; }
+        .sidebar-bottom a.db-link:hover { color: #3498db; }
 
         /* ============================================================
-           主内容区域 (完全去杂质)
+           主内容区域
            ============================================================ */
         .main-content-view {
+            margin-top: var(--header-h); /* 🔥 新增：补偿移除弹窗后的高度，防止内容被遮挡 */
             margin-left: var(--side-w);
             padding: 50px;
             height: calc(100vh - var(--header-h));
@@ -183,12 +176,6 @@ $noti_count = 3;
             color: #ddd; text-align: center;
         }
         .empty-canvas i { font-size: 100px; opacity: 0.2; }
-
-        .admin-footer-copyright {
-            padding: 40px 0; text-align: center;
-            border-top: 1px solid #eeeeee; color: #bbb;
-            font-size: 12px; margin-top: auto;
-        }
     </style>
 </head>
 <body>
@@ -223,14 +210,6 @@ $noti_count = 3;
             </div>
         </div>
     </header>
-
-    <div class="pxx-alert-strip" id="globalAlert">
-        <div class="alert-txt">
-            <i class="fa-solid fa-circle-info"></i>
-            <span>System Status: All administrative data modules are synchronized with the primary database. Monitoring active.</span>
-        </div>
-        <div class="alert-close-x" onclick="document.getElementById('globalAlert').style.display='none'">&times;</div>
-    </div>
 
     <aside class="sidebar-fixed">
         <nav>
@@ -287,6 +266,11 @@ $noti_count = 3;
         </nav>
 
         <div class="sidebar-bottom">
+            <a href="http://localhost/phpmyadmin/index.php?route=/database/structure&db=html_sql" target="_blank" class="db-link">
+                <i class="fa-solid fa-database"></i>
+                <span>View Database</span>
+            </a>
+            
             <a href="../index.php" target="_blank">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                 <span>View Store</span>
@@ -295,7 +279,6 @@ $noti_count = 3;
     </aside>
 
     <main class="main-content-view">
-        
         <div class="empty-canvas">
             <div>
                 <i class="fa-solid fa-briefcase"></i>
@@ -304,31 +287,18 @@ $noti_count = 3;
         </div>
 
     <?php
-    /**
-    * 🌟 终极引用逻辑
-    * 自动检测 _foot.php 的位置并引入
-    */
-
-    // 尝试路径 1: 如果当前文件在根目录
     $path1 = __DIR__ . '/includes/_admin_foot.php';
-    // 尝试路径 2: 如果当前文件在 admin 文件夹里
     $path2 = __DIR__ . '/../includes/_admin_foot.php';
 
     if (file_exists($path1)) {
          include_once $path1;
     } elseif (file_exists($path2)) {
          include_once $path2;
-    } else {
-    // 如果还是找不到，输出这个隐藏注释帮你调试（你在网页右键查看源代码就能看到报错路径）
-    echo "";
-}
-?>
+    }
+    ?>
     </main>
 
     <script>
-        /**
-         * 自动展开活跃子菜单逻辑
-         */
         document.addEventListener('DOMContentLoaded', () => {
             const currentPath = window.location.href;
             document.querySelectorAll('.sub-nav-link').forEach(link => {

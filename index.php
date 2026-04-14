@@ -3,14 +3,10 @@ session_start();
 require_once 'includes/db.php';
 require_once 'includes/_head.php';
 
-// 获取推荐产品（按销量排序，取前8个）
+// 获取推荐产品（按库存量排序，优先展示库存充足的热门商品）
 $stmt = $pdo->prepare("
-    SELECT p.*, 
-           COALESCE(SUM(o.quantity), 0) as total_sold
-    FROM products p
-    LEFT JOIN orders o ON p.product_id = o.product_id
-    GROUP BY p.product_id
-    ORDER BY total_sold DESC, p.product_id DESC
+    SELECT * FROM products 
+    ORDER BY stock DESC, product_id DESC 
     LIMIT 8
 ");
 $stmt->execute();
@@ -24,7 +20,7 @@ $new_products = $stmt->fetchAll();
 
 <style>
     /* ============================================
-       首页样式 - 男装女装专卖店 (完整版600+行)
+        首页样式 - PXX Mall 极简全身模特版
     ============================================ */
     
     * {
@@ -34,100 +30,142 @@ $new_products = $stmt->fetchAll();
     }
     
     body {
-        background: #f8f8f8;
+        background: #FFFFFF; /* 整体背景改为纯白 */
         font-family: 'Poppins', 'Segoe UI', sans-serif;
     }
     
-    /* Hero 区域 - 大图Banner */
-    .hero-section {
-        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-        margin: 20px 30px 40px 30px;
-        border-radius: 28px;
-        padding: 80px 40px;
-        text-align: center;
+    /* ---------------------------------
+       Hero 区域 - 轮播图 Slider
+    --------------------------------- */
+    .hero-slider-container {
         position: relative;
+        margin: 20px 30px 40px 30px;
+        border-radius: 8px;
         overflow: hidden;
+        height: 75vh; 
+        min-height: 600px;
+        background: #FFFFFF;
     }
-    
-    .hero-section::before {
-        content: '';
+
+    .slide {
         position: absolute;
         top: 0;
         left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('images/pxxbg.jpeg') center/cover no-repeat;
-        opacity: 0.12;
-        z-index: 0;
-    }
-    
-    .hero-content {
-        position: relative;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        transition: opacity 0.8s ease-in-out;
+        background-size: contain;
+        background-position: center center;
+        background-repeat: no-repeat;
+        background-color: #FFFFFF;
         z-index: 1;
     }
-    
-    .hero-section h1 {
-        font-size: 56px;
-        font-weight: 800;
-        color: white;
-        margin-bottom: 15px;
-        letter-spacing: -1px;
+
+    .slide.active {
+        opacity: 1;
+        z-index: 2;
     }
-    
-    .hero-section h1 span {
-        font-size: 22px;
-        vertical-align: super;
-    }
-    
-    .hero-section p {
-        font-size: 18px;
-        color: rgba(255,255,255,0.85);
-        margin-bottom: 30px;
-    }
-    
-    .hero-buttons {
-        display: flex;
-        gap: 15px;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    
-    .btn-primary {
+
+    /* 统一的红色按钮样式 */
+    .btn-red-action {
         background: #e60012;
         color: white;
-        padding: 14px 35px;
+        padding: 14px 45px;
         border-radius: 50px;
         text-decoration: none;
         font-weight: 600;
+        font-size: 16px;
         transition: 0.3s;
         display: inline-block;
+        box-shadow: 0 4px 15px rgba(230,0,18,0.3);
+        border: none;
+        cursor: pointer;
     }
     
-    .btn-primary:hover {
+    .btn-red-action:hover {
         background: #cc0010;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(230,0,18,0.35);
+        box-shadow: 0 8px 20px rgba(230,0,18,0.4);
     }
-    
-    .btn-secondary {
-        background: transparent;
+
+    /* 轮播图中间底部的按钮 */
+    .shop-now-bottom {
+        position: absolute;
+        bottom: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 3;
+    }
+
+    .shop-now-bottom:hover {
+        transform: translate(-50%, -2px);
+    }
+
+    /* 新增：左右切换翻页按钮 */
+    .slider-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0, 0, 0, 0.15); /* 淡淡的黑底，在白背景上清晰可见 */
         color: white;
-        padding: 14px 35px;
-        border-radius: 50px;
-        text-decoration: none;
-        font-weight: 600;
-        border: 2px solid white;
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+        z-index: 10;
         transition: 0.3s;
-        display: inline-block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(5px);
     }
-    
-    .btn-secondary:hover {
-        background: white;
+
+    .slider-nav:hover {
+        background: rgba(0, 0, 0, 0.4);
         color: #e60012;
-        transform: translateY(-2px);
+    }
+
+    .slider-prev {
+        left: 30px;
+    }
+
+    .slider-next {
+        right: 30px;
+    }
+
+    /* 白色底色导航圆点 */
+    .slider-dots {
+        position: absolute;
+        bottom: 25px;
+        left: 0;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        z-index: 10;
+    }
+
+    .dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.4); /* 半透明白底 */
+        border: 2px solid #FFFFFF; /* 纯白边框 */
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    .dot.active {
+        background-color: #FFFFFF; /* 激活时全白 */
+        transform: scale(1.3);
     }
     
-    /* 分类卡片 - 男装/女装 */
+    /* ---------------------------------
+       分类卡片 - 加高拉直全身模特版
+    --------------------------------- */
     .category-section {
         display: flex;
         gap: 30px;
@@ -138,13 +176,29 @@ $new_products = $stmt->fetchAll();
     .category-card {
         flex: 1;
         min-width: 280px;
-        border-radius: 24px;
+        /* 框拉直：去掉圆角 */
+        border-radius: 0px; 
         overflow: hidden;
         position: relative;
-        height: 340px;
+        /* 框上下拉大：高度调大至 1100px，确保容纳全身 */
+        height: 1100px; 
         cursor: pointer;
         transition: 0.3s;
         text-decoration: none;
+        background-color: #FFFFFF;
+    }
+
+    /* 底部渐变黑影，保护红色的 Shop 按钮，调低高度避免遮挡模特 */
+    .category-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 15%;
+        background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%);
+        z-index: 1;
+        transition: 0.3s;
     }
     
     .category-card:hover {
@@ -152,69 +206,31 @@ $new_products = $stmt->fetchAll();
         box-shadow: 0 20px 35px rgba(0,0,0,0.15);
     }
     
+    /* 确保以头部为基准，不切头 */
     .category-card.men {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: url('images/men.jpeg') center top / cover no-repeat;
     }
     
     .category-card.women {
-        background: linear-gradient(135deg, #c31432 0%, #e60012 100%);
+        background: url('images/women.jpeg') center top / cover no-repeat;
     }
     
-    .category-card .category-bg {
+    .category-btn-container {
         position: absolute;
-        bottom: 0;
-        right: 0;
-        font-size: 140px;
-        opacity: 0.12;
-        pointer-events: none;
-    }
-    
-    .category-card .category-content {
-        position: relative;
-        z-index: 1;
-        padding: 50px 30px;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+        bottom: 40px;
+        left: 0;
+        width: 100%;
         text-align: center;
-        color: white;
+        z-index: 2;
     }
     
-    .category-icon {
-        font-size: 60px;
-        margin-bottom: 20px;
+    .category-card:hover .btn-red-action {
+        transform: scale(1.05);
     }
     
-    .category-card h3 {
-        font-size: 34px;
-        font-weight: 800;
-        margin-bottom: 10px;
-    }
-    
-    .category-card p {
-        opacity: 0.85;
-        margin-bottom: 25px;
-        font-size: 14px;
-    }
-    
-    .shop-now-btn {
-        background: rgba(255,255,255,0.2);
-        display: inline-block;
-        padding: 10px 25px;
-        border-radius: 40px;
-        color: white;
-        text-decoration: none;
-        font-weight: 600;
-        transition: 0.3s;
-    }
-    
-    .category-card:hover .shop-now-btn {
-        background: white;
-        color: #e60012;
-    }
-    
-    /* 区域标题 */
+    /* ---------------------------------
+       商品排版与其他原版区域
+    --------------------------------- */
     .section-header {
         display: flex;
         justify-content: space-between;
@@ -255,7 +271,6 @@ $new_products = $stmt->fetchAll();
         text-decoration: underline;
     }
     
-    /* 产品网格 */
     .products-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
@@ -265,10 +280,11 @@ $new_products = $stmt->fetchAll();
     
     .product-card {
         background: white;
-        border-radius: 18px;
+        border-radius: 12px;
         overflow: hidden;
         transition: 0.3s;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        border: 1px solid #f0f0f0;
     }
     
     .product-card:hover {
@@ -294,7 +310,6 @@ $new_products = $stmt->fetchAll();
         transform: scale(1.06);
     }
     
-    /* 悬停快捷按钮 */
     .quick-buttons {
         position: absolute;
         bottom: -50px;
@@ -328,7 +343,6 @@ $new_products = $stmt->fetchAll();
         color: white;
     }
     
-    /* 产品信息 */
     .product-info {
         padding: 20px;
     }
@@ -391,15 +405,9 @@ $new_products = $stmt->fetchAll();
         font-weight: 500;
     }
     
-    .stock-status.low {
-        color: #ff9800;
-    }
+    .stock-status.low { color: #ff9800; }
+    .stock-status.out { color: #f44336; }
     
-    .stock-status.out {
-        color: #f44336;
-    }
-    
-    /* 加购按钮 */
     .add-to-cart-btn {
         width: 100%;
         background: #1a1a1a;
@@ -425,7 +433,6 @@ $new_products = $stmt->fetchAll();
         transform: none;
     }
     
-    /* 促销横幅 */
     .promo-banner {
         background: linear-gradient(135deg, #e60012 0%, #ff4757 50%, #ff6b81 100%);
         margin: 50px 30px;
@@ -463,7 +470,6 @@ $new_products = $stmt->fetchAll();
         box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
     
-    /* 特色服务区域 */
     .features-section {
         display: flex;
         justify-content: space-between;
@@ -477,9 +483,10 @@ $new_products = $stmt->fetchAll();
         text-align: center;
         padding: 25px;
         background: white;
-        border-radius: 20px;
+        border-radius: 12px;
         min-width: 180px;
         transition: 0.3s;
+        border: 1px solid #f0f0f0;
     }
     
     .feature-item:hover {
@@ -504,72 +511,6 @@ $new_products = $stmt->fetchAll();
         color: #888;
     }
     
-    /* 页脚样式增强 */
-    .footer-enhanced {
-        background: #1a1a1a;
-        color: #999;
-        padding: 50px 30px 30px;
-        margin-top: 60px;
-    }
-    
-    .footer-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 40px;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    
-    .footer-col h4 {
-        color: white;
-        margin-bottom: 20px;
-        font-size: 18px;
-    }
-    
-    .footer-col a {
-        display: block;
-        color: #999;
-        text-decoration: none;
-        margin-bottom: 12px;
-        font-size: 14px;
-        transition: 0.2s;
-    }
-    
-    .footer-col a:hover {
-        color: #e60012;
-    }
-    
-    .social-icons {
-        display: flex;
-        gap: 15px;
-        margin-top: 15px;
-    }
-    
-    .social-icons a {
-        width: 36px;
-        height: 36px;
-        background: #333;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 18px;
-    }
-    
-    .social-icons a:hover {
-        background: #e60012;
-        color: white;
-    }
-    
-    .copyright {
-        text-align: center;
-        padding-top: 40px;
-        margin-top: 40px;
-        border-top: 1px solid #333;
-        font-size: 13px;
-    }
-    
     /* 响应式设计 */
     @media (max-width: 992px) {
         .products-grid {
@@ -579,117 +520,78 @@ $new_products = $stmt->fetchAll();
     }
     
     @media (max-width: 768px) {
-        .hero-section {
+        .hero-slider-container {
             margin: 10px 15px 30px 15px;
-            padding: 50px 20px;
+            height: 65vh;
+            min-height: 450px;
         }
-        .hero-section h1 {
-            font-size: 36px;
+        .slider-nav {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
         }
+        .slider-prev { left: 15px; }
+        .slider-next { right: 15px; }
         .category-section {
             margin: 20px 15px;
             flex-direction: column;
         }
         .category-card {
-            height: 280px;
+            height: 800px;
         }
         .products-grid {
             margin: 0 15px;
             gap: 15px;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         }
-        .section-header {
-            margin: 30px 15px 20px 15px;
-        }
-        .section-title {
-            font-size: 22px;
-        }
-        .promo-banner {
-            margin: 30px 15px;
-            padding: 35px 20px;
-        }
-        .promo-banner h3 {
-            font-size: 24px;
-        }
-        .features-section {
-            margin: 30px 15px;
-            gap: 15px;
-        }
-        .feature-item {
-            padding: 15px;
-        }
-        .feature-icon {
-            font-size: 30px;
-        }
-        .product-info {
-            padding: 12px;
-        }
-        .product-name {
-            font-size: 13px;
-            height: 36px;
-        }
-        .product-price {
-            font-size: 16px;
-        }
-        .add-to-cart-btn {
-            padding: 8px;
-            font-size: 12px;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .hero-section {
-            padding: 40px 15px;
-        }
-        .hero-section h1 {
-            font-size: 28px;
-        }
-        .hero-section p {
-            font-size: 14px;
-        }
-        .btn-primary, .btn-secondary {
-            padding: 10px 20px;
-            font-size: 14px;
-        }
+        .section-header { margin: 30px 15px 20px 15px; }
+        .section-title { font-size: 22px; }
+        .promo-banner { margin: 30px 15px; padding: 35px 20px; }
+        .promo-banner h3 { font-size: 24px; }
+        .features-section { margin: 30px 15px; gap: 15px; }
+        .feature-item { padding: 15px; }
+        .product-info { padding: 12px; }
+        .product-name { font-size: 13px; height: 36px; }
+        .product-price { font-size: 16px; }
     }
 </style>
 
-<!-- Hero Banner -->
-<div class="hero-section">
-    <div class="hero-content">
-        <h1>PXX Mall<span>&reg;</span></h1>
-        <p>Your Ultimate Destination for Fashion & Streetwear</p>
-        <div class="hero-buttons">
-            <a href="ViewAllProduct.php" class="btn-primary">Shop Now →</a>
-            <a href="#featured" class="btn-secondary">Explore</a>
-        </div>
+<div class="hero-slider-container">
+    
+    <div class="slide active" style="background-image: url('images/pxx.jpeg');">
+        <a href="ViewAllProduct.php" class="btn-red-action shop-now-bottom">Shop Now →</a>
+    </div>
+    <div class="slide" style="background-image: url('images/pxx2.jpeg');">
+        <a href="ViewAllProduct.php" class="btn-red-action shop-now-bottom">Shop Now →</a>
+    </div>
+    <div class="slide" style="background-image: url('images/pxx3.jpeg');">
+        <a href="ViewAllProduct.php" class="btn-red-action shop-now-bottom">Shop Now →</a>
+    </div>
+
+    <button class="slider-nav slider-prev">❮</button>
+    <button class="slider-nav slider-next">❯</button>
+
+    <div class="slider-dots">
+        <div class="dot active" data-index="0"></div>
+        <div class="dot" data-index="1"></div>
+        <div class="dot" data-index="2"></div>
     </div>
 </div>
 
-<!-- 男装/女装 分类入口 -->
 <div class="category-section">
     <a href="ViewAllProduct.php?category=Men" class="category-card men">
-        <div class="category-bg">👔</div>
-        <div class="category-content">
-            <div class="category-icon">👔</div>
-            <h3>Men's Collection</h3>
-            <p>Shirts • T-Shirts • Pants • Jeans</p>
-            <span class="shop-now-btn">Shop Men →</span>
+        <div class="category-btn-container">
+            <span class="btn-red-action">Shop Men →</span>
         </div>
     </a>
     
     <a href="ViewAllProduct.php?category=Women" class="category-card women">
-        <div class="category-bg">👗</div>
-        <div class="category-content">
-            <div class="category-icon">👗</div>
-            <h3>Women's Collection</h3>
-            <p>Tops • Dresses • Skirts • Pants</p>
-            <span class="shop-now-btn">Shop Women →</span>
+        <div class="category-btn-container">
+            <span class="btn-red-action">Shop Women →</span>
         </div>
     </a>
 </div>
 
-<!-- 特色服务区域 -->
 <div class="features-section">
     <div class="feature-item">
         <div class="feature-icon">🚚</div>
@@ -713,7 +615,6 @@ $new_products = $stmt->fetchAll();
     </div>
 </div>
 
-<!-- 热门产品区域 -->
 <div id="featured" class="section-header">
     <h2 class="section-title">🔥 Hot Picks</h2>
     <a href="ViewAllProduct.php" class="section-link">View All →</a>
@@ -766,7 +667,6 @@ $new_products = $stmt->fetchAll();
     <?php endif; ?>
 </div>
 
-<!-- 新品区域 -->
 <div class="section-header">
     <h2 class="section-title">✨ New Arrivals</h2>
     <a href="ViewAllProduct.php" class="section-link">View All →</a>
@@ -814,7 +714,6 @@ $new_products = $stmt->fetchAll();
     <?php endif; ?>
 </div>
 
-<!-- 促销横幅 -->
 <div class="promo-banner">
     <h3>🎉 Free Shipping on Orders RM100+</h3>
     <p>Use code: <strong style="background: rgba(255,255,255,0.25); padding: 6px 15px; border-radius: 30px;">PXXSHIP</strong> at checkout</p>
@@ -823,6 +722,73 @@ $new_products = $stmt->fetchAll();
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+/* 轮播图逻辑 - 左右按键控制、小圆点控制 & 自动播放 */
+document.addEventListener("DOMContentLoaded", function() {
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.dot');
+    const prevBtn = document.querySelector('.slider-prev');
+    const nextBtn = document.querySelector('.slider-next');
+    let currentSlide = 0;
+    let slideInterval;
+
+    function showSlide(index) {
+        slides.forEach(slide => slide.classList.remove('active'));
+        dots.forEach(dot => dot.classList.remove('active'));
+        
+        currentSlide = index;
+        
+        slides[currentSlide].classList.add('active');
+        dots[currentSlide].classList.add('active');
+    }
+
+    function nextSlide() {
+        let nextIndex = (currentSlide + 1) % slides.length;
+        showSlide(nextIndex);
+    }
+
+    function prevSlide() {
+        let prevIndex = (currentSlide - 1 + slides.length) % slides.length;
+        showSlide(prevIndex);
+    }
+
+    // 绑定左右按键事件
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            nextSlide();
+            resetInterval();
+        });
+    }
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            prevSlide();
+            resetInterval();
+        });
+    }
+
+    // 点击圆点切换图片
+    dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            showSlide(index);
+            resetInterval();
+        });
+    });
+
+    // 自动播放 (10000ms = 10秒)
+    function startInterval() {
+        slideInterval = setInterval(nextSlide, 10000);
+    }
+
+    function resetInterval() {
+        clearInterval(slideInterval);
+        startInterval();
+    }
+
+    // 启动自动播放
+    startInterval();
+});
+
+/* 购物车与收藏逻辑 */
 function addToCart(productId) {
     $.ajax({
         url: 'memberProducts/add.php',
@@ -865,7 +831,6 @@ function addToWishlist(productId) {
     <?php endif; ?>
 }
 </script>
-
 
 </div>
 
