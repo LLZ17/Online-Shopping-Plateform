@@ -1,5 +1,11 @@
-<?php require_once __DIR__ . '/../includes/db.php';
-      require_once __DIR__ . '/../includes/_head.php';?>
+<?php session_start(); /* Blocked From Not logged In User */
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login_selection.php");
+    exit();
+}else {
+    require_once __DIR__ . '/../includes/db.php';
+    require_once __DIR__ . '/../includes/_head.php';
+    }?>
 
 <style>
     /* 愿望清单专用样式 */
@@ -153,11 +159,6 @@
 </style>
 
 <?php
-// 1. 拦截未登录用户
-if (!isset($_SESSION['user_id'])) {
-    echo "<script>alert('Please login to use Wishlist!'); window.location.href='login.php';</script>";
-    exit();
-}
 
 $user_id = $_SESSION['user_id'];
 
@@ -211,7 +212,9 @@ if (!$result): ?>
                     <td><span style="color: #28a745; font-weight: 300;"><?php echo $r['status']; ?></span></td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 15px;">
-                            /*TODO*/<form method = "POST"><button class="btn-add-cart" title="Move to Cart">Add to Cart</button></form>
+                            <form method = "GET"><input type = "hidden" name = "ITSME" value = "ITSME">
+                            <button class="btn-add-cart" title="Move to Cart">Add to Cart</button></form>
+                        </input>
                             <i class="fa-solid fa-trash-can remove-icon" title="Remove from Wishlist"></i>
                         </div>
                     </td>
@@ -226,4 +229,8 @@ if (!$result): ?>
         </div>
 </div>
 
-<?php require_once __DIR__ . '/../includes/_foot.php'; ?>
+<?php if ($_SERVER['REQUEST_METHOD'] == "GET" && $_GET['ITSME'] == 'ITSME') {
+    echo "FUCK OYU";
+}
+
+require_once __DIR__ . '/../includes/_foot.php'; ?>
