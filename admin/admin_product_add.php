@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (move_uploaded_file($tmp_name, $target_file)) {
                 $final_image_path = 'uploads/products/' . $new_filename;
                 // ⚠️ 注意：如果你数据库里存图片的字段不是 image_path，请修改下面的字段名
-                $updateImg = $pdo->prepare("UPDATE products SET image_path = ? WHERE id = ?");
+                $updateImg = $pdo->prepare("UPDATE products SET product_image = ? WHERE product_id = ?");
                 $updateImg->execute([$final_image_path, $new_id]);
             }
         }
