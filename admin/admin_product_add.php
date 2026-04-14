@@ -1,10 +1,8 @@
 <?php
-// TEE DE YONG's Part: Add Product (Compact Vertical & Single Photo Upload)
+// TEE DE YONG's Part: Add Product (Updated for Multiple Photos)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// ⚠️ 注意这里：请确保你的 includes 文件夹里有 db.php。
-// 如果你朋友把名字改成了 _base.php，请把下面的 db.php 改成 _base.php 并且确保文件存在！
 require_once __DIR__ . '/../includes/db.php'; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -12,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = $_POST['price'] ?? 0;
     $description = $_POST['description'] ?? '';
     
-    $final_image_path = ''; 
+    $uploaded_images = []; // 用于存放多个文件名
 
     try {
         $pdo->beginTransaction();
@@ -22,21 +20,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$name, $price, $description]);
         $new_id = $pdo->lastInsertId();
 
-        // 2. 如果上传了图片，处理图片并更新刚刚那条记录
-        if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+        // 2. 【核心修改】：处理多图上传
+        if (isset($_FILES['photos']) && !empty($_FILES['photos']['name'][0])) {
             $upload_dir = __DIR__ . '/../uploads/products/';
             if (!is_dir($upload_dir)) { mkdir($upload_dir, 0777, true); }
 
-            $tmp_name = $_FILES['photo']['tmp_name'];
-            $file_extension = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
-            $new_filename = $new_id . '_' . time() . '.' . $file_extension;
-            $target_file = $upload_dir . $new_filename;
+            foreach ($_FILES['photos']['tmp_name'] as $key => $tmp_name) {
+                if ($_FILES['photos']['error'][$key] === UPLOAD_ERR_OK) {
+                    $file_extension = pathinfo($_FILES['photos']['name'][$key], PATHINFO_EXTENSION);
+                    // 文件名格式：ID_时间_序号.后缀
+                    $new_filename = $new_id . '_' . time() . '_' . $key . '.' . $file_extension;
+                    $target_file = $upload_dir . $new_filename;
 
-            if (move_uploaded_file($tmp_name, $target_file)) {
-                $final_image_path = 'uploads/products/' . $new_filename;
-                // ⚠️ 注意：如果你数据库里存图片的字段不是 image_path，请修改下面的字段名
+                    if (move_uploaded_file($tmp_name, $target_file)) {
+                        $uploaded_images[] = 'uploads/products/' . $new_filename;
+                    }
+                }
+            }
+
+            if (!empty($uploaded_images)) {
+                // 将多个路径用逗号隔开存入数据库
+                $final_images_path = implode(',', $uploaded_images);
                 $updateImg = $pdo->prepare("UPDATE products SET product_image = ? WHERE product_id = ?");
-                $updateImg->execute([$final_image_path, $new_id]);
+                $updateImg->execute([$final_images_path, $new_id]);
             }
         }
 
@@ -58,7 +64,6 @@ if (file_exists($admin_head)) { include $admin_head; }
     .page-title-box { display: none !important; }
     html, body { background: #f8fafc !important; overflow: hidden !important; }
     
-    /* 强力接管区域：让这块区域变成独立的可滚动视口 */
     .scroll-wrapper { height: 100vh; overflow-y: auto; padding-bottom: 150px; box-sizing: border-box; }
 
     .premium-form-card { max-width: 650px; margin: 20px auto; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.04); overflow: hidden; font-family: 'Inter', sans-serif; }
@@ -76,9 +81,10 @@ if (file_exists($admin_head)) { include $admin_head; }
     .input-style { width: 100%; padding: 12px 16px; border-radius: 10px; border: 2px solid #f1f5f9; font-size: 14px; font-weight: 600; color: #1e293b; background: #f8fafc; transition: all 0.3s ease; box-sizing: border-box; }
     .input-style:focus { border-color: #e60012; background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(230,0,18,0.1); }
     
-    .file-upload-box { border: 2px dashed #cbd5e1; padding: 15px; text-align: center; border-radius: 10px; background: #f8fafc; transition: 0.3s; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 15px; }
+    /* 修改上传框以适应多图预览 */
+    .file-upload-box { border: 2px dashed #cbd5e1; padding: 15px; text-align: center; border-radius: 10px; background: #f8fafc; transition: 0.3s; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; min-height: 100px; }
     .file-upload-box:hover { border-color: #e60012; background: #fff; }
-    .current-photo { width: 80px; height: 80px; border-radius: 8px; border: 2px solid #e2e8f0; object-fit: cover; }
+    .current-photo { width: 60px; height: 60px; border-radius: 8px; border: 2px solid #e2e8f0; object-fit: cover; }
     .no-photo-icon { font-size: 30px; color: #cbd5e1; }
 
     .btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 20px; border-top: 1px solid #f1f5f9; }
@@ -92,7 +98,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     <div id="add-product-app" class="premium-form-card">
         <div class="form-header">
             <h2>New Catalog Entry</h2>
-            <p>ADD A NEW PRODUCT TO INVENTORY</p>
+            <p>ADD A NEW PRODUCT TO INVENTORY (MULTI-PHOTO)</p>
         </div>
         <div class="form-body">
             <form method="POST" action="" enctype="multipart/form-data">
@@ -114,22 +120,18 @@ if (file_exists($admin_head)) { include $admin_head; }
                 </div>
 
                 <div class="form-group">
-                    <label>Product Photo (Single Image)</label>
-                    <div class="file-upload-box" onclick="document.getElementById('photo-input').click();">
+                    <label>Product Photos (Multiple Images)</label>
+                    <div class="file-upload-box" onclick="document.getElementById('photo-input').click();" id="preview-container">
                         
-                        <img id="image-preview" class="current-photo" style="display:none;" src="">
-                        
-                        <div id="no-photo-placeholder" style="text-align: left;">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div class="no-photo-icon">📷</div>
-                                <div>
-                                    <span style="font-weight: 700; color: #1e293b; display: block; font-size: 14px;">Upload product photo</span>
-                                    <span style="font-size: 11px; color: #64748b;">JPG, PNG, WEBP</span>
-                                </div>
+                        <div id="no-photo-placeholder" style="display: flex; align-items: center; gap: 10px;">
+                            <div class="no-photo-icon">📷</div>
+                            <div style="text-align: left;">
+                                <span style="font-weight: 700; color: #1e293b; display: block; font-size: 14px;">Upload product photos</span>
+                                <span style="font-size: 11px; color: #64748b;">JPG, PNG, WEBP (Multiple allowed)</span>
                             </div>
                         </div>
 
-                        <input type="file" name="photo" id="photo-input" accept="image/*" style="display: none;">
+                        <input type="file" name="photos[]" id="photo-input" accept="image/*" style="display: none;" multiple>
                     </div>
                 </div>
 
@@ -145,19 +147,31 @@ if (file_exists($admin_head)) { include $admin_head; }
 
 <script>
     document.getElementById('photo-input').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const previewImg = document.getElementById('image-preview');
-                const placeholder = document.getElementById('no-photo-placeholder');
-                previewImg.src = event.target.result;
-                previewImg.style.display = 'block'; 
-                if(placeholder) placeholder.style.display = 'none'; 
-}
-            reader.readAsDataURL(file);
+        const files = e.target.files;
+        const container = document.getElementById('preview-container');
+        const placeholder = document.getElementById('no-photo-placeholder');
+        
+        // 清除现有的预览图（保留 input 本身）
+        const oldPreviews = container.querySelectorAll('.current-photo');
+        oldPreviews.forEach(img => img.remove());
+
+        if (files.length > 0) {
+            placeholder.style.display = 'none';
+            
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.classList.add('current-photo');
+                    container.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            });
+        } else {
+            placeholder.style.display = 'flex';
         }
-   });
+    });
 
     document.addEventListener("DOMContentLoaded", function() {
         const myContent = document.getElementById('add-wrapper');
