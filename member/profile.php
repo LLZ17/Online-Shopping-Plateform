@@ -604,9 +604,10 @@ if (file_exists($pxx_head_file)) {
                     </span>
                 </div>
                 <div class="sec-action-link">
-                    <a href="<?php echo $email_verified_status ? 'edit_email.php' : 'email_verify.php'; ?>" class="blue-link-action">
-                        <?php echo $email_verified_status ? 'Change Email' : 'Verify Now'; ?>
-                    </a>
+                    <a href = "edit_email.php" class = "blue-link-action">Change Email</a>
+                    <?php echo $email_verified_status ? '' : ' | '; ?>
+                    <a href = "email_verify.php" class="blue-link-action">
+                        <?php echo $email_verified_status ? '' : 'Verify Now', ''; ?></a>
                 </div>
             </div>
 
