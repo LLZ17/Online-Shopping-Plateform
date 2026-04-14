@@ -90,7 +90,7 @@ if (file_exists($admin_head)) { include $admin_head; }
         </style>
 
         <div class="page-header">
-            <h1>Inventory Control</h1>
+            <h1>Product CRUD</h1>
             <div class="header-actions">
                 <a href="product_crud.php" class="btn-refresh">🔄 Refresh</a>
                 <a href="admin_product_add.php" class="btn-add">➕ Add Item</a>
