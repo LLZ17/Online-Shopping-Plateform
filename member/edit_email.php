@@ -15,7 +15,7 @@ require_once __DIR__ . '/../includes/db.php';
 // 把这个搬到 HTML 之前，这样我们才能在这里使用 header() 跳转
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_email'])) {
     try {
-        $update_sql = "UPDATE `users` SET `email` = ? WHERE `user_id` = ?;";
+        $update_sql = "UPDATE `users` SET `email` = ?,`email_verified` = 0, `email_status` = 'Unverified' WHERE `user_id` = ? ;";
         $email_update = $pdo->prepare($update_sql);
         $success = $email_update->execute([$_POST['update_email'], $_SESSION['user_id']]);
 
@@ -61,6 +61,8 @@ require_once __DIR__ . '/../includes/_head.php';
         font-size: 1.2rem;
         border: 1px solid #ddd;
         border-radius: 6px;
+        padding-bottom: 15px;
+        padding-top: 15px;
     }
 
     .email-input::placeholder {
@@ -68,9 +70,8 @@ require_once __DIR__ . '/../includes/_head.php';
     }
 
     .card-flex {
-        display: flex; /* 修正语法：不是 flex 1 */
-        flex-direction: column;
-        gap: 20px;
+        padding-bottom: 10px;
+        padding-top: 10px;
     }
     
     .btn-submit {
@@ -81,22 +82,36 @@ require_once __DIR__ . '/../includes/_head.php';
         border-radius: 6px;
         cursor: pointer;
         font-weight: bold;
+        padding-bottom: 10px;
+        padding-top: 10px;
+    }
+
+    .btn-cancel {
+        background: #9c9494;
+        color: white;
+        padding: 10px 25px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+        padding-bottom: 10px;
+        padding-top: 10px;
+        opacity: 0.767;
     }
 </style>
 
 <div class="cart-container">
     <h1>📧 Changing Email Address</h1>
-    
-    <?php if (isset($_GET['status']) && $_GET['status'] == 'success'): ?>
-        <p style="color: green; margin-bottom: 15px;">✅ 邮箱地址已更新！</p>
-    <?php endif; ?>
 
-    <form action="edit_email.php" method="POST" class="card-flex">
-        <label for="email">Enter Your new email address:</label>
+    <form action="edit_email.php" method="POST">
+        <label for="email" class="card-flex">Enter Your new email address:</label>
         
-        <div style="display: flex; gap: 10px; align-items: center;">
+        <div  class="card-flex">
             <input type="email" id="email" name="update_email" class="email-input" 
                    placeholder="Example: user@example.com" autofocus required>
+        </div>
+        <div>
+            <button class="btn-cancel"><a href = "profile.php?page=security" >Cancel</a></button>
             <button type="submit" class="btn-submit">Update</button>
         </div>
     </form>
