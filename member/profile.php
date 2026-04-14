@@ -59,11 +59,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $addr3 = isset($_POST['address_line3']) ? trim($_POST['address_line3']) : '';
     
     // Only update address if we are on the Address Page or the user submitted new lines
+    // --- 修改后的地址合并逻辑 ---
+    $addr1 = isset($_POST['address_line1']) ? trim($_POST['address_line1']) : '';
+    $addr2 = isset($_POST['address_line2']) ? trim($_POST['address_line2']) : '';
+    $addr3 = isset($_POST['address_line3']) ? trim($_POST['address_line3']) : '';
+    
+    // 只有在地址页提交且有内容时才更新全址
     if ($active_page == 'addresses' && (!empty($addr1) || !empty($addr2) || !empty($addr3))) {
         $full_address = $addr1;
-        if (!empty($addr2)) $full_address .= " | " . $addr2;
-        if (!empty($addr3)) $full_address .= " | " . $addr3;
+        // 使用英文逗号 (,) 作为链接符号
+        if (!empty($addr2)) $full_address .= ", " . $addr2; 
+        if (!empty($addr3)) $full_address .= ", " . $addr3;
     } else {
+        // 如果是其他页面提交，则保持原样
         $full_address = $_POST['current_full_address'] ?? '';
     }
     
@@ -398,6 +406,10 @@ if (file_exists($pxx_head_file)) {
         font-size: 15px; 
         font-weight: bold; 
     }
+
+    .blue-link-action:hover { 
+        text-decoration: underline;
+    }
 </style>
 
 <div class="pxx-master-wrapper">
@@ -512,32 +524,52 @@ if (file_exists($pxx_head_file)) {
             <div class="dashboard-header">
                 <h2>My Shipping Addresses</h2>
             </div>
+
+            <div style="margin-left: 0; color: #aaa; font-size: 13px; margin-bottom: 30px; line-height: 1.6;">
+                <i class="fas fa-info-circle"></i> Current System Address: 
+                <?php 
+                    // 1. 使用英文逗号拆分数据库中的地址字段
+                    $addr_parts = explode(", ", $u['address'] ?? ''); 
+                    
+                    // 2. 整合所有地址片段
+                    $raw_segments = array_merge($addr_parts, [$u['Postcode'], $u['City'], $u['State']]);
+                    $formatted_segments = [];
+                    
+                    // 3. 遍历并为非空内容加上括号 ()
+                    foreach ($raw_segments as $seg) {
+                        $trimmed = trim($seg ?? '');
+                        if (!empty($trimmed)) {
+                            $formatted_segments[] = d($trimmed);
+                        }
+                    }
+                    echo implode(", ", $formatted_segments);
+                ?>
+            </div>
             
             <form action="profile.php?page=addresses" method="POST">
                 
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Address Line 1</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="address_line1" class="pxx-input-large" placeholder="Unit / House Number / Floor No.">
+                        <input type="text" name="address_line1" class="pxx-input-large" 
+                               value="" placeholder="Unit / House Number / Floor No.">
                     </div>
                 </div>
                 
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Address Line 2</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="address_line2" class="pxx-input-large" placeholder="Building Name / Street Name">
+                        <input type="text" name="address_line2" class="pxx-input-large" 
+                               value="" placeholder="Building Name / Street Name">
                     </div>
                 </div>
                 
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Address Line 3</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="address_line3" class="pxx-input-large" placeholder="Area / District / Section">
+                        <input type="text" name="address_line3" class="pxx-input-large" 
+                               value="" placeholder="Area / District / Section">
                     </div>
-                </div>
-
-                <div style="margin-left: 205px; color: #aaa; font-size: 13px; margin-bottom: 30px;">
-                    <i class="fas fa-info-circle"></i> Current System Address: <?php echo d($u['address']); ?>
                 </div>
 
                 <div class="form-row-pxx">
@@ -567,6 +599,7 @@ if (file_exists($pxx_head_file)) {
                 <input type="hidden" name="phone_num" value="<?php echo d($u['phone_num']); ?>">
                 <input type="hidden" name="gender" value="<?php echo d($u['gender']); ?>">
                 <input type="hidden" name="birthday" value="<?php echo d($u['birthday']); ?>">
+                <input type="hidden" name="current_full_address" value="<?php echo d($u['address']); ?>">
 
                 <div class="form-row-pxx" style="margin-top: 40px;">
                     <div class="form-label-pxx"></div>
@@ -575,20 +608,6 @@ if (file_exists($pxx_head_file)) {
                     </div>
                 </div>
             </form>
-
-        <?php elseif ($active_page == 'bank'): ?>
-            <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h2>Bank Accounts / Cards</h2>
-                <button type="button" class="btn-save-master" style="padding: 10px 25px; font-size: 14px;" onclick="window.location.href='add_card.php'">
-                    <i class="fas fa-plus"></i> Add New Card
-                </button>
-            </div>
-            
-            <div style="border: 2px dashed #eee; padding: 120px 0; text-align: center; color: #bbb; border-radius: 12px; background: #fafafa; margin-top: 20px;">
-                <i class="fas fa-university" style="font-size: 70px; color: #f0f0f0; margin-bottom: 25px;"></i>
-                <p style="font-size: 16px;">No active cards or bank accounts found.</p>
-                <p style="font-size: 14px; margin-top: 10px;">Link a payment method to enjoy faster, secure checkout.</p>
-            </div>
 
         <?php elseif ($active_page == 'security'): ?>
             <div class="dashboard-header">
