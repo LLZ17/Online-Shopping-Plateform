@@ -195,7 +195,7 @@ if (file_exists($admin_head)) { include $admin_head; }
 
 <div id="sales-app" class="sales-container" style="display:none;">
     <div class="page-header">
-        <h1>Sales Data Analytics</h1>
+        <h1>Sales Data </h1>
         <p>Overview of your store's performance and top-selling items.</p>
     </div>
 
