@@ -1,13 +1,12 @@
 <?php
 /**
  * =================================================================================
- * PXX MALL - MEMBER PASSWORD RESET UI (V170.0 - DIRECT ACCESS)
+ * PXX MALL - MEMBER PASSWORD RESET SYSTEM (V190.0 - SCROLL & SECURITY FIX)
  * =================================================================================
- * 开发者：PXX Mall 技术部
- * 修改说明：
- * 1. [流程] 跳过 Email 验证步骤，直接进入密码设定界面。
- * 2. [逻辑] 严格执行“密码一致性检测”与“最小长度（6位）”限制。
- * 3. [UI] 保持纯白极简风格，配合高斯模糊背景。
+ * 核心修正：
+ * 1. [安全] 严禁新密码与旧密码相同。
+ * 2. [布局] 修复无法滑动问题，确保页面内容完整展示。
+ * 3. [加密] 采用标准的 PASSWORD_DEFAULT 算法，对接登录系统。
  * =================================================================================
  */
 
@@ -17,42 +16,63 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
-// --- [STAGE 2: 数据库连接引用] ---
+// --- [STAGE 2: 数据库依赖] ---
 require_once '../includes/db.php';
 
 // --- [STAGE 3: 页面基础变量] ---
-$color = '#28a745'; // Member 专属翠绿色
-$page_title = "PXX Mall | New Password";
+$color = '#28a745'; 
+$page_title = "PXX Mall | Secure Reset";
 
-// 引用公共头部 (确保侧边栏和资源路径正确)
+// 引用公共头部
 include '../includes/_head.php'; 
 
-// --- [STAGE 4: 前端反馈处理] ---
+// --- [STAGE 4: 高级逻辑处理引擎] ---
 $error_msg = "";
 $success_msg = "";
 
-// 处理来自同一页面的提交逻辑（为了演示方便，我们将逻辑写在一起）
+// 🌟 演示逻辑：假设我们要重置的是当前 Session 记录的 Email
+// 如果你还没做 Session 传递，这里可以先指定一个测试账号
+$user_email = $_SESSION['reset_email'] ?? 'member@example.com'; 
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $new_pass = $_POST['new_password'] ?? '';
     $confirm_pass = $_POST['confirm_password'] ?? '';
 
-    // 🌟 核心逻辑 1：至少六个字
+    // 1. 长度校验
     if (strlen($new_pass) < 6) {
-        $error_msg = "Security Error: Password must be at least 6 characters.";
+        $error_msg = "Security Policy: Password must be at least 6 characters.";
     } 
-    // 🌟 核心逻辑 2：密码必须一样
+    // 2. 一致性校验
     elseif ($new_pass !== $confirm_pass) {
         $error_msg = "Validation Error: Passwords do not match.";
     } 
     else {
-        // 验证通过，这里可以执行数据库 UPDATE 逻辑
-        // 假设我们要更新当前正在操作的会员密码
-        $success_msg = "Success! Your new password has been set securely.";
-        
-        /* // 数据库执行参考：
-        $hashed = password_hash($new_pass, PASSWORD_DEFAULT);
-        $pdo->prepare("UPDATE users SET password_hashed = ? WHERE role = 'Member' LIMIT 1")->execute([$hashed]);
-        */
+        try {
+            // 3. 🌟 获取旧密码哈希值进行比对
+            $stmt = $pdo->prepare("SELECT password_hashed FROM users WHERE email = ? AND role = 'Member' LIMIT 1");
+            $stmt->execute([$user_email]);
+            $user_data = $stmt->fetch();
+
+            if ($user_data) {
+                $old_hash = $user_data['password_hashed'];
+                
+                // 🌟 核心：新旧密码不能一样
+                if (password_verify($new_pass, $old_hash)) {
+                    $error_msg = "Security Alert: New password cannot be the same as your old password.";
+                } else {
+                    // 4. 执行更新 (使用标准加密，确保能正常登录)
+                    $new_hashed_pass = password_hash($new_pass, PASSWORD_DEFAULT);
+                    $update_stmt = $pdo->prepare("UPDATE users SET password_hashed = ? WHERE email = ?");
+                    $update_stmt->execute([$new_hashed_pass, $user_email]);
+                    
+                    $success_msg = "Password updated! You can now use your new credentials to login.";
+                }
+            } else {
+                $error_msg = "Account Error: Could not identify the member account.";
+            }
+        } catch (PDOException $e) {
+            $error_msg = "System Error: Database transaction failed.";
+        }
     }
 }
 ?>
@@ -66,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         --pxx-green-dark: #218838;
         --pxx-white: #ffffff;
         --pxx-border: #f0f0f0;
-        --transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        --trans: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     }
 
     body {
@@ -76,11 +96,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
-        overflow: hidden;
+        /* 🌟 核心修正：允许页面滚动，看到页脚 */
+        overflow-y: auto !important; 
+        min-height: 100vh;
     }
 
-    /* 毛玻璃背景增强 */
-    .blur-overlay {
+    /* 背景模糊层 */
+    .glass-mask {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(3px);
@@ -90,10 +112,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .reset-viewport { 
         position: relative; z-index: 10;
         display: flex; justify-content: center; align-items: center; 
-        min-height: 100vh; padding: 20px;
+        min-height: 100vh; padding: 50px 20px; /* 增加上下间距 */
     }
 
-    /* 🌟 重置卡片主体 */
+    /* 🌟 卡片主体 */
     .reset-card { 
         background: var(--pxx-white); 
         width: 100%; max-width: 480px; 
@@ -102,31 +124,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         box-shadow: 0 25px 70px rgba(0,0,0,0.15); 
         text-align: center; 
         overflow: hidden; 
-        animation: slideInUp 0.6s ease-out;
+        animation: cardEnter 0.6s ease-out;
     }
 
-    @keyframes slideInUp {
-        from { opacity: 0; transform: translateY(50px); }
+    @keyframes cardEnter {
+        from { opacity: 0; transform: translateY(40px); }
         to { opacity: 1; transform: translateY(0); }
     }
 
-    /* 顶部 Banner */
     .card-banner { 
         background-color: var(--pxx-green); 
-        padding: 45px 20px; 
+        padding: 40px 20px; 
         color: var(--pxx-white); 
     }
     .card-banner h2 {
         margin: 0; font-size: 26px; font-weight: 900; 
         letter-spacing: 1.5px; text-transform: uppercase;
+        font-family: 'Montserrat', sans-serif;
     }
 
-    .card-content { padding: 45px 50px; }
+    .card-form-body { padding: 45px 50px; }
 
-    /* 表单控件 */
+    /* 表单组件 */
     .form-group { margin-bottom: 25px; text-align: left; }
     .form-group label { 
-        display: block; margin-bottom: 10px; 
+        display: block; margin-bottom: 12px; 
         font-weight: 700; font-size: 17px; color: #333; 
     }
     
@@ -134,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         width: 100%; padding: 18px 20px; 
         border: 2px solid var(--pxx-border); 
         border-radius: 14px; font-size: 16px; 
-        outline: none; transition: var(--transition); 
+        outline: none; transition: var(--trans); 
         background: #fafafa;
     }
     .form-input:focus { 
@@ -144,60 +166,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     /* 提交按钮 */
-    .btn-submit { 
+    .btn-update { 
         width: 100%; padding: 20px; 
         background: var(--pxx-green); 
         color: white; border: none; 
         border-radius: 14px; 
         font-weight: 900; font-size: 20px; 
         cursor: pointer; 
-        transition: var(--transition);
+        transition: var(--trans);
         text-transform: uppercase;
-        margin-top: 10px;
     }
-    .btn-submit:hover { 
+    .btn-update:hover { 
         background: var(--pxx-green-dark);
         transform: translateY(-2px);
     }
 
-    /* 提示框样式 */
-    .alert-box {
+    /* 提示框 */
+    .alert {
         padding: 15px; border-radius: 12px; margin-bottom: 25px;
         font-size: 14px; font-weight: 600; text-align: left;
         display: flex; align-items: center; gap: 10px;
     }
-    .alert-red { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
-    .alert-green { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+    .alert-error { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
+    .alert-success { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
 
-    /* 底部链接 */
     .card-footer { margin-top: 30px; border-top: 1px solid var(--pxx-border); padding-top: 25px; }
-    .back-btn { 
+    .back-to-login { 
         color: #999; text-decoration: none; 
         font-size: 14px; font-weight: 600; 
         display: inline-flex; align-items: center; gap: 8px;
     }
-    .back-btn:hover { color: var(--pxx-green); }
+    .back-to-login:hover { color: var(--pxx-green); }
 </style>
 
-<div class="blur-overlay"></div>
+<div class="glass-mask"></div>
 
 <div class="reset-viewport">
     <div class="reset-card">
         <div class="card-banner">
-            <h2>New Password</h2>
+            <h2>Secure Reset</h2>
         </div>
 
-        <div class="card-content">
+        <div class="card-form-body">
             
             <?php if($error_msg): ?>
-                <div class="alert-box alert-red">
+                <div class="alert alert-error">
                     <i class="fas fa-times-circle"></i>
                     <?php echo $error_msg; ?>
                 </div>
             <?php endif; ?>
 
             <?php if($success_msg): ?>
-                <div class="alert-box alert-green">
+                <div class="alert alert-success">
                     <i class="fas fa-check-circle"></i>
                     <?php echo $success_msg; ?>
                 </div>
@@ -213,18 +233,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label>Confirm Password</label>
                     <input type="password" name="confirm_password" class="form-input" 
-                           placeholder="Repeat your password" required>
+                           placeholder="Confirm new password" required>
                 </div>
 
-                <button type="submit" class="btn-submit">
+                <button type="submit" class="btn-update">
                     Update Password
                 </button>
             </form>
             
             <div class="card-footer">
-                <a href="login.php" class="back-btn">
+                <a href="login.php" class="back-to-login">
                     <i class="fas fa-arrow-left"></i> 
-                    Return to Login
+                    Return to Login Portal
                 </a>
             </div>
         </div>
@@ -233,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php 
 /**
- * 🌟 底部引用：在此处引用公共 Footer
+ * 🌟 底部引用：在此处引用公共 Footer，它会自动出现在页面最下方
  */
 include '../includes/_foot.php'; 
 ?>

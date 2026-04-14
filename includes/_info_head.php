@@ -100,7 +100,7 @@
 
 <nav class="info-navbar">
     <div class="logo-section">
-        <a href="../info/aboutus.php">PXX Mall<span>®</span></a>
+        <a href="../index.php">PXX Mall<span>®</span></a>
     </div>
 
     <ul class="info-nav-links">
