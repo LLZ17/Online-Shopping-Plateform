@@ -1,5 +1,5 @@
 <?php
-// TEE DE YONG's Part: Sales Data Analytics Page (Ultimate Premium Edition - Fixed Header)
+// TEE DE YONG's Part: Sales Data Analytics (Ultimate Premium UI + Kinetic Sync Button)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -49,9 +49,13 @@ if (file_exists($admin_head)) { include $admin_head; }
         animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     
-    .page-header { margin-bottom: 45px; }
+    .page-header { 
+        margin-bottom: 45px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: flex-end; 
+    }
     
-    /* 💡 修复：删除了会导致某些浏览器隐形的渐变色代码，换回最稳妥的高级深色 */
     .page-header h1 { 
         font-size: 42px; 
         font-weight: 900; 
@@ -61,7 +65,43 @@ if (file_exists($admin_head)) { include $admin_head; }
     }
     .page-header p { color: #64748b; margin-top: 10px; font-size: 16px; font-weight: 500; }
 
-    /* --- 顶部概览卡片基础样式 --- */
+    /* 🔄 极致优化的 Refresh 按钮 */
+    .btn-refresh {
+        background: #ffffff;
+        color: #64748b;
+        padding: 12px 26px;
+        border-radius: 16px;
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        cursor: pointer;
+    }
+
+    .btn-refresh:hover {
+        background: #0f172a; /* 悬浮变成高级黑 */
+        color: #ffffff;
+        transform: translateY(-3px) scale(1.03);
+        box-shadow: 0 15px 30px -5px rgba(15, 23, 42, 0.2);
+        border-color: #0f172a;
+    }
+
+    .btn-refresh svg { 
+        transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+
+    .btn-refresh:hover svg { 
+        transform: rotate(360deg); /* 旋转 360 度 */
+        color: #3b82f6; /* 图标变亮蓝 */
+    }
+
+    /* --- 统计卡片 --- */
     .summary-grid { 
         display: grid; 
         grid-template-columns: 1fr 1fr; 
@@ -72,36 +112,15 @@ if (file_exists($admin_head)) { include $admin_head; }
         background: #ffffff; 
         padding: 35px 45px; 
         border-radius: 28px; 
-        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.02); 
+        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05); 
         display: flex;
         align-items: center;
         gap: 25px;
         transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
     }
     
-    /* 🟦 1. 营业额 (Total Revenue) - 青色 (Cyan) */
-    .card-revenue {
-        border: 1px solid rgba(6, 182, 212, 0.15);       
-        border-left: 6px solid #06b6d4;  
-    }
-    .card-revenue:hover { 
-        border-color: rgba(6, 182, 212, 0.4); 
-        transform: translateY(-6px) scale(1.01); 
-        box-shadow: 0 25px 50px -12px rgba(6, 182, 212, 0.15), 0 4px 10px rgba(6, 182, 212, 0.05); 
-    }
-    .icon-revenue { background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); color: #0891b2; box-shadow: 0 8px 16px -4px rgba(6, 182, 212, 0.2); }
-
-    /* 🟦 2. 销量 (Units Sold) - 蓝色 (Blue) */
-    .card-units {
-        border: 1px solid rgba(59, 130, 246, 0.15);       
-        border-left: 6px solid #3b82f6;  
-    }
-    .card-units:hover { 
-        border-color: rgba(59, 130, 246, 0.4); 
-        transform: translateY(-6px) scale(1.01); 
-        box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.15), 0 4px 10px rgba(59, 130, 246, 0.05); 
-    }
-    .icon-units { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1d4ed8; box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.2); }
+    .card-revenue { border-left: 6px solid #06b6d4; }
+    .card-units { border-left: 6px solid #3b82f6; }
 
     .icon-box {
         width: 76px; height: 76px;
@@ -110,36 +129,22 @@ if (file_exists($admin_head)) { include $admin_head; }
         font-size: 34px;
     }
 
-    .stat-info { flex: 1; }
-    .stat-label { color: #64748b; font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 1.5px; }
-    .stat-value { font-size: 46px; font-weight: 900; color: #0f172a; letter-spacing: -1.5px; }
-    .currency-symbol { font-size: 24px; color: #94a3b8; font-weight: 700; margin-right: 4px; }
-    .unit-text { font-size: 20px; color: #94a3b8; font-weight: 700; margin-left: 4px; }
+    .icon-revenue { background: #cffafe; color: #0891b2; }
+    .icon-units { background: #dbeafe; color: #1d4ed8; }
 
-    /* 🟥 3. Top 5 排行榜 - 红色 (Red) */
+    .stat-info { flex: 1; }
+    .stat-label { color: #64748b; font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; display: block; }
+    .stat-value { font-size: 46px; font-weight: 900; color: #0f172a; letter-spacing: -1.5px; }
+
+    /* --- 排行榜 --- */
     .top5-card { 
         background: #ffffff; 
         border-radius: 32px; 
         padding: 50px; 
         box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05); 
-        border: 1px solid rgba(239, 68, 68, 0.15); 
         border-top: 6px solid #ef4444; 
-        width: 100%;
-        transition: all 0.4s ease;
     }
-    .top5-card:hover {
-        box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.1);
-    }
-    .card-title { 
-        font-size: 30px; 
-        font-weight: 900; 
-        color: #0f172a; 
-        margin-bottom: 40px; 
-        display: flex; 
-        align-items: center; 
-        gap: 15px; 
-        letter-spacing: -0.5px;
-    }
+    .card-title { font-size: 30px; font-weight: 900; color: #0f172a; margin-bottom: 40px; display: flex; align-items: center; gap: 15px; }
     
     .product-list-item { 
         display: flex; 
@@ -147,56 +152,47 @@ if (file_exists($admin_head)) { include $admin_head; }
         gap: 25px; 
         padding: 22px 28px; 
         border-radius: 24px; 
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
-        margin-bottom: 16px; 
-        border: 1px solid transparent; 
         background: #f8fafc; 
+        margin-bottom: 16px; 
+        transition: all 0.3s ease;
     }
     .product-list-item:hover { 
         background: #ffffff; 
-        border-color: rgba(239, 68, 68, 0.2); 
-        transform: translateY(-4px) scale(1.005); 
-        box-shadow: 0 15px 30px -8px rgba(239, 68, 68, 0.08); 
+        transform: translateY(-4px); 
+        box-shadow: 0 15px 30px rgba(239, 68, 68, 0.08); 
     }
 
-    /* 名次徽章 */
     .rank-badge { width: 54px; height: 54px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; }
-    .rank-1 { background: linear-gradient(135deg, #fde047 0%, #f59e0b 100%); color: #fff; box-shadow: 0 6px 12px rgba(245, 158, 11, 0.2); }
-    .rank-2 { background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%); color: #fff; box-shadow: 0 6px 12px rgba(148, 163, 184, 0.2); }
-    .rank-3 { background: linear-gradient(135deg, #fed7aa 0%, #ea580c 100%); color: #fff; box-shadow: 0 6px 12px rgba(234, 88, 12, 0.2); }
-    .rank-other { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+    .rank-1 { background: linear-gradient(135deg, #fde047 0%, #f59e0b 100%); color: #fff; }
+    .rank-2 { background: #e2e8f0; color: #64748b; }
+    .rank-3 { background: #fed7aa; color: #ea580c; }
 
-    /* 商品图片 */
-    .p-thumb { width: 84px; height: 84px; border-radius: 20px; object-fit: cover; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02);}
-    
+    .p-thumb { width: 84px; height: 84px; border-radius: 20px; object-fit: cover; border: 1px solid #e2e8f0; }
     .p-details { flex: 1; }
-    .p-details h4 { margin: 0 0 12px 0; font-size: 20px; font-weight: 800; color: #1e293b; letter-spacing: -0.3px; }
+    .p-details h4 { margin: 0 0 12px 0; font-size: 20px; font-weight: 800; color: #1e293b; }
     
-    /* 进度条 */
-    .p-progress-bg { height: 10px; background: #f1f5f9; border-radius: 10px; width: 100%; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); }
-    .p-progress-fill { 
-        height: 100%; 
-        background: linear-gradient(90deg, #ef4444 0%, #f43f5e 50%, #fb7185 100%); 
-        border-radius: 10px; 
-        transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1); 
-        position: relative;
-    }
-    .p-progress-fill::after {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 100%);
-        border-radius: 10px;
-    }
+    .p-progress-bg { height: 10px; background: #f1f5f9; border-radius: 10px; width: 100%; overflow: hidden; }
+    .p-progress-fill { height: 100%; background: #ef4444; border-radius: 10px; transition: width 1.2s ease; }
 
     .p-stats { text-align: right; min-width: 150px; }
-    .sold-count { display: block; font-size: 24px; font-weight: 900; color: #0f172a; margin-bottom: 4px; letter-spacing: -0.5px; }
-    .sold-count span { font-size: 16px; color: #64748b; font-weight: 700; }
-    .revenue { font-size: 16px; font-weight: 800; color: #e11d48; background: #ffe4e6; padding: 6px 12px; border-radius: 10px; display: inline-block; box-shadow: 0 2px 4px rgba(225, 29, 72, 0.1);} 
+    .sold-count { display: block; font-size: 24px; font-weight: 900; color: #0f172a; }
+    .revenue { font-size: 16px; font-weight: 800; color: #e11d48; background: #ffe4e6; padding: 6px 12px; border-radius: 10px; display: inline-block; }
 </style>
 
 <div id="sales-app" class="sales-container" style="display:none;">
     <div class="page-header">
-        <h1>Sales Data </h1>
-        <p>Overview of your store's performance and top-selling items.</p>
+        <div>
+            <h1>Sales Analytics</h1>
+            <p>Overview of your store's performance and top-selling items.</p>
+        </div>
+        <a href="javascript:location.reload();" class="btn-refresh">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span>SYNC DATA</span>
+        </a>
     </div>
 
     <div class="summary-grid">
@@ -204,14 +200,14 @@ if (file_exists($admin_head)) { include $admin_head; }
             <div class="icon-box icon-revenue">💵</div>
             <div class="stat-info">
                 <span class="stat-label">Total Revenue</span>
-                <div class="stat-value"><span class="currency-symbol">RM</span><?= number_format($summary['total_revenue'] ?? 0, 2) ?></div>
+                <div class="stat-value">RM <?= number_format($summary['total_revenue'] ?? 0, 2) ?></div>
             </div>
         </div>
         <div class="stat-card card-units">
             <div class="icon-box icon-units">📦</div>
             <div class="stat-info">
                 <span class="stat-label">Units Sold</span>
-                <div class="stat-value"><?= number_format($summary['total_orders'] ?? 0) ?><span class="unit-text">items</span></div>
+                <div class="stat-value"><?= number_format($summary['total_orders'] ?? 0) ?><small style="font-size:18px; color:#94a3b8; margin-left:5px;">items</small></div>
             </div>
         </div>
     </div>
@@ -222,19 +218,14 @@ if (file_exists($admin_head)) { include $admin_head; }
         <?php if (!empty($topProducts)): ?>
             <?php foreach ($topProducts as $index => $p): 
                 $rank = $index + 1;
-                $rankClass = ($rank <= 3) ? "rank-$rank" : "rank-other";
+                $rankClass = ($rank <= 3) ? "rank-$rank" : "";
                 $maxSold = $topProducts[0]['total_sold'];
-                // 确保宽度至少有一点点
-                $percent = ($maxSold > 0) ? max(($p['total_sold'] / $maxSold * 100), 2) : 0;
+                $percent = ($maxSold > 0) ? ($p['total_sold'] / $maxSold * 100) : 0;
             ?>
             <div class="product-list-item">
                 <div class="rank-badge <?= $rankClass ?>"><?= $rank ?></div>
                 
-                <?php if(!empty($p['image_path'])): ?>
-                    <img src="../<?= htmlspecialchars($p['image_path']) ?>" class="p-thumb" alt="Product Image">
-                <?php else: ?>
-                    <div class="p-thumb" style="display:flex; align-items:center; justify-content:center; font-size:26px;">🛍️</div>
-                <?php endif; ?>
+                <img src="../<?= htmlspecialchars($p['image_path'] ?: 'images/default.png') ?>" class="p-thumb" onerror="this.src='../images/default.png'">
 
                 <div class="p-details">
                     <h4><?= htmlspecialchars($p['name']) ?></h4>
@@ -243,14 +234,16 @@ if (file_exists($admin_head)) { include $admin_head; }
                     </div>
                 </div>
                 <div class="p-stats">
-                    <span class="sold-count"><?= $p['total_sold'] ?> <span>Sold</span></span>
+                    <span class="sold-count"><?= $p['total_sold'] ?> <small style="font-size:14px; color:#64748b;">Sold</small></span>
                     <span class="revenue">RM <?= number_format($p['total_revenue'], 2) ?></span>
                 </div>
             </div>
             <?php endforeach; ?>
         <?php else: ?>
             <div style="text-align:center; padding:70px 20px; color:#94a3b8; background: #f8fafc; border-radius: 24px; border: 2px dashed #e2e8f0;">
-                <p style="font-size:54px; margin-bottom: 20px;">📊</p>
+                <p style="margin-bottom: 20px;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3501/3501061.png" width="80" style="opacity: 0.8;">
+                </p>
                 <p style="font-size: 20px; font-weight: 700; color: #334155; margin-bottom: 8px;">No sales data recorded yet.</p>
                 <p style="font-size: 15px;">Once customers start ordering, your top products will appear here.</p>
             </div>
@@ -263,7 +256,7 @@ if (file_exists($admin_head)) { include $admin_head; }
         const salesApp = document.getElementById('sales-app');
         salesApp.style.display = 'block';
         
-        // 自动注入到管理后台的 viewport
+        // 自动注入逻辑
         let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
         if (viewport) {
             viewport.innerHTML = '';
