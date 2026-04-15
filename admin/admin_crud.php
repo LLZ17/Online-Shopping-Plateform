@@ -1,378 +1,201 @@
 <?php
 /**
- * PXX Mall - Admin CRUD (Fixed Button Text Version)
- * 📂 Features: Visible Text on Buttons, No Points, Scrollable Modal, Perfect Grid
+ * PXX Mall - Admin CRUD (Strict Container Integration)
+ * 📂 目标：强行嵌入 image_dd99aa.png 所示的白色内容区域
  */
 
+error_reporting(E_ALL); ini_set('display_errors', 1);
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-// 1. 引入数据库
-require_once '../includes/db.php'; 
-require_once '../includes/_admin_head.php'; 
+// 1. 物理路径定义 (严格按你的指令)
+$pxx_root = dirname(__DIR__);
+$pxx_db_file   = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'db.php';
+$pxx_head_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_admin_head.php';
+$pxx_foot_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_admin_foot.php';
 
+if (file_exists($pxx_db_file)) { 
+    require_once $pxx_db_file; 
+    if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
+} else { die("DB MISSING"); }
 
-
-// ============================================================
-// 🌟 AJAX 局部刷新接口
-// ============================================================
+// AJAX 刷新
 if (isset($_GET['action']) && $_GET['action'] == 'fetch_admins') {
-    ob_clean(); 
+    ob_clean();
     renderAdminList($pdo);
-    exit; 
+    exit;
 }
 
-/**
- * 🌟 列表渲染函数
- */
 function renderAdminList($pdo) {
     $stmt = $pdo->prepare("SELECT * FROM users WHERE role IN ('Admin', 'S.Admin') ORDER BY created_at DESC");
     $stmt->execute();
     $admins = $stmt->fetchAll();
-
-    if (!$admins) {
-        echo '<div style="padding:40px; text-align:center; color:#999; background:#fff; border-radius:12px;">No administrators found.</div>';
-        return;
-    }
-
-    $counter = 1; 
+    $counter = 1;
     foreach ($admins as $admin) {
-        $photoFile = !empty($admin['profile_photo']) ? $admin['profile_photo'] : 'default.jpg';
-        $finalAvatar = '../images/' . $photoFile;
-        
+        $photo = !empty($admin['profile_photo']) ? '../images/'.$admin['profile_photo'] : '../images/default.jpg';
         $roleClass = (stripos($admin['role'], 'S.') !== false) ? 'sadmin' : 'admin';
         $statusClass = strtolower($admin['status']);
-
-        // 物理合并地址
-        $combinedAddr = htmlspecialchars($admin['address']) . ", " . 
-                        htmlspecialchars($admin['Postcode']) . " " . 
-                        htmlspecialchars($admin['City']) . ", " . 
-                        htmlspecialchars($admin['State']);
+        $combinedAddr = htmlspecialchars(($admin['address']??'')." ".($admin['Postcode']??'')." ".($admin['City']??'')." ".($admin['State']??''));
         ?>
-        <div class="pxx-list-card">
-            <div class="col-index"><?php echo $counter++; ?></div>
-
-            <div class="col-id">#<?php echo $admin['user_id']; ?></div>
-
-            <div class="col-profile">
-                <img src="<?php echo $finalAvatar; ?>" onerror="this.src='../images/default.jpg'" class="list-avatar">
-                <div class="name-box">
+        <div class="pxx-row-item">
+            <div class="c-idx"><?php echo $counter++; ?></div>
+            <div class="c-id">#<?php echo htmlspecialchars($admin['user_id']); ?></div>
+            <div class="c-prof">
+                <img src="<?php echo $photo; ?>" onerror="this.src='../images/default.jpg'">
+                <div class="t-box">
                     <strong><?php echo htmlspecialchars($admin['real_name'] ?: 'N/A'); ?></strong>
-                    <span>@<?php echo htmlspecialchars($admin['username']); ?></span>
+                    <small>@<?php echo htmlspecialchars($admin['username']); ?></small>
                 </div>
             </div>
-
-            <div class="col-contact">
-                <div class="contact-line"><i class="fa-solid fa-envelope"></i> <?php echo htmlspecialchars($admin['email'] ?: 'N/A'); ?></div>
-                <div class="contact-line"><i class="fa-solid fa-phone"></i> <?php echo htmlspecialchars($admin['phone_num'] ?: 'N/A'); ?></div>
+            <div class="c-contact">
+                <span><i class="fa-solid fa-envelope"></i> <?php echo htmlspecialchars($admin['email'] ?: 'N/A'); ?></span>
+                <span><i class="fa-solid fa-phone"></i> <?php echo htmlspecialchars($admin['phone_num'] ?: 'N/A'); ?></span>
             </div>
-
-            <div class="col-status">
-                <span class="status-pill <?php echo $statusClass; ?>"><?php echo strtoupper($admin['status']); ?></span>
-                <span class="role-pill <?php echo $roleClass; ?>"><?php echo strtoupper($admin['role']); ?></span>
-            </div>
-
-            <div class="col-actions">
-                <button class="btn-primary-detail" onclick='openModal("detail", <?php echo json_encode($admin); ?>, "<?php echo $combinedAddr; ?>")'>
-                    Profile Detail
-                </button>
-                <button class="btn-text-edit" onclick='openModal("edit", <?php echo json_encode($admin); ?>)'>
-                    Edit
-                </button>
-                <button class="btn-text-delete" onclick="confirmDelete('<?php echo $admin['user_id']; ?>')">
-                    Delete
-                </button>
+            <div class="c-fixed-group">
+                <span class="p-status <?php echo $statusClass; ?>"><?php echo strtoupper($admin['status']); ?></span>
+                <span class="p-role <?php echo $roleClass; ?>"><?php echo strtoupper($admin['role']); ?></span>
+                <button class="b-det" onclick='openModal("detail", <?php echo json_encode($admin); ?>, "<?php echo addslashes($combinedAddr); ?>")'>Profile Detail</button>
+                <button class="b-edit" onclick='openModal("edit", <?php echo json_encode($admin); ?>)'>Edit</button>
+                <button class="b-del" onclick="confirmDelete('<?php echo $admin['user_id']; ?>')">Delete</button>
             </div>
         </div>
         <?php
     }
 }
 
-// 获取 Admin 总数
-$totalStmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role IN ('Admin', 'S.Admin')");
-$totalCount = $totalStmt->fetchColumn();
+$totalAdmins = $pdo->query("SELECT COUNT(*) FROM users WHERE role IN ('Admin', 'S.Admin')")->fetchColumn();
 
-// 2. 引用头部
-if (file_exists('../includes/admin_head.php')) {
-    include_once '../includes/admin_head.php';
-}
+// 引入 HEAD
+if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
 ?>
 
 <style>
-    /* =========================================
-       🎨 核心 UI 系统 
-       ========================================= */
-    :root {
-        --pxx-red: #ef4444;
-        --pxx-green: #10b981;
-        --pxx-blue: #3182ce;
-        --pxx-bg: #f8f9fc;
-        --border: #edf2f7;
+    /* 🌟 强行覆盖你截图里的空白区域 */
+    .pxx-main-wrapper {
+        position: relative;
+        z-index: 100;
+        background: #fff;
+        margin: 20px;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+        min-height: 80vh;
     }
 
-    body { background-color: var(--pxx-bg) !important; margin: 0; padding-bottom: 60px; font-family: 'Inter', sans-serif; }
+    .pxx-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #f0f0f0; padding-bottom: 20px; }
+    .pxx-header h2 { font-size: 24px; font-weight: 800; color: #333; margin: 0; }
+    .pxx-header p { color: #888; margin: 5px 0 0; }
+
+    .pxx-list-container { display: flex; flex-direction: column; gap: 15px; }
+    .pxx-row-item { display: flex; align-items: center; padding: 15px 25px; background: #fff; border: 1px solid #f0f0f0; border-radius: 8px; transition: 0.2s; }
+    .pxx-row-item:hover { background: #fafafa; border-color: #ddd; }
+
+    .c-idx { width: 40px; font-weight: 800; color: #ccc; }
+    .c-id { width: 100px; font-weight: 700; color: #999; }
+    .c-prof { width: 250px; display: flex; align-items: center; gap: 15px; }
+    .c-prof img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; }
+    .t-box strong { display: block; font-size: 15px; color: #333; }
+    .t-box small { color: #888; }
+    .c-contact { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #666; }
     
-    .admin-main-viewport { padding: 40px; max-width: 1550px; margin: 0 auto; overflow-x: auto; }
-
-    .crud-header {
-        display: flex; justify-content: space-between; align-items: center;
-        background: white; padding: 25px 40px; border-radius: 16px;
-        margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02);
-        min-width: 1100px; 
-    }
-
-    .header-info h2 { margin: 0; font-size: 24px; font-weight: 800; color: #2d3748; }
-    .header-info p { margin: 5px 0 0; color: #718096; font-size: 14px; }
-
-    .btn-top {
-        padding: 12px 24px; border-radius: 8px; border: none; font-weight: 700;
-        cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s;
-    }
-    .btn-refresh { background: #34495e; color: white; }
-    .btn-add { background: #e60012; color: white; }
-
-    /* =========================================
-       🌟 列表网格布局
-       ========================================= */
-    .admin-list-container { 
-        display: flex; flex-direction: column; gap: 12px; 
-        min-width: 1150px; 
-    }
-
-    .pxx-list-card {
-        background: white; border-radius: 10px; padding: 20px 25px;
-        display: grid; 
-        /* 布局参数：操作按钮组设为 auto 以适应文字宽度 */
-        grid-template-columns: 40px 100px 240px 1fr 160px auto;
-        align-items: center; border: 1px solid var(--border); transition: 0.2s;
-        gap: 15px; 
-    }
-    .pxx-list-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.06); border-color: #cbd5e0; }
-
-    .col-index { font-weight: 800; color: #cbd5e0; font-size: 16px; text-align: center; }
-    .col-id { font-weight: 700; color: #a0aec0; font-size: 15px; }
-
-    .col-profile { display: flex; align-items: center; gap: 15px; overflow: hidden; }
-    .list-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #eee; flex-shrink: 0; }
-    .name-box { overflow: hidden; }
-    .name-box strong { display: block; font-size: 15px; color: #1a202c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
-    .name-box span { font-size: 13px; color: #718096; }
-
-    .col-contact { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: #4a5568; overflow: hidden; }
-    .contact-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .contact-line i { width: 16px; color: #cbd5e0; margin-right: 8px; }
-
-    .col-status { display: flex; gap: 8px; align-items: center; justify-content: flex-start; }
-    .status-pill { padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+    /* 5个核心元素锁定 */
+    .c-fixed-group { display: flex; align-items: center; gap: 12px; flex-shrink: 0; white-space: nowrap; }
+    .p-status { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; }
     .active { background: #e6fffa; color: #38b2ac; }
     .blocked { background: #fff5f5; color: #f56565; }
-    .role-pill { padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid var(--border); white-space: nowrap; }
+    .p-role { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #eee; }
     .sadmin { background: #fff1f0; color: #e60012; }
     .admin { background: #ebf8ff; color: #3182ce; }
 
-    /* =========================================
-       🔥 核心修复：操作按钮样式 (取消固定宽度)
-       ========================================= */
-    .col-actions { display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
-    
-    .btn-primary-detail { background: #ebf4ff; color: var(--pxx-blue); border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; white-space: nowrap; font-size: 13px;}
-    .btn-primary-detail:hover { background: var(--pxx-blue); color: white; }
-    
-    /* Edit 按钮：青色，文字清晰 */
-    .btn-text-edit { 
-        background: var(--pxx-green); color: white; border: none; 
-        padding: 10px 16px; border-radius: 8px; font-weight: 700; 
-        cursor: pointer; font-size: 13px; transition: 0.2s; white-space: nowrap; 
-    }
-    .btn-text-edit:hover { background: #059669; }
+    .b-det { background: #ebf4ff; color: #3182ce; border: none; padding: 10px 15px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+    .b-edit { background: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+    .b-del { background: #ef4444; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: 700; cursor: pointer; }
 
-    /* Delete 按钮：红色，文字清晰 */
-    .btn-text-delete { 
-        background: var(--pxx-red); color: white; border: none; 
-        padding: 10px 16px; border-radius: 8px; font-weight: 700; 
-        cursor: pointer; font-size: 13px; transition: 0.2s; white-space: nowrap; 
-    }
-    .btn-text-delete:hover { background: #dc2626; }
-
-    /* =========================================
-       🌟 可滑动弹窗 (Modal)
-       ========================================= */
-    .modal-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10001;
-    }
-    .modal-content {
-        background: white; width: 850px; border-radius: 16px; padding: 40px; position: relative;
-        max-height: 85vh; /* 核心：限制高度，开启滑动 */
-        overflow-y: auto; 
-        box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-    }
-    .close-modal { position: absolute; top: 25px; right: 25px; font-size: 28px; cursor: pointer; color: #cbd5e0; }
-
-    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 10px; }
-    .fld-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-    .fld-box label { font-size: 11px; font-weight: 800; color: #a0aec0; text-transform: uppercase; }
-    .fld-box input, .fld-box select, .fld-box textarea { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; background: #fcfcfc; }
-    .fld-box input:focus { border-color: var(--pxx-blue); outline: none; background: white; }
-
-    .btn-save { background: var(--pxx-green); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 10px; font-size: 14px; }
-    
-    /* Cancel 按钮 */
-    .btn-cancel { background: #f1f5f9; color: #475569; border: none; padding: 15px; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 5px; font-size: 14px; }
-
-    .fa-spin-fast { animation: spin 0.5s linear infinite; }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
+    /* Modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 99999; }
+    .modal-content { background: #fff; width: 750px; padding: 40px; border-radius: 15px; max-height: 85vh; overflow-y: auto; }
 </style>
 
-<div class="admin-main-viewport">
-    
-    <div class="crud-header">
-        <div class="header-info">
-            <h2>Administrative Workspace</h2>
-            <p>Direct database management for all Admin roles. 
-                <strong style="color:#e60012; margin-left:10px;" id="totalCountDisplay">Total Admins: <?php echo $totalCount; ?></strong>
-            </p>
+<div class="pxx-main-wrapper">
+    <div class="pxx-header">
+        <div>
+            <h2>Admin Master List</h2>
+            <p>Direct Database Management | Total: <strong><?php echo $totalAdmins; ?></strong></p>
         </div>
-        <div style="display:flex; gap:15px;">
-            <button class="btn-top btn-refresh" id="refreshBtn"><i class="fa-solid fa-arrows-rotate"></i> Refresh Records</button>
-            <button class="btn-top btn-add" onclick="openModal('add')"><i class="fa-solid fa-plus"></i> Create Admin</button>
+        <div style="display:flex; gap:10px;">
+            <button class="b-edit" id="refreshBtn" style="background:#444;">Refresh</button>
+            <button class="b-edit" onclick="openModal('add')" style="background:#e60012;">+ Create Admin</button>
         </div>
     </div>
 
-    <div class="admin-list-container" id="adminList">
+    <div class="pxx-list-container" id="adminList">
         <?php renderAdminList($pdo); ?>
     </div>
 </div>
 
 <div class="modal-overlay" id="adminModal">
     <div class="modal-content">
-        <span class="close-modal" onclick="closeModal()">&times;</span>
-        <h2 id="modalTitle" style="margin:0; color:#2d3748;">Profile Detail</h2>
-        <hr style="border:0; border-top:1px solid #edf2f7; margin: 25px 0;">
-
+        <h2 id="modalTitle">Details</h2>
         <form id="adminForm" action="process_admin.php" method="POST">
-            <input type="hidden" name="user_id" id="m_user_id">
-            
-            <div class="modal-grid">
-                <div class="fld-box"><label>Username / Handle</label><input type="text" name="username" id="m_username" required></div>
-                <div class="fld-box"><label>Legal Real Name</label><input type="text" name="real_name" id="m_real_name"></div>
-                <div class="fld-box"><label>System Permission Role</label>
-                    <select name="role" id="m_role">
-                        <option value="Admin">Admin</option>
-                        <option value="S.Admin">S.Admin</option>
-                    </select>
-                </div>
-                <div class="fld-box"><label>Account Lifecycle Status</label>
-                    <select name="status" id="m_status">
-                        <option value="Active">Active / Operational</option>
-                        <option value="Blocked">Blocked</option>
-                    </select>
-                </div>
-                
-                <div class="fld-box"><label>Account Created At</label><input type="text" id="m_created_at" readonly style="background:#f8fafc; color:#94a3b8;"></div>
-                <div class="fld-box"><label>Last Login Session</label><input type="text" id="m_last_login" readonly style="background:#f8fafc; color:#94a3b8;"></div>
-                
-                <div class="fld-box"><label>Assigned Gender</label>
-                    <select name="gender" id="m_gender">
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                    </select>
-                </div>
-                <div class="fld-box"><label>Email</label><input type="email" name="email" id="m_email"></div>
+            <input type="hidden" name="user_id" id="m_id">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+                <div><label>USERNAME</label><input type="text" name="username" id="m_user" style="width:100%; padding:10px;"></div>
+                <div><label>REAL NAME</label><input type="text" name="real_name" id="m_real" style="width:100%; padding:10px;"></div>
+                <div><label>ROLE</label><select name="role" id="m_role" style="width:100%; padding:10px;"><option value="Admin">Admin</option><option value="S.Admin">S.Admin</option></select></div>
+                <div><label>STATUS</label><select name="status" id="m_status" style="width:100%; padding:10px;"><option value="Active">Active</option><option value="Blocked">Blocked</option></select></div>
+                <div><label>CREATED AT</label><input type="text" id="m_created" readonly style="width:100%; padding:10px; background:#f9f9f9;"></div>
+                <div><label>LAST LOGIN</label><input type="text" id="m_last" readonly style="width:100%; padding:10px; background:#f9f9f9;"></div>
             </div>
-            
-            <div class="fld-box">
-                <label>Combined Mailing Address</label>
-                <textarea id="m_full_address" rows="2" readonly style="background:#f8fafc;"></textarea>
-            </div>
-
-            <div style="margin-top:25px; display:flex; flex-direction:column;" id="modalFooter">
-                <button type="submit" class="btn-save">Save Database Changes</button>
-                <button type="button" class="btn-cancel" onclick="closeModal()">Cancel & Close</button>
+            <div style="margin-top:20px;"><label>FULL ADDRESS</label><textarea id="m_addr" rows="2" readonly style="width:100%; padding:10px; background:#f9f9f9;"></textarea></div>
+            <div id="modalFooter" style="margin-top:30px; display:flex; flex-direction:column; gap:10px;">
+                <button type="submit" class="b-edit" style="padding:15px;">Save Changes</button>
+                <button type="button" onclick="closeModal()" style="background:#eee; border:none; padding:15px; border-radius:8px; cursor:pointer;">Cancel</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-// =========================================
-// 🚀 Refresh & 弹窗通知
-// =========================================
+// 🌟 强行删除那个讨厌的占位文字
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll('div, p').forEach(el => {
+        if (el.textContent.includes("Administrative Workspace Ready") && !el.closest('.pxx-main-wrapper')) {
+            el.style.display = 'none';
+        }
+    });
+});
+
 document.getElementById('refreshBtn').onclick = function() {
-    const icon = this.querySelector('i');
-    icon.classList.add('fa-spin-fast');
-    
-    fetch('admin_crud.php?action=fetch_admins')
-    .then(res => res.text())
-    .then(html => {
-        setTimeout(() => {
-            document.getElementById('adminList').innerHTML = html;
-            icon.classList.remove('fa-spin-fast');
-            
-            // 重新计算总人数
-            const newCount = document.querySelectorAll('.pxx-list-card').length;
-            document.getElementById('totalCountDisplay').innerText = "Total Admins: " + newCount;
-            
-            alert('✅ Records Refreshed Successfully!');
-        }, 500);
+    fetch('admin_crud.php?action=fetch_admins').then(res => res.text()).then(html => {
+        document.getElementById('adminList').innerHTML = html;
+        alert('Refreshed!');
     });
 };
-
 function openModal(mode, data = null, fullAddress = "") {
-    const modal = document.getElementById('adminModal');
-    const title = document.getElementById('modalTitle');
-    const footer = document.getElementById('modalFooter');
-    const form = document.getElementById('adminForm');
-
-    modal.style.display = 'flex';
-    form.reset();
-
+    document.getElementById('adminModal').style.display = 'flex';
+    document.getElementById('adminForm').reset();
     if(mode === 'detail') {
-        title.innerText = "Viewing Detail: " + data.user_id;
-        footer.innerHTML = '<button type="button" class="btn-cancel" onclick="closeModal()">Close Details</button>';
+        document.getElementById('modalTitle').innerText = "View Admin: " + data.user_id;
+        document.getElementById('modalFooter').innerHTML = '<button type="button" onclick="closeModal()" style="width:100%; padding:15px; background:#eee; border-radius:8px; border:none;">Close</button>';
         fillData(data, true, fullAddress);
     } else {
-        title.innerText = (mode === 'edit') ? "Edit Administrator" : "Create New Admin";
-        footer.innerHTML = '<button type="submit" class="btn-save">Save Database Changes</button><button type="button" class="btn-cancel" onclick="closeModal()">Cancel & Close</button>';
+        document.getElementById('modalTitle').innerText = (mode === 'edit' ? "Edit Admin" : "Create Admin");
+        document.getElementById('modalFooter').innerHTML = '<button type="submit" class="b-edit" style="padding:15px;">Save</button><button type="button" onclick="closeModal()" style="padding:15px; border:none; background:#eee; border-radius:8px;">Cancel</button>';
         fillData(data || {}, false, fullAddress);
     }
 }
-
 function fillData(data, disabled, fullAddress) {
-    document.getElementById('m_user_id').value = data.user_id || '';
-    document.getElementById('m_username').value = data.username || '';
+    document.getElementById('m_id').value = data.user_id || '';
+    document.getElementById('m_user').value = data.username || '';
     document.getElementById('m_real_name').value = data.real_name || '';
     document.getElementById('m_role').value = data.role || 'Admin';
     document.getElementById('m_status').value = data.status || 'Active';
-    document.getElementById('m_gender').value = data.gender || 'Male';
-    document.getElementById('m_email').value = data.email || '';
-    
-    document.getElementById('m_created_at').value = data.created_at || 'N/A';
-    document.getElementById('m_last_login').value = data.last_login || 'N/A';
-    document.getElementById('m_full_address').value = fullAddress || 'N/A';
-
-    const inputs = document.querySelectorAll('#adminForm input, #adminForm select, #adminForm textarea');
-    inputs.forEach(el => {
-        if(el.id === 'm_created_at' || el.id === 'm_last_login' || el.id === 'm_full_address') {
-            el.disabled = true;
-        } else if(el.type !== 'hidden') {
-            el.disabled = disabled;
-        }
-    });
+    document.getElementById('m_created').value = data.created_at || 'N/A';
+    document.getElementById('m_last').value = data.last_login || 'N/A';
+    document.getElementById('m_addr').value = fullAddress || 'N/A';
+    document.querySelectorAll('#adminForm input, #adminForm select').forEach(el => { if(el.id !== 'm_created' && el.id !== 'm_last') el.disabled = disabled; });
 }
-
 function closeModal() { document.getElementById('adminModal').style.display = 'none'; }
-
-// 🚨 删除确认弹窗
-function confirmDelete(id) {
-    if(confirm("🚨 WARNING: Are you sure you want to PERMANENTLY DELETE Admin " + id + "?")) {
-        window.location.href = "process_admin.php?delete=" + id;
-    }
-}
+function confirmDelete(id) { if(confirm("Delete Admin " + id + "?")) window.location.href="process_admin.php?delete="+id; }
 </script>
 
-<?php 
-// 3. 引用页脚
-if (file_exists('../includes/_foot.php')) {
-    include_once '../includes/_foot.php';
-}
-?>
+<?php if (file_exists($pxx_foot_file)) { include_once $pxx_foot_file; } ?>
