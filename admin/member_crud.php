@@ -61,7 +61,6 @@ if (file_exists($admin_head)) { include $admin_head; }
     }
     .stat-badge span { color: #3b82f6; font-size: 18px; margin-left: 8px; font-weight: 900; }
 
-    /* 💡 Refresh 按钮新颜色：高级素雅灰白，不喧宾夺主 */
     .btn-refresh {
         background: #ffffff; color: #334155;
         padding: 10px 16px; border-radius: 12px; text-decoration: none; font-weight: 800;
@@ -93,9 +92,7 @@ if (file_exists($admin_head)) { include $admin_head; }
         overflow-x: auto; 
     }
     
-    /* 💡 取消了 1350px 限制，改为 900px，保证能在你的屏幕里完全展开 */
     table { width: 100%; border-collapse: collapse; text-align: left; min-width: 900px; }
-    /* 💡 缩小了左右 padding，把空间挤出来给右边的列 */
     th { background: #f8fafc; padding: 15px 12px; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
     td { padding: 15px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #1e293b; font-size: 14px; }
     tr:last-child td { border-bottom: none; }
@@ -112,7 +109,6 @@ if (file_exists($admin_head)) { include $admin_head; }
 
     .contact-item { font-size: 13px; color: #475569; display: flex; align-items: flex-start; gap: 6px; margin-bottom: 4px; }
     .contact-icon { font-size: 14px; opacity: 0.7; margin-top: 1px; }
-    /* 💡 地址宽度限制到 220px 并自动换行，不抢占右边的空间 */
     .address-text { line-height: 1.4; max-width: 220px; white-space: normal; word-wrap: break-word; font-size: 12px; }
 
     .badge-container { display: flex; flex-direction: column; gap: 6px; }
@@ -136,7 +132,6 @@ if (file_exists($admin_head)) { include $admin_head; }
 
     .points-text { font-size: 16px; font-weight: 900; color: #f59e0b; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 
-    /* 💡 操作按钮强制上下叠放！这是保证 Delete 和 Profile Detail 都能显示的究极方法 */
     .action-group { display: flex; flex-direction: column; gap: 8px; } 
     .btn-profile-detail {
         background: #f8fafc; color: #3b82f6; padding: 8px 12px; border-radius: 10px;
@@ -181,6 +176,7 @@ if (file_exists($admin_head)) { include $admin_head; }
             <table>
                 <thead>
                     <tr>
+                        <th style="width: 50px; text-align: center;">No.</th>
                         <th>ID</th>
                         <th>Member Profile</th>
                         <th>Contact & Address</th>
@@ -191,6 +187,7 @@ if (file_exists($admin_head)) { include $admin_head; }
                 </thead>
                 <tbody>
                     <?php if (!empty($members)): ?>
+                        <?php $counter = 1; // 💡 初始化序号计数器 ?>
                         <?php foreach ($members as $m): 
                             // 处理头像
                             $photoRaw = !empty($m['profile_photo']) ? $m['profile_photo'] : 'default.jpg';
@@ -214,6 +211,8 @@ if (file_exists($admin_head)) { include $admin_head; }
                             $fullAddress = !empty($addrArr) ? implode(", ", $addrArr) : 'Address not provided';
                         ?>
                         <tr>
+                            <td style="text-align: center; font-weight: 700; color: #64748b;"><?= $counter++ ?></td>
+                            
                             <td style="font-weight: 800; color: #94a3b8;">#<?= htmlspecialchars($m['user_id']) ?></td>
 
                             <td>
@@ -290,7 +289,7 @@ if (file_exists($admin_head)) { include $admin_head; }
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="6" style="text-align:center; padding:60px; color:#94a3b8;">
+                            <td colspan="7" style="text-align:center; padding:60px; color:#94a3b8;">
                                 <div style="font-size:40px; margin-bottom:10px;">👥</div>
                                 <div style="font-size:16px; font-weight:700;">No members found.</div>
                             </td>
