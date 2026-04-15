@@ -17,7 +17,7 @@ if (!empty($search)) {
 }
 
 if (!empty($category) && $category != 'All') {
-    $sql .= " AND category_type = ?";
+    $sql .= " AND category_id = ?";
     $params[] = $category;
 }
 
