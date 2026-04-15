@@ -46,7 +46,7 @@ if (!empty($search)) {
     
     // 按分类搜索
     if ($auto_category) {
-        $conditions[] = "category_type = ?";
+        $conditions[] = "category_id = ?";
         $params[] = $auto_category;
     }
     
@@ -69,7 +69,7 @@ if (!empty($search)) {
 
 // 分类筛选（如果用户手动选择了分类）
 if (!empty($category) && $category != 'All') {
-    $sql .= " AND category_type = ?";
+    $sql .= " AND category_id = ?";
     $params[] = $category;
 }
 
