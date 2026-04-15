@@ -1,589 +1,671 @@
 <?php
 /**
- * PXX Mall - Ultra Premium Member Profile Design
- * Logic: Grid System, State/City Selection, Avatar Management, and Form Validation.
+ * PXX Mall - Ultimate Member Settings Portal (FULL VERSION)
+ * Layout: Fixed 1200px Ultra-Wide Dashboard
+ * Features: Editable Username, Triple Address Lines, Avatar X Delete, Full Security
+ * Version: 4.0 (No Compression / No Cuts)
  */
 
-// 1. 初始化会话与数据库
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-require_once '../includes/db.php'; 
-
-// 2. 假设从 URL 获取当前编辑的 Member ID
-$user_id = isset($_GET['id']) ? intval($_GET['id']) : 1; 
-
-// 3. 抓取会员原始数据
-try {
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role = 'Member'");
-    $stmt->execute([$user_id]);
-    $m = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$m) {
-        die("<div style='text-align:center; padding:100px; font-family:sans-serif;'>
-                <h1 style='color:#ef4444;'>Member Not Found</h1>
-                <p>The user record you are looking for does not exist.</p>
-                <a href='admin_dashboard.php' style='color:#4f46e5; font-weight:bold;'>Back to Dashboard</a>
-             </div>");
-    }
-} catch (PDOException $e) {
-    die("Database Error: " . $e->getMessage());
+// --- 1. SESSION & DATABASE CORE ---
+if (session_status() === PHP_SESSION_NONE) { 
+    session_start(); 
 }
 
-// 4. 处理图片路径
-$photo = !empty($m['profile_photo']) ? $m['profile_photo'] : 'default.jpg';
-$finalAvatar = "../images/" . $photo;
+/**
+ * 🔥 核心修复点 1：物理路径对齐
+ * 使用 dirname(__DIR__) 确保路径 100% 准确，解决 member../ 报错
+ */
+$pxx_root = dirname(__DIR__);
+$pxx_db_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'db.php';
+$pxx_head_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_head.php';
+$pxx_foot_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_foot.php';
 
-// 5. 页面渲染开始
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Profile | <?php echo htmlspecialchars($m['real_name']); ?> | PXX Mall</title>
+if (file_exists($pxx_db_file)) {
+    require_once $pxx_db_file;
+} else {
+    die("CRITICAL: Database connector missing at $pxx_db_file");
+}
+
+/**
+ * 🔥 核心修复点 2：PDO 变量防空保护
+ * 确保 $pdo 变量在当前作用域可用，解决 line 100 报错
+ */
+global $pdo;
+if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
+
+// Check if the user is authenticated
+if (!isset($_SESSION['user_id'])) {
+    echo "<script>window.location.href='../login_selection.php';</script>";
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+$active_page = $_GET['page'] ?? 'my_profile';
+
+// --- 2. THE MASTER SAVE LOGIC (FULL IMPLEMENTATION) ---
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    // Extracting Base Fields
+    $username  = isset($_POST['username']) ? trim($_POST['username']) : ''; 
+    $real_name = isset($_POST['real_name']) ? trim($_POST['real_name']) : '';
+    $gender    = isset($_POST['gender']) ? $_POST['gender'] : '';
+    $birthday  = isset($_POST['birthday']) ? $_POST['birthday'] : '';
+    $phone     = isset($_POST['phone_num']) ? trim($_POST['phone_num']) : '';
+    $email     = isset($_POST['email']) ? trim($_POST['email']) : '';
+    
+    // Address Line 1, 2, 3 Advanced Merger
+    $addr1 = isset($_POST['address_line1']) ? trim($_POST['address_line1']) : '';
+    $addr2 = isset($_POST['address_line2']) ? trim($_POST['address_line2']) : '';
+    $addr3 = isset($_POST['address_line3']) ? trim($_POST['address_line3']) : '';
+    
+    // Only update address if we are on the Address Page or the user submitted new lines
+    // --- 修改后的地址合并逻辑 ---
+    $addr1 = isset($_POST['address_line1']) ? trim($_POST['address_line1']) : '';
+    $addr2 = isset($_POST['address_line2']) ? trim($_POST['address_line2']) : '';
+    $addr3 = isset($_POST['address_line3']) ? trim($_POST['address_line3']) : '';
+    
+    // 只有在地址页提交且有内容时才更新全址
+    if ($active_page == 'addresses' && (!empty($addr1) || !empty($addr2) || !empty($addr3))) {
+        $full_address = $addr1;
+        // 使用英文逗号 (,) 作为链接符号
+        if (!empty($addr2)) $full_address .= ", " . $addr2; 
+        if (!empty($addr3)) $full_address .= ", " . $addr3;
+    } else {
+        // 如果是其他页面提交，则保持原样
+        $full_address = $_POST['current_full_address'] ?? '';
+    }
+    
+    $postcode  = isset($_POST['postcode']) ? trim($_POST['postcode']) : '';
+    $city      = isset($_POST['city']) ? trim($_POST['city']) : '';
+    $state     = isset($_POST['state']) ? trim($_POST['state']) : '';
+    
+    // Avatar Logic: Handle New Upload or "X" Delete Command
+    $st_photo = $pdo->prepare("SELECT profile_photo FROM users WHERE user_id = ?");
+    $st_photo->execute([$user_id]);
+    $u_old_data = $st_photo->fetch();
+    $photo_filename = $u_old_data['profile_photo'] ?? 'default.jpg';
 
-    <style>
-        /* =========================================
-           🎨 GLOBAL STYLES & VARIABLES
-           ========================================= */
-        :root {
-            --primary: #4f46e5;
-            --primary-light: #6366f1;
-            --danger: #ef4444;
-            --success: #10b981;
-            --bg-main: #f8fafc;
-            --card-bg: #ffffff;
-            --border: #e2e8f0;
-            --text-dark: #0f172a;
-            --text-muted: #64748b;
-            --radius-xl: 20px;
-            --radius-lg: 12px;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-            --shadow-md: 0 10px 15px -3px rgba(0,0,0,0.1);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    // Check for "X" button delete flag
+    if (isset($_POST['delete_avatar_flag']) && $_POST['delete_avatar_flag'] == '1') {
+        $photo_filename = 'default.jpg';
+    } 
+    // Check for new file upload
+    elseif (!empty($_FILES['profile_photo']['name'])) {
+        $temp_name = $_FILES["profile_photo"]["tmp_name"];
+        $ext = pathinfo($_FILES["profile_photo"]["name"], PATHINFO_EXTENSION);
+        $new_filename = "user_" . $user_id . "_" . time() . "." . $ext;
+        
+        if (move_uploaded_file($temp_name, "../images/" . $new_filename)) {
+            $photo_filename = $new_filename;
         }
+    }
 
-        * { box-sizing: border-box; }
+    // Prepare and Execute the Mega Update SQL
+    $update_sql = "UPDATE users SET 
+                    username = ?, real_name = ?, gender = ?, birthday = ?, 
+                    phone_num = ?, email = ?, address = ?, 
+                    Postcode = ?, City = ?, State = ?, 
+                    profile_photo = ? WHERE user_id = ?";
+            
+    $stmt_update = $pdo->prepare($update_sql);
+    $stmt_update->execute([
+        $username, $real_name, $gender, $birthday, 
+        $phone, $email, $full_address, 
+        $postcode, $city, $state, 
+        $photo_filename, $user_id
+    ]);
+    
+    // Sync session data
+    $_SESSION['username'] = $username;
+    $_SESSION['profile_image'] = $photo_filename;
+    
+    echo "<script>alert('Success: Your account settings have been updated!'); window.location.href='profile.php?page=$active_page';</script>";
+    exit();
+}
 
-        body {
-            background-color: var(--bg-main);
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: var(--text-dark);
-            margin: 0;
-            padding: 60px 20px;
-            line-height: 1.5;
-        }
+// --- 3. REFRESH DATA FOR DISPLAY ---
+$stmt_fetch = $pdo->prepare("SELECT * FROM users WHERE user_id = ?");
+$stmt_fetch->execute([$user_id]);
+$u = $stmt_fetch->fetch();
 
-        /* =========================================
-           🏛️ LAYOUT CONTAINER
-           ========================================= */
-        .premium-wrapper {
-            max-width: 900px;
-            margin: 0 auto;
-            background: var(--card-bg);
-            border-radius: var(--radius-xl);
-            box-shadow: var(--shadow-md);
-            border: 1px solid rgba(255,255,255,0.7);
-            overflow: hidden;
-        }
+// Secondary logic for verification status
+$email_verified_status = (isset($u['email_verified']) && $u['email_verified'] == 1) ? true : false;
 
-        .header-banner {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            padding: 50px 40px;
-            text-align: center;
-            color: white;
-            position: relative;
-        }
+// Helper function for safe output
+function d($val) { 
+    return htmlspecialchars($val ?? ''); 
+}
 
-        .header-banner h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: -1px;
-        }
+if (file_exists($pxx_head_file)) {
+    include_once $pxx_head_file;
+}
+?>
 
-        .header-banner p {
-            margin: 10px 0 0;
-            opacity: 0.9;
-            font-size: 15px;
-        }
+<style>
+    /* --- GLOBAL MASTER CSS --- */
+    body { 
+        background-color: #f5f5f5; 
+        color: #333; 
+        font-family: 'Helvetica Neue', Arial, sans-serif; 
+        margin: 0; 
+        padding: 0; 
+    }
+    
+    /* Strong 1200px Width Constraint */
+    .pxx-master-wrapper { 
+        width: 1200px; 
+        margin: 40px auto; 
+        display: flex; 
+        gap: 40px; 
+        box-sizing: border-box; 
+    }
 
-        /* =========================================
-           📸 AVATAR COMPONENT
-           ========================================= */
-        .avatar-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: -60px; /* 向上偏移产生重叠效果 */
-            margin-bottom: 40px;
-        }
+    /* --- SIDEBAR NAVIGATION (PERFECTLY ALIGNED) --- */
+    .pxx-sidebar-nav { 
+        width: 280px; 
+        flex-shrink: 0; 
+    }
+    
+    .sidebar-user-header { 
+        display: flex; 
+        align-items: center; 
+        gap: 15px; 
+        padding-bottom: 25px; 
+        border-bottom: 1px solid #ddd; 
+        margin-bottom: 30px; 
+    }
+    
+    .sidebar-user-header img { 
+        width: 60px; 
+        height: 60px; 
+        border-radius: 50%; 
+        object-fit: cover; 
+        border: 1px solid #eee; 
+    }
+    
+    .sidebar-user-header .user-meta { 
+        font-weight: bold; 
+        font-size: 15px; 
+    }
 
-        .avatar-holder {
-            position: relative;
-            width: 130px;
-            height: 130px;
-            cursor: pointer;
-            z-index: 10;
-        }
+    /* 🔥 Icon Alignment with 35px spacing */
+    .nav-section-header { 
+        font-size: 16px; 
+        font-weight: 700; 
+        color: #333; 
+        display: flex; 
+        align-items: center; 
+        margin-bottom: 20px; 
+    }
+    
+    .nav-section-header i { 
+        color: #e60012; 
+        width: 35px; 
+        font-size: 20px; 
+        text-align: left; 
+    }
 
-        .avatar-holder img {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 6px solid var(--card-bg);
-            box-shadow: var(--shadow-md);
-            transition: var(--transition);
-        }
+    .nav-link-item { 
+        display: block; 
+        padding: 12px 0 12px 50px; 
+        text-decoration: none; 
+        color: #555; 
+        font-size: 15px; 
+        transition: all 0.2s ease; 
+    }
+    
+    .nav-link-item:hover, .nav-link-item.active { 
+        color: #e60012; 
+        font-weight: 600; 
+    }
 
-        .avatar-holder:hover img {
-            filter: brightness(0.8);
-            transform: scale(1.02);
-        }
+    /* 🔥 LOGOUT ALIGNED WITH "MY ACCOUNT" TEXT */
+    .logout-nav-container { 
+        margin-top: 50px; 
+    }
+    
+    .logout-link-aligned { 
+        display: flex; 
+        align-items: center; 
+        padding: 12px 0; 
+        text-decoration: none; 
+        color: #bbb; 
+        font-size: 15px; 
+        transition: color 0.2s; 
+    }
+    
+    .logout-link-aligned:hover { 
+        color: #e60012; 
+    }
+    
+    .logout-link-aligned i { 
+        width: 35px; 
+        text-align: left; 
+        font-size: 20px; 
+    }
+    
+    .logout-link-aligned span { 
+        padding-left: 15px; /* Matches the gap of upper items */
+    }
 
-        .avatar-badge {
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-            background: var(--danger);
-            color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 3px solid var(--card-bg);
-            font-size: 14px;
-            transition: var(--transition);
-        }
+    /* --- RIGHT CONTENT DASHBOARD --- */
+    .pxx-main-dashboard { 
+        flex: 1; 
+        background: #fff; 
+        padding: 50px; 
+        border-radius: 4px; 
+        box-shadow: 0 1px 6px rgba(0,0,0,0.08); 
+        min-height: 800px; 
+    }
+    
+    .dashboard-header { 
+        border-bottom: 1px solid #efefef; 
+        padding-bottom: 20px; 
+        margin-bottom: 45px; 
+    }
+    
+    .dashboard-header h2 { 
+        margin: 0; 
+        font-size: 24px; 
+        font-weight: 500; 
+    }
 
-        #file_upload { display: none; }
+    /* --- ADVANCED FORM LAYOUT --- */
+    .form-row-pxx { 
+        display: flex; 
+        margin-bottom: 35px; 
+        align-items: flex-start; 
+    }
+    
+    .form-label-pxx { 
+        width: 170px; 
+        text-align: right; 
+        color: #666; 
+        font-size: 15px; 
+        margin-right: 35px; 
+        padding-top: 12px; 
+    }
+    
+    .form-content-pxx { 
+        flex: 1; 
+    }
+    
+    /* 🔥 ULTRA LONG INPUT FOR ADDRESS 1/2/3 */
+    .pxx-input-large { 
+        width: 100%; 
+        padding: 14px 15px; 
+        border: 1px solid #ddd; 
+        border-radius: 2px; 
+        font-size: 15px; 
+        box-sizing: border-box; 
+        margin-bottom: 15px; 
+        transition: border-color 0.2s;
+    }
+    
+    .pxx-input-large:focus { 
+        border-color: #e60012; 
+        outline: none; 
+    }
+    
+    /* Gender Horizontal Alignment */
+    .gender-horizontal-wrap { 
+        display: flex; 
+        gap: 40px; 
+        padding-top: 12px; 
+    }
+    
+    .gender-horizontal-wrap label { 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        cursor: pointer; 
+        font-size: 15px;
+    }
 
-        /* =========================================
-           📝 FORM SYSTEM
-           ========================================= */
-        .form-container {
-            padding: 0 50px 50px;
-        }
+    .points-badge { 
+        font-size: 20px; 
+        color: #e60012; 
+        font-weight: bold; 
+    }
+    
+    .btn-save-master { 
+        background: #e60012; 
+        color: #fff; 
+        border: none; 
+        padding: 16px 70px; 
+        border-radius: 2px; 
+        cursor: pointer; 
+        font-size: 16px; 
+        font-weight: 600; 
+        transition: background 0.3s;
+    }
+    
+    .btn-save-master:hover { 
+        background: #d31d1d; 
+    }
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 25px;
-        }
+    /* 🔥 AVATAR WITH DELETE 'X' BUTTON */
+    .avatar-interactive-box { 
+        position: relative; 
+        width: 110px; 
+        height: 110px; 
+        margin-bottom: 20px; 
+    }
+    
+    .avatar-interactive-box img { 
+        width: 100%; 
+        height: 100%; 
+        border-radius: 50%; 
+        object-fit: cover; 
+        border: 1px solid #ddd; 
+    }
+    
+    .avatar-remove-btn { 
+        position: absolute; 
+        top: 0; 
+        right: 0; 
+        background: #e60012; 
+        color: #fff; 
+        border: none; 
+        width: 26px; 
+        height: 26px; 
+        border-radius: 50%; 
+        cursor: pointer; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-weight: bold; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
 
-        .full-col { grid-column: span 2; }
+    /* SECURITY ITEM LIST */
+    .security-data-row { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 30px 0; 
+        border-bottom: 1px solid #f9f9f9; 
+    }
+    
+    .status-badge { 
+        font-size: 11px; 
+        padding: 3px 12px; 
+        border-radius: 12px; 
+        font-weight: bold; 
+        text-transform: uppercase; 
+        margin-left: 10px; 
+        border: 1px solid transparent;
+    }
+    
+    .badge-unverified { background: #fff1f0; color: #e60012; border-color: #ffa39e; }
+    .badge-verified { background: #e6fffb; color: #13c2c2; border-color: #87e8de; }
 
-        .field-box {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+    .blue-link-action { 
+        color: #0055aa; 
+        text-decoration: none; 
+        font-size: 15px; 
+        font-weight: bold; 
+    }
 
-        .field-box label {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--text-dark);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+    .blue-link-action:hover { 
+        text-decoration: underline;
+    }
+</style>
 
-        /* 专门为 CITY 打造的高级 Label */
-        .label-premium {
-            font-size: 18px;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: #1e293b;
-            border-left: 4px solid var(--primary);
-            padding-left: 12px;
-            margin: 10px 0;
-        }
+<div class="pxx-master-wrapper">
+    
+    <div class="pxx-sidebar-nav">
+        <div class="sidebar-user-header">
+            <img src="../images/<?php echo d($u['profile_photo'] ?: 'default.jpg'); ?>">
+            <div class="user-meta">
+                <div class="user-name-text"><?php echo d($u['username']); ?></div>
+                <a href="?page=my_profile" style="font-size: 12px; color: #888; text-decoration: none; font-weight: normal; margin-top: 5px; display: block;">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </a>
+            </div>
+        </div>
 
-        /* 输入控件统一样式 */
-        .pxx-field {
-            width: 100%;
-            padding: 15px 20px;
-            font-size: 15px;
-            font-family: inherit;
-            border: 1.5px solid var(--border);
-            border-radius: var(--radius-lg);
-            background-color: white;
-            color: var(--text-dark);
-            transition: var(--transition);
-            box-sizing: border-box;
-            outline: none;
-        }
-
-        .pxx-field:focus {
-            border-color: var(--primary);
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-        }
-
-        .pxx-field::placeholder { color: #cbd5e1; }
-
-        /* 只读样式 */
-        .pxx-field:read-only {
-            background-color: #f1f5f9;
-            cursor: not-allowed;
-            color: var(--text-muted);
-        }
-
-        /* 自定义下拉框箭头 */
-        .select-wrapper {
-            position: relative;
-        }
-
-        .select-wrapper::after {
-            content: "\f078";
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            pointer-events: none;
-            font-size: 12px;
-        }
-
-        .pxx-select {
-            appearance: none;
-            cursor: pointer;
-            padding-right: 50px;
-        }
-
-        /* =========================================
-           💡 ADDRESS SECTION STYLING
-           ========================================= */
-        .address-group {
-            background: #f8fafc;
-            padding: 30px;
-            border-radius: var(--radius-lg);
-            border: 1px dashed var(--border);
-            margin-bottom: 30px;
-        }
-
-        .address-group-title {
-            margin-bottom: 20px;
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* =========================================
-           🚀 BUTTON SYSTEM
-           ========================================= */
-        .action-bar {
-            display: flex;
-            gap: 20px;
-            margin-top: 40px;
-        }
-
-        .btn {
-            padding: 18px 30px;
-            border-radius: var(--radius-lg);
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: var(--transition);
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            flex: 1;
-        }
-
-        .btn-save {
-            background-color: var(--primary);
-            color: white;
-            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
-        }
-
-        .btn-save:hover {
-            background-color: var(--primary-light);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
-        }
-
-        .btn-cancel {
-            background-color: #f1f5f9;
-            color: var(--text-muted);
-            flex: 0.5;
-        }
-
-        .btn-cancel:hover { background-color: #e2e8f0; }
-
-        /* =========================================
-           ✅ VALIDATION STATES
-           ========================================= */
-        .is-invalid { border-color: var(--danger) !important; }
-        .error-msg {
-            font-size: 12px;
-            color: var(--danger);
-            font-weight: 600;
-            margin-top: 5px;
-            display: none;
-        }
-
-        /* 响应式断点 */
-        @media (max-width: 768px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .full-col { grid-column: span 1; }
-            .form-container { padding: 0 25px 40px; }
-            .action-bar { flex-direction: column; }
-            .btn-cancel { order: 2; }
-        }
-    </style>
-</head>
-<body>
-
-<div class="premium-wrapper">
-    <div class="header-banner">
-        <h1>Profile Customization</h1>
-        <p>Manage member account details and shipping information</p>
+        <nav>
+            <div class="nav-section-header">
+                <i class="fas fa-user-circle"></i> My Account
+            </div>
+            
+            <a href="?page=my_profile" class="nav-link-item <?php echo ($active_page=='my_profile')?'active':''; ?>">My Profile</a>
+            
+            <a href="?page=addresses" class="nav-link-item <?php echo ($active_page=='addresses')?'active':''; ?>">My Shipping Addresses</a>
+            
+            <a href="?page=bank" class="nav-link-item <?php echo ($active_page=='bank')?'active':''; ?>">My Bank Accounts / Cards</a>
+            
+            <a href="?page=security" class="nav-link-item <?php echo ($active_page=='security')?'active':''; ?>">My Account Security</a>
+            
+            <div class="logout-nav-container">
+                <a href="../logout.php" class="logout-link-aligned">
+                    <i class="fas fa-power-off"></i>
+                    <span>Logout System</span>
+                </a>
+            </div>
+        </nav>
     </div>
 
-    <form id="memberProfileForm" action="process_member_update.php" method="POST" enctype="multipart/form-data">
-        
-        <input type="hidden" name="user_id" value="<?php echo $user_id; ?>">
+    <div class="pxx-main-dashboard">
 
-        <div class="avatar-section">
-            <div class="avatar-holder" onclick="document.getElementById('file_upload').click()" title="Click to Change Photo">
-                <img src="<?php echo $finalAvatar; ?>" id="avatar-preview" alt="Member Avatar">
-                <div class="avatar-badge">
-                    <i class="fa-solid fa-camera"></i>
-                </div>
+        <?php if ($active_page == 'my_profile'): ?>
+            <div class="dashboard-header">
+                <h2>My Profile</h2>
             </div>
-            <input type="file" name="profile_photo" id="file_upload" accept="image/*">
-            <p style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-top: 15px;">
-                Member ID: #<?php echo str_pad($m['user_id'], 5, '0', STR_PAD_LEFT); ?>
-            </p>
-        </div>
-
-        <div class="form-container">
-            <div class="form-grid">
-                <div class="field-box">
-                    <label><i class="fa-solid fa-user-tag"></i> Username</label>
-                    <input type="text" name="username" class="pxx-field" value="<?php echo htmlspecialchars($m['username']); ?>" readonly>
-                </div>
-
-                <div class="field-box">
-                    <label><i class="fa-solid fa-signature"></i> Full Name</label>
-                    <input type="text" name="real_name" class="pxx-field" value="<?php echo htmlspecialchars($m['real_name']); ?>" placeholder="Enter real name">
-                </div>
-
-                <div class="field-box">
-                    <label><i class="fa-solid fa-envelope"></i> Email Address</label>
-                    <input type="email" id="input_email" name="email" class="pxx-field" value="<?php echo htmlspecialchars($m['email']); ?>" placeholder="name@example.com">
-                    <span class="error-msg" id="err_email">Please enter a valid email address.</span>
-                </div>
-
-                <div class="field-box">
-                    <label><i class="fa-solid fa-phone"></i> Contact Number</label>
-                    <input type="text" name="phone_num" class="pxx-field" value="<?php echo htmlspecialchars($m['phone_num']); ?>" placeholder="e.g. 012-3456789">
-                </div>
-            </div>
-
-            <hr style="border:0; border-top:1px solid var(--border); margin: 40px 0;">
-
-            <div class="address-group">
-                <div class="address-group-title">
-                    <i class="fa-solid fa-map-location-dot"></i> Shipping & Billing Address
-                </div>
-
-                <div class="form-grid">
-                    <div class="field-box full-col">
-                        <label>Address Line 1</label>
-                        <input type="text" name="address_line_1" class="pxx-field" value="<?php echo htmlspecialchars($m['address'] ?? ''); ?>" placeholder="Unit / House Number / Floor">
-                    </div>
-
-                    <div class="field-box full-col">
-                        <label>Address Line 2</label>
-                        <input type="text" name="address_line_2" class="pxx-field" placeholder="Building Name / Street Name / Block">
-                    </div>
-
-                    <div class="field-box full-col">
-                        <label>Address Line 3</label>
-                        <input type="text" name="address_line_3" class="pxx-field" placeholder="Area / District / Section">
-                    </div>
-
-                    <div class="field-box">
-                        <label>Postcode</label>
-                        <input type="text" id="m_postcode" name="postcode" class="pxx-field" value="<?php echo htmlspecialchars($m['Postcode'] ?? ''); ?>" placeholder="53300" maxlength="5">
-                        <span class="error-msg" id="err_postcode">Postcode must be 5 digits.</span>
-                    </div>
-
-                    <div class="field-box">
-                        <label>State</label>
-                        <div class="select-wrapper">
-                            <select id="m_state" name="state" class="pxx-field pxx-select" onchange="loadCities()">
-                                <option value="">Select State</option>
-                                </select>
+            
+            <form action="profile.php?page=my_profile" method="POST" enctype="multipart/form-data" id="profileFormMaster">
+                
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">Profile Picture</div>
+                    <div class="form-content-pxx">
+                        <div class="avatar-interactive-box">
+                            <img src="../images/<?php echo d($u['profile_photo'] ?: 'default.jpg'); ?>" id="displayAvatarImg">
+                            <?php if ($u['profile_photo'] != 'default.jpg'): ?>
+                                <button type="button" class="avatar-remove-btn" onclick="triggerPhotoDelete()">×</button>
+                            <?php endif; ?>
                         </div>
+                        <input type="file" name="profile_photo" style="font-size: 13px; color: #777;">
+                        <input type="hidden" name="delete_avatar_flag" id="avatarDelFlagInput" value="0">
                     </div>
+                </div>
 
-                    <div class="field-box full-col">
-                        <label class="label-premium">City</label>
-                        <div class="select-wrapper">
-                            <select id="m_city" name="city" class="pxx-field pxx-select">
-                                <option value="">Select City (Please choose state first)</option>
-                            </select>
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">Username</div>
+                    <div class="form-content-pxx">
+                        <input type="text" name="username" class="pxx-input-large" value="<?php echo d($u['username']); ?>" placeholder="Set your account username">
+                    </div>
+                </div>
+
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">Full Name</div>
+                    <div class="form-content-pxx">
+                        <input type="text" name="real_name" class="pxx-input-large" value="<?php echo d($u['real_name']); ?>" placeholder="Enter your full legal name">
+                    </div>
+                </div>
+
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">Gender</div>
+                    <div class="form-content-pxx">
+                        <div class="gender-horizontal-wrap">
+                            <label><input type="radio" name="gender" value="Male" <?php echo ($u['gender']=='Male')?'checked':''; ?>> Male</label>
+                            <label><input type="radio" name="gender" value="Female" <?php echo ($u['gender']=='Female')?'checked':''; ?>> Female</label>
                         </div>
                     </div>
                 </div>
+
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">Date of Birth</div>
+                    <div class="form-content-pxx">
+                        <input type="date" name="birthday" class="pxx-input-large" value="<?php echo d($u['birthday']); ?>">
+                    </div>
+                </div>
+
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">PXX Loyalty Points</div>
+                    <div class="form-content-pxx">
+                        <span class="points-badge">⭐ <?php echo d($u['points'] ?? 0); ?> Points</span>
+                    </div>
+                </div>
+                
+                <input type="hidden" name="email" value="<?php echo d($u['email']); ?>">
+                <input type="hidden" name="phone_num" value="<?php echo d($u['phone_num']); ?>">
+                <input type="hidden" name="current_full_address" value="<?php echo d($u['address']); ?>">
+
+                <div class="form-row-pxx" style="margin-top: 50px;">
+                    <div class="form-label-pxx"></div>
+                    <div class="form-content-pxx">
+                        <button type="submit" class="btn-save-master">Update Profile Settings</button>
+                    </div>
+                </div>
+            </form>
+
+        <?php elseif ($active_page == 'addresses'): ?>
+            <div class="dashboard-header">
+                <h2>My Shipping Addresses</h2>
             </div>
 
-            <div class="action-bar">
-                <button type="submit" class="btn btn-save" id="saveBtn">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Save Profile Changes
-                </button>
-                <button type="button" class="btn btn-cancel" onclick="window.history.back()">
-                    Cancel
-                </button>
+            <div style="margin-left: 0; color: #aaa; font-size: 13px; margin-bottom: 30px; line-height: 1.6;">
+                <i class="fas fa-info-circle"></i> Current System Address: 
+                <?php 
+                    // 1. 使用英文逗号拆分数据库中的地址字段
+                    $addr_parts = explode(", ", $u['address'] ?? ''); 
+                    
+                    // 2. 整合所有地址片段
+                    $raw_segments = array_merge($addr_parts, [$u['Postcode'], $u['City'], $u['State']]);
+                    $formatted_segments = [];
+                    
+                    // 3. 遍历并为非空内容加上括号 ()
+                    foreach ($raw_segments as $seg) {
+                        $trimmed = trim($seg ?? '');
+                        if (!empty($trimmed)) {
+                            $formatted_segments[] = d($trimmed);
+                        }
+                    }
+                    echo implode(", ", $formatted_segments);
+                ?>
             </div>
-        </div>
-    </form>
+            
+            <form action="profile.php?page=addresses" method="POST">
+                
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">Address Line 1</div>
+                    <div class="form-content-pxx">
+                        <input type="text" name="address_line1" class="pxx-input-large" 
+                               value="" placeholder="Unit / House Number / Floor No.">
+                    </div>
+                </div>
+                
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">Address Line 2</div>
+                    <div class="form-content-pxx">
+                        <input type="text" name="address_line2" class="pxx-input-large" 
+                               value="" placeholder="Building Name / Street Name">
+                    </div>
+                </div>
+                
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">Address Line 3</div>
+                    <div class="form-content-pxx">
+                        <input type="text" name="address_line3" class="pxx-input-large" 
+                               value="" placeholder="Area / District / Section">
+                    </div>
+                </div>
+
+                <div class="fld-box">
+                <label>State</label>
+                <select name="state" id="m_state" onchange="updateCitySelection()">
+                <option value="">Select State</option>
+                </select>
+</div>
+<div class="fld-box">
+    <label>City</label>
+    <select name="city" id="m_city">
+        <option value="">Select City (Select State first)</option>
+        </select>
+</div>
+<div class="fld-box">
+    <label>Postcode</label>
+    <input type="text" name="postcode" id="m_postcode">
+</div>
+
+                <input type="hidden" name="username" value="<?php echo d($u['username']); ?>">
+                <input type="hidden" name="real_name" value="<?php echo d($u['real_name']); ?>">
+                <input type="hidden" name="email" value="<?php echo d($u['email']); ?>">
+                <input type="hidden" name="phone_num" value="<?php echo d($u['phone_num']); ?>">
+                <input type="hidden" name="gender" value="<?php echo d($u['gender']); ?>">
+                <input type="hidden" name="birthday" value="<?php echo d($u['birthday']); ?>">
+                <input type="hidden" name="current_full_address" value="<?php echo d($u['address']); ?>">
+
+                <div class="form-row-pxx" style="margin-top: 40px;">
+                    <div class="form-label-pxx"></div>
+                    <div class="form-content-pxx">
+                        <button type="submit" class="btn-save-master">Save Address Information</button>
+                    </div>
+                </div>
+            </form>
+
+        <?php elseif ($active_page == 'security'): ?>
+            <div class="dashboard-header">
+                <h2>Account Security</h2>
+            </div>
+            
+            <div class="security-data-row">
+                <div class="sec-meta-info">
+                    <strong>Email Address</strong><br>
+                    <span style="color: #888; font-size: 14px; line-height: 2;"><?php echo d($u['email']); ?></span>
+                    <span class="status-badge <?php echo $email_verified_status ? 'badge-verified' : 'badge-unverified'; ?>">
+                        <?php echo $email_verified_status ? 'Verified' : 'Unverified'; ?>
+                    </span>
+                </div>
+                <div class="sec-action-link">
+                    <a href = "edit_email.php" class = "blue-link-action">Change Email</a>
+                    <?php echo $email_verified_status ? '' : ' | '; ?>
+                    <a href = "email_verify.php" class="blue-link-action">
+                        <?php echo $email_verified_status ? '' : 'Verify Now', ''; ?></a>
+                </div>
+            </div>
+
+            <div class="security-data-row">
+                <div class="sec-meta-info">
+                    <strong>Phone Number</strong><br>
+                    <span style="color: #888; font-size: 14px; line-height: 2;"><?php echo d($u['phone_num']); ?></span>
+                    <span class="status-badge badge-verified">Verified</span>
+                </div>
+                <div class="sec-action-link">
+                    <a href="edit_phone.php" class="blue-link-action">Change Number</a>
+                </div>
+            </div>
+
+            <div class="security-data-row" style="border: none;">
+                <div class="sec-meta-info">
+                    <strong>Login Password</strong><br>
+                    <span style="color: #888; font-size: 14px; line-height: 2;">******** (Recommended: Change every 90 days)</span>
+                </div>
+                <div class="sec-action-link">
+                    <a href="reset_password.php" class="blue-link-action">Update Password</a>
+                </div>
+            </div>
+
+            <div style="margin-top: 60px; padding: 25px; background: #fffcf5; border: 1px solid #ffecad; border-radius: 8px; color: #856404; font-size: 14px;">
+                <i class="fas fa-shield-virus"></i> Your account security score is <strong>High</strong>. Always keep your recovery data updated.
+            </div>
+        <?php endif; ?>
+
+    </div>
 </div>
 
 <script>
-    // 1. 全局数据存储
-    let stateCityData = {};
-
-    // 2. 页面初始化
-    document.addEventListener('DOMContentLoaded', function() {
-        initData();
-        setupAvatarPreview();
-        setupValidation();
-    });
-
-    // 3. 异步获取 state.json 并填充州列表
-    async function initData() {
-        try {
-            const response = await fetch('state.json');
-            stateCityData = await response.json();
-            
-            const stateDropdown = document.getElementById('m_state');
-            const savedState = "<?php echo $m['State']; ?>";
-
-            // 填充 State
-            for (const state in stateCityData) {
-                const option = document.createElement('option');
-                option.value = state;
-                option.textContent = state;
-                if(state === savedState) option.selected = true;
-                stateDropdown.appendChild(option);
-            }
-
-            // 如果已有州，则加载对应的城市
-            if(savedState) {
-                loadCities("<?php echo $m['City']; ?>");
-            }
-
-        } catch (error) {
-            console.error('Error loading locations:', error);
+    function triggerPhotoDelete() {
+        if(confirm('Warning: Are you sure you want to delete your current photo and revert to the default avatar?')) {
+            document.getElementById('displayAvatarImg').src = '../images/default.jpg';
+            document.getElementById('avatarDelFlagInput').value = '1';
         }
-    }
-
-    // 4. 联动城市加载函数
-    function loadCities(preSelectedCity = "") {
-        const selectedState = document.getElementById('m_state').value;
-        const cityDropdown = document.getElementById('m_city');
-        
-        // 清空
-        cityDropdown.innerHTML = '<option value="">Select City</option>';
-
-        if (selectedState && stateCityData[selectedState]) {
-            stateCityData[selectedState].forEach(city => {
-                const option = document.createElement('option');
-                option.value = city;
-                option.textContent = city;
-                if(city === preSelectedCity) option.selected = true;
-                cityDropdown.appendChild(option);
-            });
-        } else {
-            cityDropdown.innerHTML = '<option value="">Select City (Please choose state first)</option>';
-        }
-    }
-
-    // 5. 头像预览功能
-    function setupAvatarPreview() {
-        const fileInput = document.getElementById('file_upload');
-        const previewImg = document.getElementById('avatar-preview');
-
-        fileInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    previewImg.src = e.target.result;
-                    // 增加微动动画反馈
-                    previewImg.style.transform = "scale(1.1)";
-                    setTimeout(() => previewImg.style.transform = "scale(1)", 200);
-                }
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-
-    // 6. 表单实时验证
-    function setupValidation() {
-        const form = document.getElementById('memberProfileForm');
-        const emailInput = document.getElementById('input_email');
-        const postcodeInput = document.getElementById('m_postcode');
-
-        // 邮编验证 (仅限数字)
-        postcodeInput.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            if(this.value.length === 5) {
-                this.classList.remove('is-invalid');
-                document.getElementById('err_postcode').style.display = 'none';
-            }
-        });
-
-        // 提交拦截
-        form.addEventListener('submit', function(e) {
-            let hasError = false;
-
-            // 验证邮箱
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(emailInput.value)) {
-                emailInput.classList.add('is-invalid');
-                document.getElementById('err_email').style.display = 'block';
-                hasError = true;
-            } else {
-                emailInput.classList.remove('is-invalid');
-                document.getElementById('err_email').style.display = 'none';
-            }
-
-            // 验证邮编
-            if (postcodeInput.value.length !== 5) {
-                postcodeInput.classList.add('is-invalid');
-                document.getElementById('err_postcode').style.display = 'block';
-                hasError = true;
-            }
-
-            if (hasError) {
-                e.preventDefault();
-                // 震动反馈
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
-                const btn = document.getElementById('saveBtn');
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving Data...';
-                btn.style.opacity = "0.7";
-            }
-        });
     }
 </script>
 
-</body>
-</html>
+<?php 
+if (file_exists($pxx_foot_file)) {
+    include_once $pxx_foot_file; 
+}
+?>

@@ -1,201 +1,226 @@
 <?php
-/**
- * PXX Mall - Admin CRUD (Strict Container Integration)
- * 📂 目标：强行嵌入 image_dd99aa.png 所示的白色内容区域
- */
+// PXX Mall - Admin Management (Full CRUD Integration)
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-error_reporting(E_ALL); ini_set('display_errors', 1);
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-
-// 1. 物理路径定义 (严格按你的指令)
 $pxx_root = dirname(__DIR__);
-$pxx_db_file   = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'db.php';
-$pxx_head_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_admin_head.php';
-$pxx_foot_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_admin_foot.php';
+require_once $pxx_root . '/includes/db.php'; 
 
-if (file_exists($pxx_db_file)) { 
-    require_once $pxx_db_file; 
-    if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
-} else { die("DB MISSING"); }
+if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
 
-// AJAX 刷新
-if (isset($_GET['action']) && $_GET['action'] == 'fetch_admins') {
-    ob_clean();
-    renderAdminList($pdo);
-    exit;
+// 💡 处理 Edit (更新) 提交
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit_admin') {
+    try {
+        $stmt = $pdo->prepare("UPDATE users SET username = ?, real_name = ?, role = ?, status = ? WHERE user_id = ?");
+        $stmt->execute([$_POST['username'], $_POST['real_name'], $_POST['role'], $_POST['status'], $_POST['user_id']]);
+        header("Location: admin_crud.php?msg=updated");
+        exit;
+    } catch (PDOException $e) { $errorMsg = "Update Failed: " . $e->getMessage(); }
 }
 
-function renderAdminList($pdo) {
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE role IN ('Admin', 'S.Admin') ORDER BY created_at DESC");
-    $stmt->execute();
-    $admins = $stmt->fetchAll();
-    $counter = 1;
-    foreach ($admins as $admin) {
-        $photo = !empty($admin['profile_photo']) ? '../images/'.$admin['profile_photo'] : '../images/default.jpg';
-        $roleClass = (stripos($admin['role'], 'S.') !== false) ? 'sadmin' : 'admin';
-        $statusClass = strtolower($admin['status']);
-        $combinedAddr = htmlspecialchars(($admin['address']??'')." ".($admin['Postcode']??'')." ".($admin['City']??'')." ".($admin['State']??''));
-        ?>
-        <div class="pxx-row-item">
-            <div class="c-idx"><?php echo $counter++; ?></div>
-            <div class="c-id">#<?php echo htmlspecialchars($admin['user_id']); ?></div>
-            <div class="c-prof">
-                <img src="<?php echo $photo; ?>" onerror="this.src='../images/default.jpg'">
-                <div class="t-box">
-                    <strong><?php echo htmlspecialchars($admin['real_name'] ?: 'N/A'); ?></strong>
-                    <small>@<?php echo htmlspecialchars($admin['username']); ?></small>
-                </div>
-            </div>
-            <div class="c-contact">
-                <span><i class="fa-solid fa-envelope"></i> <?php echo htmlspecialchars($admin['email'] ?: 'N/A'); ?></span>
-                <span><i class="fa-solid fa-phone"></i> <?php echo htmlspecialchars($admin['phone_num'] ?: 'N/A'); ?></span>
-            </div>
-            <div class="c-fixed-group">
-                <span class="p-status <?php echo $statusClass; ?>"><?php echo strtoupper($admin['status']); ?></span>
-                <span class="p-role <?php echo $roleClass; ?>"><?php echo strtoupper($admin['role']); ?></span>
-                <button class="b-det" onclick='openModal("detail", <?php echo json_encode($admin); ?>, "<?php echo addslashes($combinedAddr); ?>")'>Profile Detail</button>
-                <button class="b-edit" onclick='openModal("edit", <?php echo json_encode($admin); ?>)'>Edit</button>
-                <button class="b-del" onclick="confirmDelete('<?php echo $admin['user_id']; ?>')">Delete</button>
-            </div>
-        </div>
-        <?php
-    }
+// 💡 处理 Delete 提交
+if (isset($_GET['delete'])) {
+    try {
+        $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ? AND role != 'S.Admin'");
+        $stmt->execute([$_GET['delete']]);
+        header("Location: admin_crud.php?msg=deleted");
+        exit;
+    } catch (PDOException $e) { $errorMsg = "Delete Failed: " . $e->getMessage(); }
 }
 
-$totalAdmins = $pdo->query("SELECT COUNT(*) FROM users WHERE role IN ('Admin', 'S.Admin')")->fetchColumn();
+// 抓取列表
+try {
+    $sql = "SELECT * FROM users WHERE role IN ('Admin', 'S.Admin') ORDER BY user_id ASC";
+    $admins = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) { $admins = []; }
 
-// 引入 HEAD
-if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
+$admin_head = $pxx_root . '/includes/_admin_head.php';
+if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
 <style>
-    /* 🌟 强行覆盖你截图里的空白区域 */
-    .pxx-main-wrapper {
-        position: relative;
-        z-index: 100;
-        background: #fff;
-        margin: 20px;
-        padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0 5px 25px rgba(0,0,0,0.1);
-        min-height: 80vh;
-    }
-
-    .pxx-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #f0f0f0; padding-bottom: 20px; }
-    .pxx-header h2 { font-size: 24px; font-weight: 800; color: #333; margin: 0; }
-    .pxx-header p { color: #888; margin: 5px 0 0; }
-
-    .pxx-list-container { display: flex; flex-direction: column; gap: 15px; }
-    .pxx-row-item { display: flex; align-items: center; padding: 15px 25px; background: #fff; border: 1px solid #f0f0f0; border-radius: 8px; transition: 0.2s; }
-    .pxx-row-item:hover { background: #fafafa; border-color: #ddd; }
-
-    .c-idx { width: 40px; font-weight: 800; color: #ccc; }
-    .c-id { width: 100px; font-weight: 700; color: #999; }
-    .c-prof { width: 250px; display: flex; align-items: center; gap: 15px; }
-    .c-prof img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; }
-    .t-box strong { display: block; font-size: 15px; color: #333; }
-    .t-box small { color: #888; }
-    .c-contact { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #666; }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
+    .admin-container { width: 100%; box-sizing: border-box; padding: 20px; font-family: 'Plus Jakarta Sans', sans-serif; }
+    .page-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+    .page-header h1 { font-size: 28px; font-weight: 900; color: #0f172a; margin: 0; }
     
-    /* 5个核心元素锁定 */
-    .c-fixed-group { display: flex; align-items: center; gap: 12px; flex-shrink: 0; white-space: nowrap; }
-    .p-status { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; }
-    .active { background: #e6fffa; color: #38b2ac; }
-    .blocked { background: #fff5f5; color: #f56565; }
-    .p-role { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid #eee; }
-    .sadmin { background: #fff1f0; color: #e60012; }
-    .admin { background: #ebf8ff; color: #3182ce; }
+    /* 表格样式 */
+    .table-card { background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background: #f8fafc; padding: 18px 20px; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    td { padding: 18px 20px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
 
-    .b-det { background: #ebf4ff; color: #3182ce; border: none; padding: 10px 15px; border-radius: 6px; font-weight: 700; cursor: pointer; }
-    .b-edit { background: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: 700; cursor: pointer; }
-    .b-del { background: #ef4444; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+    .profile-info { display: flex; align-items: center; gap: 12px; }
+    .profile-img { width: 45px; height: 45px; border-radius: 12px; object-fit: cover; border: 2px solid #f1f5f9; }
+    .u-realname { font-size: 15px; font-weight: 800; color: #0f172a; display: block; }
 
-    /* Modal */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 99999; }
-    .modal-content { background: #fff; width: 750px; padding: 40px; border-radius: 15px; max-height: 85vh; overflow-y: auto; }
+    /* Badge 样式 */
+    .badge { padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .bg-active { background: #dcfce7; color: #15803d; }
+    .bg-blocked { background: #fee2e2; color: #b91c1c; }
+    .bg-role { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+
+    /* 操作按钮 */
+    .action-group { display: flex; gap: 8px; }
+    .btn-op { padding: 8px 14px; border-radius: 10px; text-decoration: none; font-weight: 800; font-size: 12px; display: flex; align-items: center; gap: 6px; border: 1px solid transparent; cursor: pointer; transition: 0.2s; }
+    .btn-detail { background: #f1f5f9; color: #475569; }
+    .btn-edit { background: #dcfce7; color: #15803d; }
+    .btn-delete { background: #fee2e2; color: #b91c1c; }
+    .btn-op:hover { transform: translateY(-2px); filter: brightness(0.95); }
+
+    /* Modal 弹窗 */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(4px); }
+    .modal-content { background: #fff; width: 550px; border-radius: 24px; padding: 35px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; }
+    .modal-close { position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; color: #94a3b8; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
+    .form-group input, .form-group select { width: 100%; padding: 12px 15px; border-radius: 12px; border: 1px solid #e2e8f0; font-family: inherit; font-weight: 600; }
+    .modal-footer { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
+    .btn-save { background: #10b981; color: #fff; border: none; padding: 14px; border-radius: 12px; font-weight: 800; cursor: pointer; width: 100%; }
 </style>
 
-<div class="pxx-main-wrapper">
-    <div class="pxx-header">
-        <div>
-            <h2>Admin Master List</h2>
-            <p>Direct Database Management | Total: <strong><?php echo $totalAdmins; ?></strong></p>
-        </div>
-        <div style="display:flex; gap:10px;">
-            <button class="b-edit" id="refreshBtn" style="background:#444;">Refresh</button>
-            <button class="b-edit" onclick="openModal('add')" style="background:#e60012;">+ Create Admin</button>
+<div class="admin-container">
+    <div class="page-header">
+        <h1>Admin Workspace</h1>
+        <div style="display: flex; gap: 12px;">
+            <button onclick="handleRefresh()" class="btn-op" style="background:#fff; border:1px solid #e2e8f0;"><span>🔄</span> Refresh</button>
+            <a href="admin_add.php" class="btn-op" style="background:#0f172a; color:#fff;"><span>➕</span> Create Admin</a>
         </div>
     </div>
 
-    <div class="pxx-list-container" id="adminList">
-        <?php renderAdminList($pdo); ?>
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>#ID</th>
+                    <th>Administrator</th>
+                    <th>System Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($admins as $a): 
+                    $photo = !empty($a['profile_photo']) ? $a['profile_photo'] : 'default.jpg';
+                    $fullAddr = htmlspecialchars(($a['address']??'').", ".($a['Postcode']??'')." ".($a['City']??'').", ".($a['State']??''));
+                ?>
+                <tr>
+                    <td style="font-weight: 800; color: #94a3b8;">#<?= htmlspecialchars($a['user_id']) ?></td>
+                    <td>
+                        <div class="profile-info">
+                            <img src="../images/<?= htmlspecialchars($photo) ?>" class="profile-img" onerror="this.src='../images/default.jpg'">
+                            <div class="user-names">
+                                <span class="u-realname"><?= htmlspecialchars($a['real_name'] ?: 'N/A') ?></span>
+                                <span style="font-size:12px; color:#94a3b8;">@<?= htmlspecialchars($a['username']) ?></span>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-role"><?= strtoupper($a['role']) ?></span></td>
+                    <td><span class="badge <?= ($a['status'] === 'Blocked') ? 'bg-blocked' : 'bg-active' ?>"><?= strtoupper($a['status']) ?></span></td>
+                    <td>
+                        <div class="action-group">
+                            <button onclick='openModal("detail", <?= json_encode($a) ?>, "<?= addslashes($fullAddr) ?>")' class="btn-op btn-detail">👁️ Detail</button>
+                            <button onclick='openModal("edit", <?= json_encode($a) ?>)' class="btn-op btn-edit">✏️ Edit</button>
+                            <button onclick='handleDelete("<?= $a['user_id'] ?>")' class="btn-op btn-delete">🗑️ Delete</button>
+                        </div>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
     </div>
 </div>
 
 <div class="modal-overlay" id="adminModal">
     <div class="modal-content">
-        <h2 id="modalTitle">Details</h2>
-        <form id="adminForm" action="process_admin.php" method="POST">
-            <input type="hidden" name="user_id" id="m_id">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
-                <div><label>USERNAME</label><input type="text" name="username" id="m_user" style="width:100%; padding:10px;"></div>
-                <div><label>REAL NAME</label><input type="text" name="real_name" id="m_real" style="width:100%; padding:10px;"></div>
-                <div><label>ROLE</label><select name="role" id="m_role" style="width:100%; padding:10px;"><option value="Admin">Admin</option><option value="S.Admin">S.Admin</option></select></div>
-                <div><label>STATUS</label><select name="status" id="m_status" style="width:100%; padding:10px;"><option value="Active">Active</option><option value="Blocked">Blocked</option></select></div>
-                <div><label>CREATED AT</label><input type="text" id="m_created" readonly style="width:100%; padding:10px; background:#f9f9f9;"></div>
-                <div><label>LAST LOGIN</label><input type="text" id="m_last" readonly style="width:100%; padding:10px; background:#f9f9f9;"></div>
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitle" style="margin-top:0; font-weight:900;">Admin Identity</h2>
+        <hr style="border:0; border-top:1px solid #f1f5f9; margin:20px 0;">
+        
+        <form id="modalForm" method="POST" action="admin_crud.php">
+            <input type="hidden" name="action" value="edit_admin">
+            <input type="hidden" name="user_id" id="field_id">
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                <div class="form-group"><label>Username</label><input type="text" name="username" id="field_user" required></div>
+                <div class="form-group"><label>Real Name</label><input type="text" name="real_name" id="field_real"></div>
+                <div class="form-group"><label>Role</label>
+                    <select name="role" id="field_role">
+                        <option value="Admin">Admin</option>
+                        <option value="S.Admin">S.Admin</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Status</label>
+                    <select name="status" id="field_status">
+                        <option value="Active">Active</option>
+                        <option value="Blocked">Blocked</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Created At</label><input type="text" id="field_created" readonly style="background:#f8fafc;"></div>
+                <div class="form-group"><label>Last Login</label><input type="text" id="field_login" readonly style="background:#f8fafc;"></div>
             </div>
-            <div style="margin-top:20px;"><label>FULL ADDRESS</label><textarea id="m_addr" rows="2" readonly style="width:100%; padding:10px; background:#f9f9f9;"></textarea></div>
-            <div id="modalFooter" style="margin-top:30px; display:flex; flex-direction:column; gap:10px;">
-                <button type="submit" class="b-edit" style="padding:15px;">Save Changes</button>
-                <button type="button" onclick="closeModal()" style="background:#eee; border:none; padding:15px; border-radius:8px; cursor:pointer;">Cancel</button>
-            </div>
+            
+            <div class="form-group"><label>Full Address</label><textarea id="field_addr" rows="2" readonly style="width:100%; padding:12px; border-radius:12px; border:1px solid #e2e8f0; background:#f8fafc; font-family:inherit;"></textarea></div>
+
+            <div id="modalFooter" class="modal-footer">
+                </div>
         </form>
     </div>
 </div>
 
 <script>
-// 🌟 强行删除那个讨厌的占位文字
-document.addEventListener("DOMContentLoaded", function() {
-    document.querySelectorAll('div, p').forEach(el => {
-        if (el.textContent.includes("Administrative Workspace Ready") && !el.closest('.pxx-main-wrapper')) {
-            el.style.display = 'none';
-        }
-    });
-});
+function handleRefresh() {
+    alert("✅ Admin records synchronized and refreshed!");
+    window.location.reload();
+}
 
-document.getElementById('refreshBtn').onclick = function() {
-    fetch('admin_crud.php?action=fetch_admins').then(res => res.text()).then(html => {
-        document.getElementById('adminList').innerHTML = html;
-        alert('Refreshed!');
-    });
-};
-function openModal(mode, data = null, fullAddress = "") {
-    document.getElementById('adminModal').style.display = 'flex';
-    document.getElementById('adminForm').reset();
-    if(mode === 'detail') {
-        document.getElementById('modalTitle').innerText = "View Admin: " + data.user_id;
-        document.getElementById('modalFooter').innerHTML = '<button type="button" onclick="closeModal()" style="width:100%; padding:15px; background:#eee; border-radius:8px; border:none;">Close</button>';
-        fillData(data, true, fullAddress);
-    } else {
-        document.getElementById('modalTitle').innerText = (mode === 'edit' ? "Edit Admin" : "Create Admin");
-        document.getElementById('modalFooter').innerHTML = '<button type="submit" class="b-edit" style="padding:15px;">Save</button><button type="button" onclick="closeModal()" style="padding:15px; border:none; background:#eee; border-radius:8px;">Cancel</button>';
-        fillData(data || {}, false, fullAddress);
+function handleDelete(id) {
+    if(confirm("🚨 CRITICAL WARNING: Are you sure you want to permanently delete Admin #" + id + "?\nThis action cannot be undone!")) {
+        window.location.href = "admin_crud.php?delete=" + id;
     }
 }
-function fillData(data, disabled, fullAddress) {
-    document.getElementById('m_id').value = data.user_id || '';
-    document.getElementById('m_user').value = data.username || '';
-    document.getElementById('m_real_name').value = data.real_name || '';
-    document.getElementById('m_role').value = data.role || 'Admin';
-    document.getElementById('m_status').value = data.status || 'Active';
-    document.getElementById('m_created').value = data.created_at || 'N/A';
-    document.getElementById('m_last').value = data.last_login || 'N/A';
-    document.getElementById('m_addr').value = fullAddress || 'N/A';
-    document.querySelectorAll('#adminForm input, #adminForm select').forEach(el => { if(el.id !== 'm_created' && el.id !== 'm_last') el.disabled = disabled; });
+
+function openModal(mode, data, fullAddr = "") {
+    const modal = document.getElementById('adminModal');
+    const footer = document.getElementById('modalFooter');
+    modal.style.display = 'flex';
+    
+    document.getElementById('field_id').value = data.user_id;
+    document.getElementById('field_user').value = data.username;
+    document.getElementById('field_real').value = data.real_name || '';
+    document.getElementById('field_role').value = data.role;
+    document.getElementById('field_status').value = data.status;
+    document.getElementById('field_created').value = data.created_at || 'N/A';
+    document.getElementById('field_login').value = data.last_login || 'No Session Found';
+    document.getElementById('field_addr').value = fullAddr;
+
+    const inputs = document.querySelectorAll('#modalForm input, #modalForm select');
+    
+    if(mode === 'detail') {
+        document.getElementById('modalTitle').innerText = "Admin Detail Profile";
+        inputs.forEach(i => i.disabled = true);
+        footer.innerHTML = '<button type="button" class="btn-save" style="background:#64748b;" onclick="closeModal()">Close Window</button>';
+    } else {
+        document.getElementById('modalTitle').innerText = "Modify Administrator Data";
+        inputs.forEach(i => { if(i.id !== 'field_created' && i.id !== 'field_login') i.disabled = false; });
+        footer.innerHTML = '<button type="submit" class="btn-save">Commit Changes</button><button type="button" onclick="closeModal()" style="background:none; color:#94a3b8; border:none; cursor:pointer; font-weight:700;">Discard Changes</button>';
+    }
 }
+
 function closeModal() { document.getElementById('adminModal').style.display = 'none'; }
-function confirmDelete(id) { if(confirm("Delete Admin " + id + "?")) window.location.href="process_admin.php?delete="+id; }
+
+// 强制嵌入逻辑 (参考 Member CRUD)
+document.addEventListener("DOMContentLoaded", function() {
+    let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
+    let container = document.querySelector('.admin-container');
+    if (viewport && container && viewport !== container.parentNode) {
+        viewport.innerHTML = '';
+        viewport.appendChild(container);
+    }
+});
 </script>
 
-<?php if (file_exists($pxx_foot_file)) { include_once $pxx_foot_file; } ?>
+<?php 
+$foot = $pxx_root . '/includes/_admin_foot.php'; 
+if (file_exists($foot)) { include $foot; } 
+?>
