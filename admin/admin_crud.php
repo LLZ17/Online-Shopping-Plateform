@@ -1,13 +1,16 @@
 <?php
 /**
- * PXX Mall - Admin CRUD (Ultimate Anti-Overlap & Flexible Grid)
- * 📂 Features: Dynamic Grid, Visible Roles, Scrollable Modal, Delete Alert
+ * PXX Mall - Admin CRUD (Fixed Button Text Version)
+ * 📂 Features: Visible Text on Buttons, No Points, Scrollable Modal, Perfect Grid
  */
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 // 1. 引入数据库
 require_once '../includes/db.php'; 
+require_once '../includes/_admin_head.php'; 
+
+
 
 // ============================================================
 // 🌟 AJAX 局部刷新接口
@@ -36,7 +39,6 @@ function renderAdminList($pdo) {
         $photoFile = !empty($admin['profile_photo']) ? $admin['profile_photo'] : 'default.jpg';
         $finalAvatar = '../images/' . $photoFile;
         
-        // 角色和状态的 CSS 类名 (使用 stripos 忽略大小写，防止读取不到)
         $roleClass = (stripos($admin['role'], 'S.') !== false) ? 'sadmin' : 'admin';
         $statusClass = strtolower($admin['status']);
 
@@ -73,11 +75,11 @@ function renderAdminList($pdo) {
                 <button class="btn-primary-detail" onclick='openModal("detail", <?php echo json_encode($admin); ?>, "<?php echo $combinedAddr; ?>")'>
                     Profile Detail
                 </button>
-                <button class="btn-crud edit" onclick='openModal("edit", <?php echo json_encode($admin); ?>)'>
-                    <i class="fa-solid fa-pen-to-square"></i>
+                <button class="btn-text-edit" onclick='openModal("edit", <?php echo json_encode($admin); ?>)'>
+                    Edit
                 </button>
-                <button class="btn-crud delete" onclick="confirmDelete('<?php echo $admin['user_id']; ?>')">
-                    <i class="fa-solid fa-trash-can"></i>
+                <button class="btn-text-delete" onclick="confirmDelete('<?php echo $admin['user_id']; ?>')">
+                    Delete
                 </button>
             </div>
         </div>
@@ -85,7 +87,7 @@ function renderAdminList($pdo) {
     }
 }
 
-// 获取总人数
+// 获取 Admin 总数
 $totalStmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role IN ('Admin', 'S.Admin')");
 $totalCount = $totalStmt->fetchColumn();
 
@@ -97,7 +99,7 @@ if (file_exists('../includes/admin_head.php')) {
 
 <style>
     /* =========================================
-       🎨 核心 UI 系统
+       🎨 核心 UI 系统 
        ========================================= */
     :root {
         --pxx-red: #ef4444;
@@ -108,115 +110,126 @@ if (file_exists('../includes/admin_head.php')) {
     }
 
     body { background-color: var(--pxx-bg) !important; margin: 0; padding-bottom: 60px; font-family: 'Inter', sans-serif; }
-    .admin-main-viewport { padding: 40px; max-width: 1550px; margin: 0 auto; }
+    
+    .admin-main-viewport { padding: 40px; max-width: 1550px; margin: 0 auto; overflow-x: auto; }
 
-    /* 顶部导航控制栏 */
     .crud-header {
         display: flex; justify-content: space-between; align-items: center;
         background: white; padding: 25px 40px; border-radius: 16px;
-        margin-bottom: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+        margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        min-width: 1100px; 
     }
 
     .header-info h2 { margin: 0; font-size: 24px; font-weight: 800; color: #2d3748; }
     .header-info p { margin: 5px 0 0; color: #718096; font-size: 14px; }
 
     .btn-top {
-        padding: 12px 24px; border-radius: 10px; border: none; font-weight: 700;
+        padding: 12px 24px; border-radius: 8px; border: none; font-weight: 700;
         cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s;
     }
     .btn-refresh { background: #34495e; color: white; }
     .btn-add { background: #e60012; color: white; }
 
     /* =========================================
-       🌟 卡片排版 (核心修复：max-content 确保内容不被挤压)
+       🌟 列表网格布局
        ========================================= */
-    .admin-list-container { display: flex; flex-direction: column; gap: 14px; }
+    .admin-list-container { 
+        display: flex; flex-direction: column; gap: 12px; 
+        min-width: 1150px; 
+    }
 
     .pxx-list-card {
-        background: white; border-radius: 12px; padding: 22px 30px;
+        background: white; border-radius: 10px; padding: 20px 25px;
         display: grid; 
-        /* 1. 序号: 40px 
-           2. ID: 100px (足够拉开与头像的距离)
-           3. 头像/名字: 240px
-           4. 联系方式: 1fr (自动吸收剩余空间)
-           5. 状态和角色: max-content (确保标签绝不被压缩)
-           6. 按钮组: max-content (确保按钮完整显示)
-        */
-        grid-template-columns: 40px 100px 240px 1fr max-content max-content;
+        /* 布局参数：操作按钮组设为 auto 以适应文字宽度 */
+        grid-template-columns: 40px 100px 240px 1fr 160px auto;
         align-items: center; border: 1px solid var(--border); transition: 0.2s;
-        gap: 20px; 
+        gap: 15px; 
     }
-    .pxx-list-card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-color: #cbd5e0; }
+    .pxx-list-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.06); border-color: #cbd5e0; }
 
     .col-index { font-weight: 800; color: #cbd5e0; font-size: 16px; text-align: center; }
     .col-id { font-weight: 700; color: #a0aec0; font-size: 15px; }
 
-    .col-profile { display: flex; align-items: center; gap: 18px; }
-    .list-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #eee; }
-    .name-box strong { display: block; font-size: 16px; color: #1a202c; }
+    .col-profile { display: flex; align-items: center; gap: 15px; overflow: hidden; }
+    .list-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #eee; flex-shrink: 0; }
+    .name-box { overflow: hidden; }
+    .name-box strong { display: block; font-size: 15px; color: #1a202c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
     .name-box span { font-size: 13px; color: #718096; }
 
-    .col-contact { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #4a5568; }
-    .contact-line i { width: 18px; color: #cbd5e0; margin-right: 8px; }
+    .col-contact { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: #4a5568; overflow: hidden; }
+    .contact-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .contact-line i { width: 16px; color: #cbd5e0; margin-right: 8px; }
 
-    /* 状态与角色 (使用 flex 并排) */
-    .col-status { display: flex; flex-direction: row; gap: 10px; align-items: center; white-space: nowrap; }
-    .status-pill { padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+    .col-status { display: flex; gap: 8px; align-items: center; justify-content: flex-start; }
+    .status-pill { padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; white-space: nowrap; }
     .active { background: #e6fffa; color: #38b2ac; }
     .blocked { background: #fff5f5; color: #f56565; }
-
-    .role-pill { padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid var(--border); }
+    .role-pill { padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; border: 1px solid var(--border); white-space: nowrap; }
     .sadmin { background: #fff1f0; color: #e60012; }
     .admin { background: #ebf8ff; color: #3182ce; }
 
-    /* 操作按钮组 */
-    .col-actions { display: flex; justify-content: flex-end; gap: 12px; align-items: center; }
+    /* =========================================
+       🔥 核心修复：操作按钮样式 (取消固定宽度)
+       ========================================= */
+    .col-actions { display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
     
-    .btn-primary-detail { background: #ebf4ff; color: var(--pxx-blue); border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+    .btn-primary-detail { background: #ebf4ff; color: var(--pxx-blue); border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; white-space: nowrap; font-size: 13px;}
     .btn-primary-detail:hover { background: var(--pxx-blue); color: white; }
     
-    .btn-crud { width: 44px; height: 44px; border-radius: 8px; border: none; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; }
-    .edit { background: var(--pxx-green); }
-    .edit:hover { background: #059669; }
-    .delete { background: var(--pxx-red); }
-    .delete:hover { background: #dc2626; }
+    /* Edit 按钮：青色，文字清晰 */
+    .btn-text-edit { 
+        background: var(--pxx-green); color: white; border: none; 
+        padding: 10px 16px; border-radius: 8px; font-weight: 700; 
+        cursor: pointer; font-size: 13px; transition: 0.2s; white-space: nowrap; 
+    }
+    .btn-text-edit:hover { background: #059669; }
+
+    /* Delete 按钮：红色，文字清晰 */
+    .btn-text-delete { 
+        background: var(--pxx-red); color: white; border: none; 
+        padding: 10px 16px; border-radius: 8px; font-weight: 700; 
+        cursor: pointer; font-size: 13px; transition: 0.2s; white-space: nowrap; 
+    }
+    .btn-text-delete:hover { background: #dc2626; }
 
     /* =========================================
-       🌟 增强型可滑动弹窗 (Modal)
+       🌟 可滑动弹窗 (Modal)
        ========================================= */
     .modal-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10001;
-        backdrop-filter: blur(4px);
     }
     .modal-content {
-        background: white; width: 850px; border-radius: 20px; padding: 45px; position: relative;
-        max-height: 85vh; /* 限制高度开启滑动 */
+        background: white; width: 850px; border-radius: 16px; padding: 40px; position: relative;
+        max-height: 85vh; /* 核心：限制高度，开启滑动 */
         overflow-y: auto; 
-        box-shadow: 0 30px 70px rgba(0,0,0,0.2);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.2);
     }
-    .close-modal { position: absolute; top: 25px; right: 30px; font-size: 32px; cursor: pointer; color: #cbd5e0; }
+    .close-modal { position: absolute; top: 25px; right: 25px; font-size: 28px; cursor: pointer; color: #cbd5e0; }
 
     .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 10px; }
-    .fld-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-    .fld-box label { font-size: 11px; font-weight: 800; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px; }
-    .fld-box input, .fld-box select, .fld-box textarea { padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 14px; }
-    .fld-box input:focus { border-color: var(--pxx-blue); outline: none; }
+    .fld-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+    .fld-box label { font-size: 11px; font-weight: 800; color: #a0aec0; text-transform: uppercase; }
+    .fld-box input, .fld-box select, .fld-box textarea { padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; background: #fcfcfc; }
+    .fld-box input:focus { border-color: var(--pxx-blue); outline: none; background: white; }
 
-    /* 弹窗底部按钮 */
-    .btn-save { background: var(--pxx-green); color: white; border: none; padding: 16px; border-radius: 10px; font-weight: 800; cursor: pointer; margin-top: 10px; font-size: 15px; }
-    .btn-cancel { background: #f1f5f9; color: #475569; border: none; padding: 16px; border-radius: 10px; font-weight: 800; cursor: pointer; margin-top: 10px; font-size: 15px; }
+    .btn-save { background: var(--pxx-green); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 10px; font-size: 14px; }
+    
+    /* Cancel 按钮 */
+    .btn-cancel { background: #f1f5f9; color: #475569; border: none; padding: 15px; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 5px; font-size: 14px; }
 
-    .fa-spin-fast { animation: spin 0.6s linear infinite; }
+    .fa-spin-fast { animation: spin 0.5s linear infinite; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
 
 <div class="admin-main-viewport">
+    
     <div class="crud-header">
         <div class="header-info">
             <h2>Administrative Workspace</h2>
             <p>Direct database management for all Admin roles. 
-                <strong style="color:var(--pxx-red); margin-left:15px;">Total Admins: <?php echo $totalCount; ?></strong>
+                <strong style="color:#e60012; margin-left:10px;" id="totalCountDisplay">Total Admins: <?php echo $totalCount; ?></strong>
             </p>
         </div>
         <div style="display:flex; gap:15px;">
@@ -248,9 +261,9 @@ if (file_exists('../includes/admin_head.php')) {
                         <option value="S.Admin">S.Admin</option>
                     </select>
                 </div>
-                <div class="fld-box"><label>Account Status</label>
+                <div class="fld-box"><label>Account Lifecycle Status</label>
                     <select name="status" id="m_status">
-                        <option value="Active">Active</option>
+                        <option value="Active">Active / Operational</option>
                         <option value="Blocked">Blocked</option>
                     </select>
                 </div>
@@ -268,8 +281,8 @@ if (file_exists('../includes/admin_head.php')) {
             </div>
             
             <div class="fld-box">
-                <label>Combined Mailing Address (Full Location)</label>
-                <textarea id="m_full_address" rows="2" readonly style="background:#f8fafc; line-height:1.6;"></textarea>
+                <label>Combined Mailing Address</label>
+                <textarea id="m_full_address" rows="2" readonly style="background:#f8fafc;"></textarea>
             </div>
 
             <div style="margin-top:25px; display:flex; flex-direction:column;" id="modalFooter">
@@ -282,7 +295,7 @@ if (file_exists('../includes/admin_head.php')) {
 
 <script>
 // =========================================
-// 🚀 AJAX Refresh + Success Prompt
+// 🚀 Refresh & 弹窗通知
 // =========================================
 document.getElementById('refreshBtn').onclick = function() {
     const icon = this.querySelector('i');
@@ -294,7 +307,12 @@ document.getElementById('refreshBtn').onclick = function() {
         setTimeout(() => {
             document.getElementById('adminList').innerHTML = html;
             icon.classList.remove('fa-spin-fast');
-            alert('✅ Admin Records Synchronized Successfully!');
+            
+            // 重新计算总人数
+            const newCount = document.querySelectorAll('.pxx-list-card').length;
+            document.getElementById('totalCountDisplay').innerText = "Total Admins: " + newCount;
+            
+            alert('✅ Records Refreshed Successfully!');
         }, 500);
     });
 };
@@ -310,7 +328,7 @@ function openModal(mode, data = null, fullAddress = "") {
 
     if(mode === 'detail') {
         title.innerText = "Viewing Detail: " + data.user_id;
-        footer.innerHTML = '<button type="button" class="btn-cancel" onclick="closeModal()" style="width:100%">Close Details</button>';
+        footer.innerHTML = '<button type="button" class="btn-cancel" onclick="closeModal()">Close Details</button>';
         fillData(data, true, fullAddress);
     } else {
         title.innerText = (mode === 'edit') ? "Edit Administrator" : "Create New Admin";
@@ -330,7 +348,7 @@ function fillData(data, disabled, fullAddress) {
     
     document.getElementById('m_created_at').value = data.created_at || 'N/A';
     document.getElementById('m_last_login').value = data.last_login || 'N/A';
-    document.getElementById('m_full_address').value = fullAddress || 'No address data provided';
+    document.getElementById('m_full_address').value = fullAddress || 'N/A';
 
     const inputs = document.querySelectorAll('#adminForm input, #adminForm select, #adminForm textarea');
     inputs.forEach(el => {
@@ -344,9 +362,9 @@ function fillData(data, disabled, fullAddress) {
 
 function closeModal() { document.getElementById('adminModal').style.display = 'none'; }
 
-// 删除确认
+// 🚨 删除确认弹窗
 function confirmDelete(id) {
-    if(confirm("🚨 WARNING: You are about to permanently delete Admin " + id + ".\nClick OK to proceed.")) {
+    if(confirm("🚨 WARNING: Are you sure you want to PERMANENTLY DELETE Admin " + id + "?")) {
         window.location.href = "process_admin.php?delete=" + id;
     }
 }

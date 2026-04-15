@@ -191,7 +191,7 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
             </form>
 
             <div class="footer-links">
-                <a href="forgot_password.php" class="link-blue">Forgot Password?</a>
+                <a href="reset_password.php" class="link-blue">Forgot Password?</a>
                 
                 <a href="javascript:void(0)" onclick="toggleModal(true)" style="color:#777; text-decoration:none;">
                     <i class="fas fa-question-circle"></i> Need Help?

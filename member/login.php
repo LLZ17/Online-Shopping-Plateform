@@ -182,7 +182,7 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
             </form>
 
             <div class="footer-links">
-                <a href="forgot_password.php" class="link-blue">Forgot password?</a>
+                <a href="reset_password.php" class="link-blue">Forgot password?</a>
                 
                 <span style="color: #666;">New to PXX Mall? <a href="signup.php" style="color:<?php echo $color; ?>; text-decoration:none; font-weight:bold;">Sign up here</a></span>
 
