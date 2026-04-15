@@ -3,18 +3,29 @@ session_start();
 require_once 'includes/db.php';
 require_once 'includes/_head.php';
 
-// 获取推荐产品（按库存量排序，优先展示库存充足的热门商品）
-$stmt = $pdo->prepare("
-    SELECT * FROM products 
+$current_user_id = $_SESSION['user_id'] ?? null;
+
+/**
+ * 优化后的 SQL：通过子查询检测收藏状态
+ */
+$featured_sql = "
+    SELECT p.*, 
+    (SELECT COUNT(*) FROM favourites f WHERE f.product_id = p.product_id AND f.user_id = ?) as is_favourite
+    FROM products p 
     ORDER BY stock DESC, product_id DESC 
-    LIMIT 8
-");
-$stmt->execute();
+    LIMIT 8";
+$stmt = $pdo->prepare($featured_sql);
+$stmt->execute([$current_user_id]);
 $featured_products = $stmt->fetchAll();
 
-// 获取新品（最新8个）
-$stmt = $pdo->prepare("SELECT * FROM products ORDER BY product_id DESC LIMIT 8");
-$stmt->execute();
+$new_products_sql = "
+    SELECT p.*, 
+    (SELECT COUNT(*) FROM favourites f WHERE f.product_id = p.product_id AND f.user_id = ?) as is_favourite
+    FROM products p 
+    ORDER BY product_id DESC 
+    LIMIT 8";
+$stmt = $pdo->prepare($new_products_sql);
+$stmt->execute([$current_user_id]);
 $new_products = $stmt->fetchAll();
 ?>
 
@@ -342,6 +353,27 @@ $new_products = $stmt->fetchAll();
         background: #e60012;
         color: white;
     }
+
+    /* ... 原有样式 ... */
+
+    /* 已收藏状态的按钮样式 */
+    .quick-wishlist.active {
+        background-color: #e60012; /* 常驻红色 */
+        color: white;
+        border: 1px solid #e60012;
+    }
+
+    /* 已收藏状态下的 Hover 效果（变为未收藏时的背景色） */
+    .quick-wishlist.active:hover {
+        background-color: #f0f0f0; 
+        color: #333;
+        border: 1px solid #6e6e6e;
+    }
+
+    /* 按钮容器背景变为浅粉红色 */
+    .product-card.is-fav-module .quick-buttons {
+        background: rgba(255, 230, 230, 0.95); /* 浅粉红色 */
+    }
     
     .product-info {
         padding: 20px;
@@ -554,6 +586,7 @@ $new_products = $stmt->fetchAll();
         .product-name { font-size: 13px; height: 36px; }
         .product-price { font-size: 16px; }
     }
+
 </style>
 
 <div class="hero-slider-container">
@@ -625,19 +658,20 @@ $new_products = $stmt->fetchAll();
         <p style="grid-column: 1/-1; text-align: center; padding: 50px; color: #999;">No products available yet.</p>
     <?php else: ?>
         <?php foreach ($featured_products as $product): ?>
-            <div class="product-card">
-                <div class="product-img-wrapper">
-                    <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>">
-                        <img src="images/<?php echo !empty($product['product_image']) ? htmlspecialchars($product['product_image']) : 'default.jpg'; ?>" 
-                             alt="<?php echo htmlspecialchars($product['name']); ?>"
-                             onerror="this.src='images/default.jpg'">
-                    </a>
-                    <div class="quick-buttons">
-                        <button class="quick-wishlist" onclick="addToWishlist(<?php echo $product['product_id']; ?>)">
-                            ♡ Wishlist
-                        </button>
-                    </div>
-                </div>
+    <div class="product-card <?php echo ($product['is_favourite'] > 0) ? 'is-fav-module' : ''; ?>">
+        <div class="product-img-wrapper">
+            <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>">
+                <img src="images/<?php echo !empty($product['product_image']) ? htmlspecialchars($product['product_image']) : 'default.jpg'; ?>" 
+                     alt="<?php echo htmlspecialchars($product['name']); ?>"
+                     onerror="this.src='images/default.jpg'">
+            </a>
+            <div class="quick-buttons">
+                <button class="quick-wishlist <?php echo ($product['is_favourite'] > 0) ? 'active' : ''; ?>" 
+                        onclick="addToWishlist(event, '<?php echo $product['product_id']; ?>')">
+                    <?php echo ($product['is_favourite'] > 0) ? '♥ Wishlisted' : '♡ Wishlist'; ?>
+                </button>
+            </div>
+        </div>
                 <div class="product-info">
                     <div class="product-category">
                         <?php echo isset($product['category_type']) ? ($product['category_type'] == 'Men' ? '👔 MEN' : '👗 WOMEN') : 'FASHION'; ?>
@@ -677,14 +711,20 @@ $new_products = $stmt->fetchAll();
         <p style="grid-column: 1/-1; text-align: center; padding: 50px; color: #999;">No new products.</p>
     <?php else: ?>
         <?php foreach ($new_products as $product): ?>
-            <div class="product-card">
+            <div class="product-card <?php echo ($product['is_favourite'] > 0) ? 'is-fav-module' : ''; ?>">
                 <div class="product-img-wrapper">
                     <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>">
                         <img src="images/<?php echo !empty($product['product_image']) ? htmlspecialchars($product['product_image']) : 'default.jpg'; ?>" 
-                             alt="<?php echo htmlspecialchars($product['name']); ?>"
-                             onerror="this.src='images/default.jpg'">
+                        alt="<?php echo htmlspecialchars($product['name']); ?>"
+                        onerror="this.src='images/default.jpg'">
                     </a>
+                    <div class="quick-buttons">
+                        <button class="quick-wishlist <?php echo ($product['is_favourite'] > 0) ? 'active' : ''; ?>"
+                        onclick="addToWishlist(event, '<?php echo $product['product_id']; ?>')">
+                        <?php echo ($product['is_favourite'] > 0) ? '♥ Wishlisted' : '♡ Wishlist'; ?>
+                    </button>
                 </div>
+            </div>
                 <div class="product-info">
                     <div class="product-category">
                         <?php echo isset($product['category_type']) ? ($product['category_type'] == 'Men' ? '👔 MEN' : '👗 WOMEN') : 'FASHION'; ?>
@@ -813,22 +853,34 @@ function addToCart(productId) {
     });
 }
 
-function addToWishlist(productId) {
-    <?php if (isset($_SESSION['user_id'])): ?>
-        $.ajax({
-            url: 'member/wishlist_add.php?id=' + productId,
-            method: 'GET',
-            success: function() {
-                alert('Added to wishlist!');
-            },
-            error: function() {
-                alert('Error adding to wishlist');
+function addToWishlist(event, productId) {
+    const btn = event.currentTarget;
+    const card = btn.closest('.product-card');
+
+    $.ajax({
+        url: 'member/wishlist_toggle.php?id=' + productId,
+        method: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.status === 'not_logged_in') {
+                // 未登录重定向
+                window.location.href = 'login_selection.php';
+            } else if (response.status === 'added') {
+                // 切换为收藏状态
+                btn.classList.add('active');
+                card.classList.add('is-fav-module');
+                btn.innerHTML = '♥ Wishlisted';
+            } else if (response.status === 'removed') {
+                // 恢复为未收藏状态
+                btn.classList.remove('active');
+                card.classList.remove('is-fav-module');
+                btn.innerHTML = '♡ Wishlist';
             }
-        });
-    <?php else: ?>
-        alert('Please login first to add to wishlist');
-        window.location.href = 'login.php';
-    <?php endif; ?>
+        },
+        error: function() {
+            alert('Error toggling wishlist');
+        }
+    });
 }
 </script>
 
