@@ -99,6 +99,11 @@ if (file_exists($admin_head)) { include $admin_head; }
             .card-img-box { width: 100%; height: 200px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; }
             .card-img { max-width: 85%; max-height: 85%; object-fit: contain; }
             .card-body { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+            
+            /* 💡 增加 flex 布局让分类标签靠右对齐 */
+            .id-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+            .cat-badge { background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; }
+            
             .p-title { font-size: 16px; font-weight: 700; color: #1e293b; height: 48px; overflow: hidden; margin-bottom: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
             .price-tag { font-size: 22px; font-weight: 800; color: #0f172a; }
             
@@ -155,7 +160,10 @@ if (file_exists($admin_head)) { include $admin_head; }
                         <img src="<?= $path ?>" class="card-img" onerror="this.src='../images/default.png'">
                     </div>
                     <div class="card-body">
-                        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 5px;">#<?= $p['product_id'] ?></div>
+                        <div class="id-row">
+                            <div style="font-size: 11px; color: #94a3b8;">#<?= $p['product_id'] ?></div>
+                            <div class="cat-badge"><?= htmlspecialchars($p['category_id'] ?? 'N/A') ?></div>
+                        </div>
                         <div class="p-title"><?= htmlspecialchars($p['name']) ?></div>
                         <div class="price-tag">RM <?= number_format($p['price'], 2) ?></div>
                     </div>
