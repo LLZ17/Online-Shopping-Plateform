@@ -573,7 +573,6 @@ if (file_exists(PXX_HEAD_PATH)) { include_once PXX_HEAD_PATH; }
             if(pxx_current_step === 1) validateStep1();
             else validateStep2();
         }
-        
         // 更新进度条
         document.getElementById('f_bar').style.width = (pxx_current_step * 33.33) + "%";
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -583,7 +582,7 @@ if (file_exists(PXX_HEAD_PATH)) { include_once PXX_HEAD_PATH; }
     window.onload = pxx_init_locations;
 </script>
 
-<?php 
+<?php
 // 加载页脚
-if (file_exists(PXX_FOOT_PATH)) { include_once PXX_FOOT_PATH; } 
+if (file_exists(PXX_FOOT_PATH)) { include_once PXX_FOOT_PATH; }
 ?>

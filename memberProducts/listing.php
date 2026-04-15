@@ -16,9 +16,15 @@ if (!empty($search)) {
     $params[] = "%$search%";
 }
 
+// 找到这部分并替换
 if (!empty($category) && $category != 'All') {
-    $sql .= " AND category_id = ?";
-    $params[] = $category;
+    if ($category == 'Men') {
+        // 匹配以 M 开头的 product_id
+        $sql .= " AND product_id LIKE 'M%'";
+    } elseif ($category == 'Women') {
+        // 匹配以 W 开头的 product_id
+        $sql .= " AND product_id LIKE 'W%'";
+    }
 }
 
 $sql .= " ORDER BY product_id DESC";

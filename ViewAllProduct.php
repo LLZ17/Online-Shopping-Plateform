@@ -46,7 +46,7 @@ if (!empty($search)) {
     
     // 按分类搜索
     if ($auto_category) {
-        $conditions[] = "category_id = ?";
+        $conditions[] = "category_type = ?";
         $params[] = $auto_category;
     }
     
@@ -65,12 +65,43 @@ if (!empty($search)) {
     
     $sql .= implode(" OR ", $conditions);
     $sql .= ")";
+// 构建搜索条件
+    $sql .= " AND (";
+    $conditions = [];
+    
+    // 【修改点 1】按分类搜索：改为匹配 product_id 的首字母
+    if ($auto_category) {
+        if ($auto_category == 'Men') {
+            $conditions[] = "product_id LIKE 'M%'";
+        } elseif ($auto_category == 'Women') {
+            $conditions[] = "product_id LIKE 'W%'";
+        }
+    }
+    
+    // 按产品类型搜索
+    if ($product_type) {
+        $conditions[] = "(name LIKE ? OR keywords LIKE ?)";
+        $params[] = "%$product_type%";
+        $params[] = "%$product_type%";
+    }
+    
+    // 通用搜索
+    $conditions[] = "(name LIKE ? OR keywords LIKE ? OR description LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+    
+    $sql .= implode(" OR ", $conditions);
+    $sql .= ")";
 }
 
-// 分类筛选（如果用户手动选择了分类）
+// 【修改点 2】分类筛选（用户手动点击按钮时）：同样改为匹配首字母
 if (!empty($category) && $category != 'All') {
-    $sql .= " AND category_id = ?";
-    $params[] = $category;
+    if ($category == 'Men') {
+        $sql .= " AND product_id LIKE 'M%'";
+    } elseif ($category == 'Women') {
+        $sql .= " AND product_id LIKE 'W%'";
+    }
 }
 
 $sql .= " ORDER BY product_id DESC";

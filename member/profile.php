@@ -3,7 +3,7 @@
  * PXX Mall - Ultimate Member Settings Portal (FULL VERSION)
  * Layout: Fixed 1200px Ultra-Wide Dashboard
  * Features: Editable Username, Triple Address Lines, Avatar X Delete, Full Security
- * Version: 4.0 (No Compression / No Cuts)
+ * Version: 4.1 (VS Code & UI Alignment Fix)
  */
 
 // --- 1. SESSION & DATABASE CORE ---
@@ -13,7 +13,6 @@ if (session_status() === PHP_SESSION_NONE) {
 
 /**
  * 🔥 核心修复点 1：物理路径对齐
- * 使用 dirname(__DIR__) 确保路径 100% 准确，解决 member../ 报错
  */
 $pxx_root = dirname(__DIR__);
 $pxx_db_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'db.php';
@@ -27,10 +26,10 @@ if (file_exists($pxx_db_file)) {
 }
 
 /**
- * 🔥 核心修复点 2：PDO 变量防空保护
- * 确保 $pdo 变量在当前作用域可用，解决 line 100 报错
+ * 🔥 核心修复点 2：PDO 变量防空保护 & VS Code 报错修复
  */
 global $pdo;
+/** @var PDO $pdo */
 if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
 
 // Check if the user is authenticated
@@ -58,20 +57,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $addr2 = isset($_POST['address_line2']) ? trim($_POST['address_line2']) : '';
     $addr3 = isset($_POST['address_line3']) ? trim($_POST['address_line3']) : '';
     
-    // Only update address if we are on the Address Page or the user submitted new lines
-    // --- 修改后的地址合并逻辑 ---
-    $addr1 = isset($_POST['address_line1']) ? trim($_POST['address_line1']) : '';
-    $addr2 = isset($_POST['address_line2']) ? trim($_POST['address_line2']) : '';
-    $addr3 = isset($_POST['address_line3']) ? trim($_POST['address_line3']) : '';
-    
     // 只有在地址页提交且有内容时才更新全址
     if ($active_page == 'addresses' && (!empty($addr1) || !empty($addr2) || !empty($addr3))) {
         $full_address = $addr1;
-        // 使用英文逗号 (,) 作为链接符号
         if (!empty($addr2)) $full_address .= ", " . $addr2; 
         if (!empty($addr3)) $full_address .= ", " . $addr3;
     } else {
-        // 如果是其他页面提交，则保持原样
         $full_address = $_POST['current_full_address'] ?? '';
     }
     
@@ -79,17 +70,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $city      = isset($_POST['city']) ? trim($_POST['city']) : '';
     $state     = isset($_POST['state']) ? trim($_POST['state']) : '';
     
-    // Avatar Logic: Handle New Upload or "X" Delete Command
+    // Avatar Logic
     $st_photo = $pdo->prepare("SELECT profile_photo FROM users WHERE user_id = ?");
     $st_photo->execute([$user_id]);
     $u_old_data = $st_photo->fetch();
     $photo_filename = $u_old_data['profile_photo'] ?? 'default.jpg';
 
-    // Check for "X" button delete flag
     if (isset($_POST['delete_avatar_flag']) && $_POST['delete_avatar_flag'] == '1') {
         $photo_filename = 'default.jpg';
     } 
-    // Check for new file upload
     elseif (!empty($_FILES['profile_photo']['name'])) {
         $temp_name = $_FILES["profile_photo"]["tmp_name"];
         $ext = pathinfo($_FILES["profile_photo"]["name"], PATHINFO_EXTENSION);
@@ -115,7 +104,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $photo_filename, $user_id
     ]);
     
-    // Sync session data
     $_SESSION['username'] = $username;
     $_SESSION['profile_image'] = $photo_filename;
     
@@ -128,10 +116,8 @@ $stmt_fetch = $pdo->prepare("SELECT * FROM users WHERE user_id = ?");
 $stmt_fetch->execute([$user_id]);
 $u = $stmt_fetch->fetch();
 
-// Secondary logic for verification status
 $email_verified_status = (isset($u['email_verified']) && $u['email_verified'] == 1) ? true : false;
 
-// Helper function for safe output
 function d($val) { 
     return htmlspecialchars($val ?? ''); 
 }
@@ -151,7 +137,6 @@ if (file_exists($pxx_head_file)) {
         padding: 0; 
     }
     
-    /* Strong 1200px Width Constraint */
     .pxx-master-wrapper { 
         width: 1200px; 
         margin: 40px auto; 
@@ -160,7 +145,6 @@ if (file_exists($pxx_head_file)) {
         box-sizing: border-box; 
     }
 
-    /* --- SIDEBAR NAVIGATION (PERFECTLY ALIGNED) --- */
     .pxx-sidebar-nav { 
         width: 280px; 
         flex-shrink: 0; 
@@ -188,7 +172,6 @@ if (file_exists($pxx_head_file)) {
         font-size: 15px; 
     }
 
-    /* 🔥 Icon Alignment with 35px spacing */
     .nav-section-header { 
         font-size: 16px; 
         font-weight: 700; 
@@ -219,7 +202,6 @@ if (file_exists($pxx_head_file)) {
         font-weight: 600; 
     }
 
-    /* 🔥 LOGOUT ALIGNED WITH "MY ACCOUNT" TEXT */
     .logout-nav-container { 
         margin-top: 50px; 
     }
@@ -245,10 +227,9 @@ if (file_exists($pxx_head_file)) {
     }
     
     .logout-link-aligned span { 
-        padding-left: 15px; /* Matches the gap of upper items */
+        padding-left: 15px; 
     }
 
-    /* --- RIGHT CONTENT DASHBOARD --- */
     .pxx-main-dashboard { 
         flex: 1; 
         background: #fff; 
@@ -270,7 +251,6 @@ if (file_exists($pxx_head_file)) {
         font-weight: 500; 
     }
 
-    /* --- ADVANCED FORM LAYOUT --- */
     .form-row-pxx { 
         display: flex; 
         margin-bottom: 35px; 
@@ -290,7 +270,6 @@ if (file_exists($pxx_head_file)) {
         flex: 1; 
     }
     
-    /* 🔥 ULTRA LONG INPUT FOR ADDRESS 1/2/3 */
     .pxx-input-large { 
         width: 100%; 
         padding: 14px 15px; 
@@ -298,16 +277,22 @@ if (file_exists($pxx_head_file)) {
         border-radius: 2px; 
         font-size: 15px; 
         box-sizing: border-box; 
-        margin-bottom: 15px; 
+        margin-bottom: 0px; 
         transition: border-color 0.2s;
+        background: #fff;
     }
     
+    select.pxx-input-large {
+        height: 48px;
+        appearance: none;
+        background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23aaa' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat right 15px center;
+    }
+
     .pxx-input-large:focus { 
         border-color: #e60012; 
         outline: none; 
     }
     
-    /* Gender Horizontal Alignment */
     .gender-horizontal-wrap { 
         display: flex; 
         gap: 40px; 
@@ -344,7 +329,6 @@ if (file_exists($pxx_head_file)) {
         background: #d31d1d; 
     }
 
-    /* 🔥 AVATAR WITH DELETE 'X' BUTTON */
     .avatar-interactive-box { 
         position: relative; 
         width: 110px; 
@@ -378,7 +362,6 @@ if (file_exists($pxx_head_file)) {
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
-    /* SECURITY ITEM LIST */
     .security-data-row { 
         display: flex; 
         justify-content: space-between; 
@@ -431,11 +414,8 @@ if (file_exists($pxx_head_file)) {
             </div>
             
             <a href="?page=my_profile" class="nav-link-item <?php echo ($active_page=='my_profile')?'active':''; ?>">My Profile</a>
-            
             <a href="?page=addresses" class="nav-link-item <?php echo ($active_page=='addresses')?'active':''; ?>">My Shipping Addresses</a>
-            
             <a href="?page=bank" class="nav-link-item <?php echo ($active_page=='bank')?'active':''; ?>">My Bank Accounts / Cards</a>
-            
             <a href="?page=security" class="nav-link-item <?php echo ($active_page=='security')?'active':''; ?>">My Account Security</a>
             
             <div class="logout-nav-container">
@@ -528,14 +508,10 @@ if (file_exists($pxx_head_file)) {
             <div style="margin-left: 0; color: #aaa; font-size: 13px; margin-bottom: 30px; line-height: 1.6;">
                 <i class="fas fa-info-circle"></i> Current System Address: 
                 <?php 
-                    // 1. 使用英文逗号拆分数据库中的地址字段
                     $addr_parts = explode(", ", $u['address'] ?? ''); 
-                    
-                    // 2. 整合所有地址片段
                     $raw_segments = array_merge($addr_parts, [$u['Postcode'], $u['City'], $u['State']]);
                     $formatted_segments = [];
                     
-                    // 3. 遍历并为非空内容加上括号 ()
                     foreach ($raw_segments as $seg) {
                         $trimmed = trim($seg ?? '');
                         if (!empty($trimmed)) {
@@ -551,43 +527,50 @@ if (file_exists($pxx_head_file)) {
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Address Line 1</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="address_line1" class="pxx-input-large" 
-                               value="" placeholder="Unit / House Number / Floor No.">
+                        <input type="text" name="address_line1" class="pxx-input-large" value="" placeholder="Unit / House Number / Floor No.">
                     </div>
                 </div>
                 
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Address Line 2</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="address_line2" class="pxx-input-large" 
-                               value="" placeholder="Building Name / Street Name">
+                        <input type="text" name="address_line2" class="pxx-input-large" value="" placeholder="Building Name / Street Name">
                     </div>
                 </div>
                 
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Address Line 3</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="address_line3" class="pxx-input-large" 
-                               value="" placeholder="Area / District / Section">
+                        <input type="text" name="address_line3" class="pxx-input-large" value="" placeholder="Area / District / Section">
                     </div>
                 </div>
 
-                <div class="fld-box">
-                <label>State</label>
-                <select name="state" id="m_state" onchange="updateCitySelection()">
-                <option value="">Select State</option>
-                </select>
-</div>
-<div class="fld-box">
-    <label>City</label>
-    <select name="city" id="m_city">
-        <option value="">Select City (Select State first)</option>
-        </select>
-</div>
-<div class="fld-box">
-    <label>Postcode</label>
-    <input type="text" name="postcode" id="m_postcode">
-</div>
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">Postcode</div>
+                    <div class="form-content-pxx">
+                        <input type="text" name="postcode" id="m_postcode" 
+                               class="pxx-input-large" 
+                               value="<?php echo d($u['Postcode']); ?>" placeholder="e.g. 53300">
+                    </div>
+                </div>
+
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">State</div>
+                    <div class="form-content-pxx">
+                        <select name="state" id="m_state" class="pxx-input-large" onchange="loadCities()">
+                            <option value="<?php echo d($u['State']); ?>"><?php echo d($u['State'] ?: 'Select State'); ?></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row-pxx">
+                    <div class="form-label-pxx">City</div>
+                    <div class="form-content-pxx">
+                        <select name="city" id="m_city" class="pxx-input-large">
+                            <option value="<?php echo d($u['City']); ?>"><?php echo d($u['City'] ?: 'Select City'); ?></option>
+                        </select>
+                    </div>
+                </div>
 
                 <input type="hidden" name="username" value="<?php echo d($u['username']); ?>">
                 <input type="hidden" name="real_name" value="<?php echo d($u['real_name']); ?>">
@@ -619,10 +602,11 @@ if (file_exists($pxx_head_file)) {
                     </span>
                 </div>
                 <div class="sec-action-link">
-                    <a href = "edit_email.php" class = "blue-link-action">Change Email</a>
+                    <a href="edit_email.php" class="blue-link-action">Change Email</a>
                     <?php echo $email_verified_status ? '' : ' | '; ?>
-                    <a href = "email_verify.php" class="blue-link-action">
-                        <?php echo $email_verified_status ? '' : 'Verify Now', ''; ?></a>
+                    <a href="email_verify.php" class="blue-link-action">
+                        <?php echo $email_verified_status ? '' : 'Verify Now'; ?>
+                    </a>
                 </div>
             </div>
 
