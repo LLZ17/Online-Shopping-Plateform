@@ -102,13 +102,11 @@ if (file_exists($admin_head)) { include $admin_head; }
             .p-title { font-size: 16px; font-weight: 700; color: #1e293b; height: 48px; overflow: hidden; margin-bottom: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
             .price-tag { font-size: 22px; font-weight: 800; color: #0f172a; }
             
-            /* 💡 核心修改：改为三等分（1fr 1fr 1fr），并加上了 detail-link 样式 */
+            /* 三等分布局 & 颜色设置 */
             .card-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #f8fafc; border-top: 1px solid #f1f5f9; }
             .btn-action { padding: 16px; text-align: center; text-decoration: none; font-size: 13px; font-weight: 700; }
-            .detail-link { color: #eab308; border-right: 1px solid #f1f5f9; } /* 新增的 Detail 按钮颜色 */
+            .detail-link { color: #eab308; border-right: 1px solid #f1f5f9; } 
             .edit-link { color: #3b82f6; border-right: 1px solid #f1f5f9; }
-            
-            /* 💡 修改这里：让 delete 按钮一直显示红色 */
             .del-link { color: #ef4444; } 
             .del-link:hover { color: #dc2626; }
         </style>
@@ -164,7 +162,9 @@ if (file_exists($admin_head)) { include $admin_head; }
                     <div class="card-actions">
                         <a href="admin_product_detail.php?id=<?= urlencode($p['product_id']) ?>" class="btn-action detail-link">Detail</a>
                         <a href="admin_product_edit.php?id=<?= urlencode($p['product_id']) ?>" class="btn-action edit-link">Edit</a>
-                        <a href="admin_product_delete.php?id=<?= urlencode($p['product_id']) ?>" class="btn-action del-link" onclick="return confirm('Delete?')">Delete</a>
+                        
+                        <a href="admin_product_delete.php?id=<?= urlencode($p['product_id']) ?>" class="btn-action del-link" onclick="return confirm('Are you sure you want to permanently delete this product (#<?= htmlspecialchars($p['product_id']) ?>)?\n\nThis action cannot be undone.');">Delete</a>
+                        
                     </div>
                 </div>
                 <?php endforeach; ?>
