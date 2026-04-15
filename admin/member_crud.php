@@ -160,7 +160,7 @@ if (file_exists($admin_head)) { include $admin_head; }
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
             <div class="stat-badge">Total Members <span><?= count($members) ?></span></div>
             
-            <a href="member_crud.php" class="btn-refresh">
+            <a href="javascript:void(0);" onclick="triggerSyncRefresh();" class="btn-refresh">
                 <span class="icon-spin">🔄</span> Refresh
             </a>
 
@@ -303,6 +303,12 @@ if (file_exists($admin_head)) { include $admin_head; }
 </div>
 
 <script>
+    // 💡 弹窗刷新函数
+    function triggerSyncRefresh() {
+        alert("✅ Admin records synchronized and refreshed!");
+        window.location.reload();
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
         let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
         let container = document.querySelector('.member-container');
