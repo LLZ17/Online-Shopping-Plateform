@@ -48,7 +48,6 @@ if (file_exists($admin_head)) { include $admin_head; }
             .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
             .page-header h1 { font-size: 32px; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -1.5px; }
             
-            /* 💡 过滤栏样式 */
             .filter-card {
                 background: #ffffff; border-radius: 20px; padding: 20px; margin-bottom: 25px;
                 box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05); border: 1px solid rgba(226, 232, 240, 0.8);
@@ -71,8 +70,41 @@ if (file_exists($admin_head)) { include $admin_head; }
                 font-weight: 800; font-size: 14px; text-decoration: none; border: 1px solid #e2e8f0;
             }
 
-            .btn-refresh { background: #ffffff; color: #64748b; padding: 12px 20px; border-radius: 14px; text-decoration: none; font-weight: 700; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 8px; }
-            .btn-add { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 700; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3); }
+            /* ✨ 优化后的高级 Refresh 按钮 */
+            .btn-refresh { 
+                background: #ffffff; 
+                color: #475569; 
+                padding: 10px 22px; 
+                border-radius: 14px; 
+                text-decoration: none; 
+                font-weight: 800; 
+                font-size: 13px;
+                border: 1px solid #e2e8f0; 
+                display: inline-flex; 
+                align-items: center; 
+                gap: 10px; 
+                cursor: pointer; 
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            }
+            .btn-refresh:hover {
+                background: #0f172a;
+                color: #ffffff;
+                border-color: #0f172a;
+                transform: translateY(-3px) scale(1.02);
+                box-shadow: 0 15px 30px -5px rgba(15, 23, 42, 0.2);
+            }
+            .icon-spin { 
+                display: inline-block;
+                transition: transform 0.8s ease; 
+            }
+            .btn-refresh:hover .icon-spin { 
+                transform: rotate(360deg); 
+                color: #3b82f6;
+            }
+
+            .btn-add { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 700; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3); transition: 0.3s; }
+            .btn-add:hover { transform: translateY(-2px); box-shadow: 0 15px 25px -5px rgba(239, 68, 68, 0.4); color: white; }
             
             .product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; }
             .product-card { background: #ffffff; border-radius: 28px; border: 1px solid rgba(226, 232, 240, 0.8); overflow: hidden; display: flex; flex-direction: column; transition: all 0.4s ease; height: 100%; position: relative; }
@@ -91,8 +123,15 @@ if (file_exists($admin_head)) { include $admin_head; }
 
         <div class="page-header">
             <h1>Product CRUD</h1>
-            <div class="header-actions">
-                <a href="product_crud.php" class="btn-refresh">🔄 Refresh</a>
+            <div class="header-actions" style="display: flex; gap: 15px;">
+                <a href="javascript:void(0);" onclick="triggerSyncRefresh();" class="btn-refresh">
+                    <span class="icon-spin">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                    </span>
+                    <span>SYNC RECORDS</span>
+                </a>
                 <a href="admin_product_add.php" class="btn-add">➕ Add Item</a>
             </div>
         </div>
@@ -140,6 +179,12 @@ if (file_exists($admin_head)) { include $admin_head; }
 </template>
 
 <script>
+// 💡 定义弹窗刷新函数
+function triggerSyncRefresh() {
+    alert("✅ Admin records synchronized and refreshed!");
+    window.location.href = 'product_crud.php';
+}
+
 (function() {
     const templateId = 'final_product_layout';
     
@@ -156,12 +201,6 @@ if (file_exists($admin_head)) { include $admin_head; }
             if (!viewport.querySelector('.inventory-container')) {
                 viewport.innerHTML = ''; 
                 viewport.appendChild(template.content.cloneNode(true));
-                
-                // 💡 关键：重新同步搜索框的值（防止注入后输入框被清空）
-                const searchInputs = viewport.querySelectorAll('input[name="search"]');
-                if (searchInputs.length > 0) {
-                    // 这里可以添加逻辑确保输入框状态正常
-                }
             }
         }
     }
