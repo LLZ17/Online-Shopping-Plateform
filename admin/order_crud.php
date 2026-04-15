@@ -185,7 +185,7 @@ if (file_exists($admin_head)) { include $admin_head; }
             <h1>Sales Analytics</h1>
             <p>Overview of your store's performance and top-selling items.</p>
         </div>
-        <a href="javascript:location.reload();" class="btn-refresh">
+        <a href="javascript:void(0);" onclick="triggerSyncRefresh();" class="btn-refresh">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M23 4v6h-6"></path>
                 <path d="M1 20v-6h6"></path>
@@ -252,6 +252,12 @@ if (file_exists($admin_head)) { include $admin_head; }
 </div>
 
 <script>
+    // 💡 弹窗刷新函数
+    function triggerSyncRefresh() {
+        alert("✅ Admin records synchronized and refreshed!");
+        window.location.reload();
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
         const salesApp = document.getElementById('sales-app');
         salesApp.style.display = 'block';
