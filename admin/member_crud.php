@@ -107,6 +107,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     .u-realname { font-size: 15px; font-weight: 800; color: #0f172a; }
     .u-username { font-size: 12px; color: #94a3b8; font-weight: 600; }
 
+    /* 联系方式 (如第2张截图所示) */
     .contact-item { font-size: 13px; color: #475569; display: flex; align-items: flex-start; gap: 6px; margin-bottom: 4px; }
     .contact-icon { font-size: 14px; opacity: 0.7; margin-top: 1px; }
     .address-text { line-height: 1.4; max-width: 220px; white-space: normal; word-wrap: break-word; font-size: 12px; }
@@ -133,12 +134,22 @@ if (file_exists($admin_head)) { include $admin_head; }
     .points-text { font-size: 16px; font-weight: 900; color: #f59e0b; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 
     .action-group { display: flex; flex-direction: column; gap: 8px; } 
+    
+    /* 💡 新增的 Profile Detail (详情) 按钮样式 - 金黄色 */
     .btn-profile-detail {
-        background: #f8fafc; color: #3b82f6; padding: 8px 12px; border-radius: 10px;
+        background: #fefce8; color: #ca8a04; padding: 8px 12px; border-radius: 10px;
         text-decoration: none; font-weight: 800; font-size: 11px; transition: all 0.3s ease;
-        display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #e2e8f0; white-space: nowrap; width: 110px; box-sizing: border-box;
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #fef08a; white-space: nowrap; width: 110px; box-sizing: border-box;
     }
-    .btn-profile-detail:hover { background: #3b82f6; color: #ffffff; border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
+    .btn-profile-detail:hover { background: #ca8a04; color: #ffffff; border-color: #ca8a04; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(202, 138, 4, 0.3); }
+
+    /* 💡 改名后的 Edit (编辑) 按钮样式 - 蓝色 */
+    .btn-edit {
+        background: #eff6ff; color: #3b82f6; padding: 8px 12px; border-radius: 10px;
+        text-decoration: none; font-weight: 800; font-size: 11px; transition: all 0.3s ease;
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #bfdbfe; white-space: nowrap; width: 110px; box-sizing: border-box;
+    }
+    .btn-edit:hover { background: #3b82f6; color: #ffffff; border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
 
     .btn-delete {
         background: #fef2f2; color: #ef4444; padding: 8px 12px; border-radius: 10px;
@@ -187,7 +198,7 @@ if (file_exists($admin_head)) { include $admin_head; }
                 </thead>
                 <tbody>
                     <?php if (!empty($members)): ?>
-                        <?php $counter = 1; // 💡 初始化序号计数器 ?>
+                        <?php $counter = 1; ?>
                         <?php foreach ($members as $m): 
                             // 处理头像
                             $photoRaw = !empty($m['profile_photo']) ? $m['profile_photo'] : 'default.jpg';
@@ -277,9 +288,14 @@ if (file_exists($admin_head)) { include $admin_head; }
 
                             <td>
                                 <div class="action-group">
-                                    <a href="member_edit.php?id=<?= urlencode($m['user_id']) ?>" class="btn-profile-detail">
+                                    <a href="member_detail.php?id=<?= urlencode($m['user_id']) ?>" class="btn-profile-detail">
                                         <span>👁️</span> Profile Detail
                                     </a>
+                                    
+                                    <a href="member_edit.php?id=<?= urlencode($m['user_id']) ?>" class="btn-edit">
+                                        <span>✏️</span> Edit
+                                    </a>
+                                    
                                     <a href="member_delete.php?id=<?= urlencode($m['user_id']) ?>" class="btn-delete" onclick="return confirm('Are you sure you want to delete this member?');">
                                         <span>🗑️</span> Delete
                                     </a>
@@ -302,7 +318,6 @@ if (file_exists($admin_head)) { include $admin_head; }
 </div>
 
 <script>
-    // 💡 弹窗刷新函数
     function triggerSyncRefresh() {
         alert("✅ Admin records synchronized and refreshed!");
         window.location.reload();
