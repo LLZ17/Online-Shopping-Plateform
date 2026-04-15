@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 
 require_once __DIR__ . '/../includes/db.php'; 
 
-// 💡 处理状态修改的请求 (Active/Blocked)
+// 💡 1. 处理状态修改的请求 (Active/Blocked)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
     try {
         $update_id = $_POST['user_id'];
@@ -21,10 +21,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// 💡 抓取会员列表
+// 💡 2. 核心修改：接收搜索词并构建查询逻辑
+$searchQuery = $_GET['search'] ?? '';
+$whereClause = "role = 'Member'";
+$queryParams = [];
+
+if (!empty($searchQuery)) {
+    // 允许搜索 ID, 真实姓名 或 用户名
+    $whereClause .= " AND (user_id LIKE ? OR real_name LIKE ? OR username LIKE ?)";
+    $likeTerm = "%" . $searchQuery . "%";
+    $queryParams = [$likeTerm, $likeTerm, $likeTerm];
+}
+
+// 💡 3. 抓取会员列表 (加入搜索条件)
 try {
-    $sql = "SELECT * FROM users WHERE role = 'Member' ORDER BY user_id ASC";
-    $members = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    $sql = "SELECT * FROM users WHERE $whereClause ORDER BY user_id ASC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($queryParams);
+    $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $members = [];
     $errorMsg = ($errorMsg ?? "") . " Database Error: " . $e->getMessage();
@@ -54,6 +68,28 @@ if (file_exists($admin_head)) { include $admin_head; }
     .page-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
     .page-header h1 { font-size: 32px; font-weight: 900; color: #0f172a; letter-spacing: -1px; margin: 0; }
     
+    /* 💡 新增的搜索框区域样式 */
+    .search-box { 
+        display: flex; gap: 10px; flex-grow: 1; max-width: 400px; 
+        background: #ffffff; padding: 6px; border-radius: 14px; 
+        border: 1px solid #e2e8f0; box-shadow: 0 4px 10px -2px rgba(0,0,0,0.05);
+    }
+    .search-input { 
+        flex-grow: 1; border: none; outline: none; padding: 8px 15px; 
+        font-family: inherit; font-size: 14px; font-weight: 600; color: #1e293b; background: transparent;
+    }
+    .search-input::placeholder { color: #94a3b8; font-weight: 500; }
+    .btn-search { 
+        background: #0f172a; color: white; border: none; padding: 0 20px; 
+        border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; 
+    }
+    .btn-search:hover { background: #334155; }
+    .btn-clear { 
+        display: inline-flex; align-items: center; padding: 0 12px; color: #64748b; 
+        text-decoration: none; font-weight: 700; font-size: 13px; background: #f1f5f9; border-radius: 10px;
+    }
+    .btn-clear:hover { background: #e2e8f0; color: #ef4444; }
+
     .stat-badge { 
         background: #ffffff; padding: 10px 20px; border-radius: 12px; 
         box-shadow: 0 4px 10px -2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; 
@@ -107,7 +143,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     .u-realname { font-size: 15px; font-weight: 800; color: #0f172a; }
     .u-username { font-size: 12px; color: #94a3b8; font-weight: 600; }
 
-    /* 联系方式 (如第2张截图所示) */
+    /* 联系方式 */
     .contact-item { font-size: 13px; color: #475569; display: flex; align-items: flex-start; gap: 6px; margin-bottom: 4px; }
     .contact-icon { font-size: 14px; opacity: 0.7; margin-top: 1px; }
     .address-text { line-height: 1.4; max-width: 220px; white-space: normal; word-wrap: break-word; font-size: 12px; }
@@ -135,7 +171,6 @@ if (file_exists($admin_head)) { include $admin_head; }
 
     .action-group { display: flex; flex-direction: column; gap: 8px; } 
     
-    /* 💡 新增的 Profile Detail (详情) 按钮样式 - 金黄色 */
     .btn-profile-detail {
         background: #fefce8; color: #ca8a04; padding: 8px 12px; border-radius: 10px;
         text-decoration: none; font-weight: 800; font-size: 11px; transition: all 0.3s ease;
@@ -143,7 +178,6 @@ if (file_exists($admin_head)) { include $admin_head; }
     }
     .btn-profile-detail:hover { background: #ca8a04; color: #ffffff; border-color: #ca8a04; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(202, 138, 4, 0.3); }
 
-    /* 💡 改名后的 Edit (编辑) 按钮样式 - 蓝色 */
     .btn-edit {
         background: #eff6ff; color: #3b82f6; padding: 8px 12px; border-radius: 10px;
         text-decoration: none; font-weight: 800; font-size: 11px; transition: all 0.3s ease;
@@ -162,6 +196,14 @@ if (file_exists($admin_head)) { include $admin_head; }
 <div class="member-container">
     <div class="page-header">
         <h1>Member CRUD</h1>
+        
+        <form method="GET" action="member_crud.php" class="search-box">
+            <input type="text" name="search" class="search-input" placeholder="Search by Name or ID..." value="<?= htmlspecialchars($searchQuery) ?>">
+            <button type="submit" class="btn-search">SEARCH</button>
+            <?php if (!empty($searchQuery)): ?>
+                <a href="member_crud.php" class="btn-clear">✖</a>
+            <?php endif; ?>
+        </form>
         
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
             <div class="stat-badge">Total Members <span><?= count($members) ?></span></div>
@@ -307,7 +349,7 @@ if (file_exists($admin_head)) { include $admin_head; }
                         <tr>
                             <td colspan="7" style="text-align:center; padding:60px; color:#94a3b8;">
                                 <div style="font-size:40px; margin-bottom:10px;">👥</div>
-                                <div style="font-size:16px; font-weight:700;">No members found.</div>
+                                <div style="font-size:16px; font-weight:700;">No members found matching your search.</div>
                             </td>
                         </tr>
                     <?php endif; ?>
@@ -320,7 +362,7 @@ if (file_exists($admin_head)) { include $admin_head; }
 <script>
     function triggerSyncRefresh() {
         alert("✅ Admin records synchronized and refreshed!");
-        window.location.reload();
+        window.location.href = "member_crud.php"; // 刷新时清除搜索条件
     }
 
     document.addEventListener("DOMContentLoaded", function() {
