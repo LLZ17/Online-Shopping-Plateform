@@ -1,13 +1,13 @@
 <?php
 /**
  * =================================================================================
- * PXX MALL - ADMINISTRATIVE CONTROL PORTAL (V110.2 - ALERT REMOVED)
+ * PXX MALL - ADMINISTRATIVE CONTROL PORTAL (V110.3 - TOYYIBPAY INTEGRATED)
  * =================================================================================
  * 核心逻辑：
- * 1. [新增] 在 View Store 上方加入了 View Database 链接，直连 phpMyAdmin。
- * 2. [移除] 彻底移除了顶部的 System Status 弹窗通知栏。
- * 3. [侧边栏] 补全白色图标，文字纯白，固定左侧不走位。
- * 4. [权限] 包含完整的安全架构与权限判定。
+ * 1. [新增] 在 View Database 上方加入了 ToyyibPay 快速链接。
+ * 2. [链接] View Database 直连 phpMyAdmin。
+ * 3. [移除] 彻底移除了顶部的 System Status 弹窗通知栏。
+ * 4. [侧边栏] 补全白色图标，文字纯白，固定左侧。
  * =================================================================================
  */
 
@@ -63,6 +63,7 @@ $noti_count = 3;
             --header-h: 85px;
             --side-w: 280px;
             --trans: all 0.3s ease;
+            --toyyib-orange: #f39c12;
         }
 
         body, html {
@@ -156,14 +157,17 @@ $noti_count = 3;
             transition: var(--trans);
         }
         .sidebar-bottom a:last-child { margin-bottom: 0; }
-        .sidebar-bottom a:hover { opacity: 1; color: #2ecc71; }
-        .sidebar-bottom a.db-link:hover { color: #3498db; }
+        
+        /* 悬停颜色区分 */
+        .sidebar-bottom a.tp-link:hover { color: var(--toyyib-orange); opacity: 1; }
+        .sidebar-bottom a.db-link:hover { color: #3498db; opacity: 1; }
+        .sidebar-bottom a.store-link:hover { color: #2ecc71; opacity: 1; }
 
         /* ============================================================
            主内容区域
            ============================================================ */
         .main-content-view {
-            margin-top: var(--header-h); /* 🔥 新增：补偿移除弹窗后的高度，防止内容被遮挡 */
+            margin-top: var(--header-h); 
             margin-left: var(--side-w);
             padding: 50px;
             height: calc(100vh - var(--header-h));
@@ -266,12 +270,17 @@ $noti_count = 3;
         </nav>
 
         <div class="sidebar-bottom">
+            <a href="https://toyyibpay.com/" target="_blank" class="tp-link">
+                <i class="fa-solid fa-credit-card"></i>
+                <span>ToyyibPay Login</span>
+            </a>
+
             <a href="http://localhost/phpmyadmin/index.php?route=/database/structure&db=html_sql" target="_blank" class="db-link">
                 <i class="fa-solid fa-database"></i>
                 <span>View Database</span>
             </a>
             
-            <a href="../index.php" target="_blank">
+            <a href="../index.php" target="_blank" class="store-link">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                 <span>View Store</span>
             </a>

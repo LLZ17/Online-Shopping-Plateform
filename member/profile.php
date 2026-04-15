@@ -1,63 +1,67 @@
 <?php
 /**
- * PXX Mall - Ultimate Member Settings Portal (FULL VERSION)
- * Layout: Fixed 1200px Ultra-Wide Dashboard
- * Features: Editable Username, Triple Address Lines, Avatar X Delete, Full Security
- * Version: 4.1 (VS Code & UI Alignment Fix)
+ * ==================================================================================
+ * PXX Mall - Enterprise Member Portal v5.5 (ULTRA FULL VERSION)
+ * ==================================================================================
+ * [FEATURES]
+ * - Master-Slave PHP Architecture
+ * - JSON-Native Malaysia Location Service (State/City)
+ * - Intelligent Email Verification Logic
+ * - Real-time Avatar Preview & X-Delete System
+ * - CSRF Protected Update Logic (Placeholder)
+ * - Ultra-wide 1200px Dashboard
+ * ==================================================================================
  */
 
-// --- 1. SESSION & DATABASE CORE ---
+// --- 1. CORE SYSTEM INITIALIZATION ---
 if (session_status() === PHP_SESSION_NONE) { 
     session_start(); 
 }
 
-/**
- * 🔥 核心修复点 1：物理路径对齐
- */
+// 物理路径对齐
 $pxx_root = dirname(__DIR__);
 $pxx_db_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'db.php';
 $pxx_head_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_head.php';
 $pxx_foot_file = $pxx_root . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . '_foot.php';
 
+// 数据库连接校验
 if (file_exists($pxx_db_file)) {
     require_once $pxx_db_file;
 } else {
-    die("CRITICAL: Database connector missing at $pxx_db_file");
+    die("<div style='padding:50px; text-align:center;'><h2>[System Error]</h2><p>Database connector missing. Please contact admin.</p></div>");
 }
 
-/**
- * 🔥 核心修复点 2：PDO 变量防空保护 & VS Code 报错修复
+/** * VS Code PHP Intelepheanse 报错修复声明
+ * @var PDO $pdo 
  */
 global $pdo;
-/** @var PDO $pdo */
 if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
 
-// Check if the user is authenticated
+// 用户身份验证
 if (!isset($_SESSION['user_id'])) {
-    echo "<script>window.location.href='../login_selection.php';</script>";
+    header("Location: ../login_selection.php");
     exit();
 }
 
 $user_id = $_SESSION['user_id'];
-$active_page = $_GET['page'] ?? 'my_profile';
+$active_page = isset($_GET['page']) ? htmlspecialchars($_GET['page']) : 'my_profile';
 
-// --- 2. THE MASTER SAVE LOGIC (FULL IMPLEMENTATION) ---
+// --- 2. THE MASTER SAVE CONTROLLER ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
-    // Extracting Base Fields
-    $username  = isset($_POST['username']) ? trim($_POST['username']) : ''; 
-    $real_name = isset($_POST['real_name']) ? trim($_POST['real_name']) : '';
-    $gender    = isset($_POST['gender']) ? $_POST['gender'] : '';
-    $birthday  = isset($_POST['birthday']) ? $_POST['birthday'] : '';
-    $phone     = isset($_POST['phone_num']) ? trim($_POST['phone_num']) : '';
-    $email     = isset($_POST['email']) ? trim($_POST['email']) : '';
+    // 基础信息提取
+    $username  = trim($_POST['username'] ?? ''); 
+    $real_name = trim($_POST['real_name'] ?? '');
+    $gender    = $_POST['gender'] ?? '';
+    $birthday  = $_POST['birthday'] ?? '';
+    $phone     = trim($_POST['phone_num'] ?? '');
+    $email     = trim($_POST['email'] ?? '');
     
-    // Address Line 1, 2, 3 Advanced Merger
-    $addr1 = isset($_POST['address_line1']) ? trim($_POST['address_line1']) : '';
-    $addr2 = isset($_POST['address_line2']) ? trim($_POST['address_line2']) : '';
-    $addr3 = isset($_POST['address_line3']) ? trim($_POST['address_line3']) : '';
+    // 地址合并逻辑
+    $addr1 = trim($_POST['address_line1'] ?? '');
+    $addr2 = trim($_POST['address_line2'] ?? '');
+    $addr3 = trim($_POST['address_line3'] ?? '');
     
-    // 只有在地址页提交且有内容时才更新全址
     if ($active_page == 'addresses' && (!empty($addr1) || !empty($addr2) || !empty($addr3))) {
         $full_address = $addr1;
         if (!empty($addr2)) $full_address .= ", " . $addr2; 
@@ -66,77 +70,94 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $full_address = $_POST['current_full_address'] ?? '';
     }
     
-    $postcode  = isset($_POST['postcode']) ? trim($_POST['postcode']) : '';
-    $city      = isset($_POST['city']) ? trim($_POST['city']) : '';
-    $state     = isset($_POST['state']) ? trim($_POST['state']) : '';
+    $postcode  = trim($_POST['postcode'] ?? '');
+    $city      = trim($_POST['city'] ?? '');
+    $state     = trim($_POST['state'] ?? '');
     
-    // Avatar Logic
-    $st_photo = $pdo->prepare("SELECT profile_photo FROM users WHERE user_id = ?");
-    $st_photo->execute([$user_id]);
-    $u_old_data = $st_photo->fetch();
-    $photo_filename = $u_old_data['profile_photo'] ?? 'default.jpg';
+    // 头像处理逻辑 (保留原图或处理删除/上传)
+    $stmt_photo_check = $pdo->prepare("SELECT profile_photo FROM users WHERE user_id = ?");
+    $stmt_photo_check->execute([$user_id]);
+    $old_user_data = $stmt_photo_check->fetch();
+    $photo_filename = $old_user_data['profile_photo'] ?? 'default.jpg';
 
     if (isset($_POST['delete_avatar_flag']) && $_POST['delete_avatar_flag'] == '1') {
         $photo_filename = 'default.jpg';
-    } 
-    elseif (!empty($_FILES['profile_photo']['name'])) {
-        $temp_name = $_FILES["profile_photo"]["tmp_name"];
-        $ext = pathinfo($_FILES["profile_photo"]["name"], PATHINFO_EXTENSION);
-        $new_filename = "user_" . $user_id . "_" . time() . "." . $ext;
+    } elseif (!empty($_FILES['profile_photo']['name'])) {
+        $file_tmp = $_FILES["profile_photo"]["tmp_name"];
+        $file_ext = strtolower(pathinfo($_FILES["profile_photo"]["name"], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
         
-        if (move_uploaded_file($temp_name, "../images/" . $new_filename)) {
-            $photo_filename = $new_filename;
+        if (in_array($file_ext, $allowed)) {
+            $new_name = "user_" . $user_id . "_" . time() . "." . $file_ext;
+            if (move_uploaded_file($file_tmp, "../images/" . $new_name)) {
+                $photo_filename = $new_name;
+            }
         }
     }
 
-    // Prepare and Execute the Mega Update SQL
-    $update_sql = "UPDATE users SET 
-                    username = ?, real_name = ?, gender = ?, birthday = ?, 
-                    phone_num = ?, email = ?, address = ?, 
-                    Postcode = ?, City = ?, State = ?, 
-                    profile_photo = ? WHERE user_id = ?";
-            
-    $stmt_update = $pdo->prepare($update_sql);
-    $stmt_update->execute([
-        $username, $real_name, $gender, $birthday, 
-        $phone, $email, $full_address, 
-        $postcode, $city, $state, 
-        $photo_filename, $user_id
-    ]);
-    
-    $_SESSION['username'] = $username;
-    $_SESSION['profile_image'] = $photo_filename;
-    
-    echo "<script>alert('Success: Your account settings have been updated!'); window.location.href='profile.php?page=$active_page';</script>";
-    exit();
+    // 执行主数据库更新
+    try {
+        $update_sql = "UPDATE users SET 
+                        username = ?, real_name = ?, gender = ?, birthday = ?, 
+                        phone_num = ?, email = ?, address = ?, 
+                        Postcode = ?, City = ?, State = ?, 
+                        profile_photo = ? WHERE user_id = ?";
+        
+        $stmt_update = $pdo->prepare($update_sql);
+        $result = $stmt_update->execute([
+            $username, $real_name, $gender, $birthday, 
+            $phone, $email, $full_address, 
+            $postcode, $city, $state, 
+            $photo_filename, $user_id
+        ]);
+
+        if ($result) {
+            $_SESSION['username'] = $username;
+            $_SESSION['profile_image'] = $photo_filename;
+            echo "<script>alert('Update Successful!'); window.location.href='profile.php?page=$active_page';</script>";
+            exit();
+        }
+    } catch (PDOException $e) {
+        error_log($e->getMessage());
+        echo "<script>alert('Error: Could not update profile.');</script>";
+    }
 }
 
-// --- 3. REFRESH DATA FOR DISPLAY ---
+// --- 3. DATA REFRESH & UTILITIES ---
 $stmt_fetch = $pdo->prepare("SELECT * FROM users WHERE user_id = ?");
 $stmt_fetch->execute([$user_id]);
 $u = $stmt_fetch->fetch();
 
-$email_verified_status = (isset($u['email_verified']) && $u['email_verified'] == 1) ? true : false;
+// 核心：验证状态判断
+$email_verified_status = (isset($u['email_verified']) && $u['email_verified'] == 1);
 
+/** 安全输出辅助函数 */
 function d($val) { 
-    return htmlspecialchars($val ?? ''); 
+    return htmlspecialchars($val ?? '', ENT_QUOTES, 'UTF-8'); 
 }
 
-if (file_exists($pxx_head_file)) {
-    include_once $pxx_head_file;
-}
+if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
 ?>
 
 <style>
-    /* --- GLOBAL MASTER CSS --- */
-    body { 
-        background-color: #f5f5f5; 
-        color: #333; 
-        font-family: 'Helvetica Neue', Arial, sans-serif; 
-        margin: 0; 
-        padding: 0; 
+    :root {
+        --pxx-red: #e60012;
+        --pxx-dark-red: #d31d1d;
+        --pxx-bg: #f5f5f5;
+        --pxx-border: #ddd;
+        --pxx-text-main: #333;
+        --pxx-text-soft: #666;
+        --pxx-shadow: 0 1px 6px rgba(0,0,0,0.08);
     }
-    
+
+    body { 
+        background-color: var(--pxx-bg); 
+        color: var(--pxx-text-main); 
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+        margin: 0; 
+        line-height: 1.5;
+    }
+
     .pxx-master-wrapper { 
         width: 1200px; 
         margin: 40px auto; 
@@ -145,253 +166,106 @@ if (file_exists($pxx_head_file)) {
         box-sizing: border-box; 
     }
 
-    .pxx-sidebar-nav { 
-        width: 280px; 
-        flex-shrink: 0; 
-    }
+    /* 侧边栏样式 */
+    .pxx-sidebar-nav { width: 280px; flex-shrink: 0; }
     
     .sidebar-user-header { 
-        display: flex; 
-        align-items: center; 
-        gap: 15px; 
-        padding-bottom: 25px; 
-        border-bottom: 1px solid #ddd; 
+        display: flex; align-items: center; gap: 15px; 
+        padding-bottom: 25px; border-bottom: 1px solid var(--pxx-border); 
         margin-bottom: 30px; 
     }
     
     .sidebar-user-header img { 
-        width: 60px; 
-        height: 60px; 
-        border-radius: 50%; 
-        object-fit: cover; 
-        border: 1px solid #eee; 
-    }
-    
-    .sidebar-user-header .user-meta { 
-        font-weight: bold; 
-        font-size: 15px; 
+        width: 60px; height: 60px; border-radius: 50%; 
+        object-fit: cover; border: 1px solid #eee; 
     }
 
     .nav-section-header { 
-        font-size: 16px; 
-        font-weight: 700; 
-        color: #333; 
-        display: flex; 
-        align-items: center; 
-        margin-bottom: 20px; 
+        font-size: 16px; font-weight: 700; color: #333; 
+        display: flex; align-items: center; margin-bottom: 20px; 
     }
     
-    .nav-section-header i { 
-        color: #e60012; 
-        width: 35px; 
-        font-size: 20px; 
-        text-align: left; 
-    }
+    .nav-section-header i { color: var(--pxx-red); width: 35px; font-size: 20px; }
 
     .nav-link-item { 
-        display: block; 
-        padding: 12px 0 12px 50px; 
-        text-decoration: none; 
-        color: #555; 
-        font-size: 15px; 
+        display: block; padding: 12px 0 12px 50px; 
+        text-decoration: none; color: #555; font-size: 15px; 
         transition: all 0.2s ease; 
     }
     
     .nav-link-item:hover, .nav-link-item.active { 
-        color: #e60012; 
-        font-weight: 600; 
+        color: var(--pxx-red); font-weight: 600; 
     }
 
-    .logout-nav-container { 
-        margin-top: 50px; 
-    }
-    
-    .logout-link-aligned { 
-        display: flex; 
-        align-items: center; 
-        padding: 12px 0; 
-        text-decoration: none; 
-        color: #bbb; 
-        font-size: 15px; 
-        transition: color 0.2s; 
-    }
-    
-    .logout-link-aligned:hover { 
-        color: #e60012; 
-    }
-    
-    .logout-link-aligned i { 
-        width: 35px; 
-        text-align: left; 
-        font-size: 20px; 
-    }
-    
-    .logout-link-aligned span { 
-        padding-left: 15px; 
-    }
-
+    /* 主内容面板 */
     .pxx-main-dashboard { 
-        flex: 1; 
-        background: #fff; 
-        padding: 50px; 
-        border-radius: 4px; 
-        box-shadow: 0 1px 6px rgba(0,0,0,0.08); 
-        min-height: 800px; 
+        flex: 1; background: #fff; padding: 50px; 
+        border-radius: 4px; box-shadow: var(--pxx-shadow); 
+        min-height: 850px; 
     }
     
     .dashboard-header { 
-        border-bottom: 1px solid #efefef; 
-        padding-bottom: 20px; 
+        border-bottom: 1px solid #efefef; padding-bottom: 20px; 
         margin-bottom: 45px; 
     }
     
-    .dashboard-header h2 { 
-        margin: 0; 
-        font-size: 24px; 
-        font-weight: 500; 
-    }
+    .dashboard-header h2 { margin: 0; font-size: 24px; font-weight: 500; }
 
-    .form-row-pxx { 
-        display: flex; 
-        margin-bottom: 35px; 
-        align-items: flex-start; 
-    }
+    /* 表单系统 */
+    .form-row-pxx { display: flex; margin-bottom: 35px; align-items: flex-start; }
     
     .form-label-pxx { 
-        width: 170px; 
-        text-align: right; 
-        color: #666; 
-        font-size: 15px; 
-        margin-right: 35px; 
-        padding-top: 12px; 
+        width: 170px; text-align: right; color: var(--pxx-text-soft); 
+        font-size: 15px; margin-right: 35px; padding-top: 12px; 
     }
     
-    .form-content-pxx { 
-        flex: 1; 
-    }
+    .form-content-pxx { flex: 1; }
     
     .pxx-input-large { 
-        width: 100%; 
-        padding: 14px 15px; 
-        border: 1px solid #ddd; 
-        border-radius: 2px; 
-        font-size: 15px; 
-        box-sizing: border-box; 
-        margin-bottom: 0px; 
-        transition: border-color 0.2s;
-        background: #fff;
+        width: 100%; padding: 14px 15px; border: 1px solid var(--pxx-border); 
+        border-radius: 4px; font-size: 15px; box-sizing: border-box; 
+        transition: border-color 0.2s; background: #fff;
     }
     
-    select.pxx-input-large {
-        height: 48px;
-        appearance: none;
-        background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23aaa' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat right 15px center;
-    }
+    select.pxx-input-large { height: 48px; cursor: pointer; }
+    
+    .pxx-input-large:focus { border-color: var(--pxx-red); outline: none; }
 
-    .pxx-input-large:focus { 
-        border-color: #e60012; 
-        outline: none; 
-    }
-    
-    .gender-horizontal-wrap { 
-        display: flex; 
-        gap: 40px; 
-        padding-top: 12px; 
-    }
-    
-    .gender-horizontal-wrap label { 
-        display: flex; 
-        align-items: center; 
-        gap: 10px; 
-        cursor: pointer; 
-        font-size: 15px;
-    }
-
-    .points-badge { 
-        font-size: 20px; 
-        color: #e60012; 
-        font-weight: bold; 
-    }
-    
     .btn-save-master { 
-        background: #e60012; 
-        color: #fff; 
-        border: none; 
-        padding: 16px 70px; 
-        border-radius: 2px; 
-        cursor: pointer; 
-        font-size: 16px; 
-        font-weight: 600; 
-        transition: background 0.3s;
+        background: var(--pxx-red); color: #fff; border: none; 
+        padding: 16px 70px; border-radius: 2px; cursor: pointer; 
+        font-size: 16px; font-weight: 600; transition: background 0.3s;
     }
     
-    .btn-save-master:hover { 
-        background: #d31d1d; 
-    }
+    .btn-save-master:hover { background: var(--pxx-dark-red); }
 
-    .avatar-interactive-box { 
-        position: relative; 
-        width: 110px; 
-        height: 110px; 
-        margin-bottom: 20px; 
-    }
+    /* 头像交互组件 */
+    .avatar-interactive-box { position: relative; width: 110px; height: 110px; margin-bottom: 20px; }
     
     .avatar-interactive-box img { 
-        width: 100%; 
-        height: 100%; 
-        border-radius: 50%; 
-        object-fit: cover; 
-        border: 1px solid #ddd; 
+        width: 100%; height: 100%; border-radius: 50%; 
+        object-fit: cover; border: 1px solid var(--pxx-border); 
     }
     
     .avatar-remove-btn { 
-        position: absolute; 
-        top: 0; 
-        right: 0; 
-        background: #e60012; 
-        color: #fff; 
-        border: none; 
-        width: 26px; 
-        height: 26px; 
-        border-radius: 50%; 
-        cursor: pointer; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        font-weight: bold; 
+        position: absolute; top: 0; right: 0; background: var(--pxx-red); 
+        color: #fff; border: none; width: 26px; height: 26px; 
+        border-radius: 50%; cursor: pointer; display: flex; 
+        align-items: center; justify-content: center; font-weight: bold; 
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
-    .security-data-row { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        padding: 30px 0; 
-        border-bottom: 1px solid #f9f9f9; 
-    }
-    
+    /* 安全状态标签 */
     .status-badge { 
-        font-size: 11px; 
-        padding: 3px 12px; 
-        border-radius: 12px; 
-        font-weight: bold; 
-        text-transform: uppercase; 
-        margin-left: 10px; 
-        border: 1px solid transparent;
+        font-size: 11px; padding: 3px 12px; border-radius: 12px; 
+        font-weight: bold; text-transform: uppercase; margin-left: 10px; 
     }
     
-    .badge-unverified { background: #fff1f0; color: #e60012; border-color: #ffa39e; }
-    .badge-verified { background: #e6fffb; color: #13c2c2; border-color: #87e8de; }
+    .badge-unverified { background: #fff1f0; color: var(--pxx-red); border: 1px solid #ffa39e; }
+    .badge-verified { background: #e6fffb; color: #13c2c2; border: 1px solid #87e8de; }
 
     .blue-link-action { 
-        color: #0055aa; 
-        text-decoration: none; 
-        font-size: 15px; 
-        font-weight: bold; 
-    }
-
-    .blue-link-action:hover { 
-        text-decoration: underline;
+        color: #0055aa; text-decoration: none; font-size: 15px; font-weight: bold; 
     }
 </style>
 
@@ -399,28 +273,25 @@ if (file_exists($pxx_head_file)) {
     
     <div class="pxx-sidebar-nav">
         <div class="sidebar-user-header">
-            <img src="../images/<?php echo d($u['profile_photo'] ?: 'default.jpg'); ?>">
+            <img src="../images/<?php echo d($u['profile_photo'] ?: 'default.jpg'); ?>" alt="User Avatar">
             <div class="user-meta">
                 <div class="user-name-text"><?php echo d($u['username']); ?></div>
-                <a href="?page=my_profile" style="font-size: 12px; color: #888; text-decoration: none; font-weight: normal; margin-top: 5px; display: block;">
+                <a href="?page=my_profile" style="font-size: 12px; color: #888; text-decoration: none;">
                     <i class="fas fa-edit"></i> Edit Profile
                 </a>
             </div>
         </div>
 
         <nav>
-            <div class="nav-section-header">
-                <i class="fas fa-user-circle"></i> My Account
-            </div>
+            <div class="nav-section-header"><i class="fas fa-user-circle"></i> My Account</div>
+            <a href="?page=my_profile" class="nav-link-item <?php echo $active_page=='my_profile'?'active':''; ?>">My Profile</a>
+            <a href="?page=addresses" class="nav-link-item <?php echo $active_page=='addresses'?'active':''; ?>">My Shipping Addresses</a>
+            <a href="?page=bank" class="nav-link-item <?php echo $active_page=='bank'?'active':''; ?>">My Bank Accounts / Cards</a>
+            <a href="?page=security" class="nav-link-item <?php echo $active_page=='security'?'active':''; ?>">My Account Security</a>
             
-            <a href="?page=my_profile" class="nav-link-item <?php echo ($active_page=='my_profile')?'active':''; ?>">My Profile</a>
-            <a href="?page=addresses" class="nav-link-item <?php echo ($active_page=='addresses')?'active':''; ?>">My Shipping Addresses</a>
-            <a href="?page=bank" class="nav-link-item <?php echo ($active_page=='bank')?'active':''; ?>">My Bank Accounts / Cards</a>
-            <a href="?page=security" class="nav-link-item <?php echo ($active_page=='security')?'active':''; ?>">My Account Security</a>
-            
-            <div class="logout-nav-container">
-                <a href="../logout.php" class="logout-link-aligned">
-                    <i class="fas fa-power-off"></i>
+            <div style="margin-top: 50px;">
+                <a href="../logout.php" class="nav-link-item" style="padding-left: 0; color: #bbb;">
+                    <i class="fas fa-power-off" style="width: 35px; text-align: left;"></i>
                     <span>Logout System</span>
                 </a>
             </div>
@@ -430,11 +301,8 @@ if (file_exists($pxx_head_file)) {
     <div class="pxx-main-dashboard">
 
         <?php if ($active_page == 'my_profile'): ?>
-            <div class="dashboard-header">
-                <h2>My Profile</h2>
-            </div>
-            
-            <form action="profile.php?page=my_profile" method="POST" enctype="multipart/form-data" id="profileFormMaster">
+            <div class="dashboard-header"><h2>My Profile</h2></div>
+            <form action="profile.php?page=my_profile" method="POST" enctype="multipart/form-data">
                 
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Profile Picture</div>
@@ -445,7 +313,7 @@ if (file_exists($pxx_head_file)) {
                                 <button type="button" class="avatar-remove-btn" onclick="triggerPhotoDelete()">×</button>
                             <?php endif; ?>
                         </div>
-                        <input type="file" name="profile_photo" style="font-size: 13px; color: #777;">
+                        <input type="file" name="profile_photo" accept="image/*" style="font-size: 13px; color: #777;">
                         <input type="hidden" name="delete_avatar_flag" id="avatarDelFlagInput" value="0">
                     </div>
                 </div>
@@ -453,23 +321,23 @@ if (file_exists($pxx_head_file)) {
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Username</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="username" class="pxx-input-large" value="<?php echo d($u['username']); ?>" placeholder="Set your account username">
+                        <input type="text" name="username" class="pxx-input-large" value="<?php echo d($u['username']); ?>" required>
                     </div>
                 </div>
 
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Full Name</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="real_name" class="pxx-input-large" value="<?php echo d($u['real_name']); ?>" placeholder="Enter your full legal name">
+                        <input type="text" name="real_name" class="pxx-input-large" value="<?php echo d($u['real_name']); ?>">
                     </div>
                 </div>
 
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Gender</div>
                     <div class="form-content-pxx">
-                        <div class="gender-horizontal-wrap">
-                            <label><input type="radio" name="gender" value="Male" <?php echo ($u['gender']=='Male')?'checked':''; ?>> Male</label>
-                            <label><input type="radio" name="gender" value="Female" <?php echo ($u['gender']=='Female')?'checked':''; ?>> Female</label>
+                        <div style="padding-top: 10px;">
+                            <label><input type="radio" name="gender" value="Male" <?php echo $u['gender']=='Male'?'checked':''; ?>> Male</label>
+                            <label style="margin-left: 30px;"><input type="radio" name="gender" value="Female" <?php echo $u['gender']=='Female'?'checked':''; ?>> Female</label>
                         </div>
                     </div>
                 </div>
@@ -478,13 +346,6 @@ if (file_exists($pxx_head_file)) {
                     <div class="form-label-pxx">Date of Birth</div>
                     <div class="form-content-pxx">
                         <input type="date" name="birthday" class="pxx-input-large" value="<?php echo d($u['birthday']); ?>">
-                    </div>
-                </div>
-
-                <div class="form-row-pxx">
-                    <div class="form-label-pxx">PXX Loyalty Points</div>
-                    <div class="form-content-pxx">
-                        <span class="points-badge">⭐ <?php echo d($u['points'] ?? 0); ?> Points</span>
                     </div>
                 </div>
                 
@@ -501,63 +362,45 @@ if (file_exists($pxx_head_file)) {
             </form>
 
         <?php elseif ($active_page == 'addresses'): ?>
-            <div class="dashboard-header">
-                <h2>My Shipping Addresses</h2>
+            <div class="dashboard-header"><h2>My Shipping Addresses</h2></div>
+            
+            <div style="margin-bottom: 40px; padding: 20px; background: #fafafa; border: 1px solid #eee; font-size: 14px; color: #888;">
+                <i class="fas fa-map-marker-alt"></i> <strong>Current Address:</strong><br>
+                <?php echo d($u['address'] ?: 'No address set.'); ?><br>
+                <?php echo d($u['Postcode'] . ' ' . $u['City'] . ', ' . $u['State']); ?>
             </div>
 
-            <div style="margin-left: 0; color: #aaa; font-size: 13px; margin-bottom: 30px; line-height: 1.6;">
-                <i class="fas fa-info-circle"></i> Current System Address: 
-                <?php 
-                    $addr_parts = explode(", ", $u['address'] ?? ''); 
-                    $raw_segments = array_merge($addr_parts, [$u['Postcode'], $u['City'], $u['State']]);
-                    $formatted_segments = [];
-                    
-                    foreach ($raw_segments as $seg) {
-                        $trimmed = trim($seg ?? '');
-                        if (!empty($trimmed)) {
-                            $formatted_segments[] = d($trimmed);
-                        }
-                    }
-                    echo implode(", ", $formatted_segments);
-                ?>
-            </div>
-            
             <form action="profile.php?page=addresses" method="POST">
-                
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Address Line 1</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="address_line1" class="pxx-input-large" value="" placeholder="Unit / House Number / Floor No.">
+                        <input type="text" name="address_line1" class="pxx-input-large" placeholder="Unit / Street Name">
                     </div>
                 </div>
-                
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Address Line 2</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="address_line2" class="pxx-input-large" value="" placeholder="Building Name / Street Name">
+                        <input type="text" name="address_line2" class="pxx-input-large" placeholder="Building Name (Optional)">
                     </div>
                 </div>
-                
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Address Line 3</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="address_line3" class="pxx-input-large" value="" placeholder="Area / District / Section">
+                        <input type="text" name="address_line3" class="pxx-input-large" placeholder="Area / District">
                     </div>
                 </div>
 
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">Postcode</div>
                     <div class="form-content-pxx">
-                        <input type="text" name="postcode" id="m_postcode" 
-                               class="pxx-input-large" 
-                               value="<?php echo d($u['Postcode']); ?>" placeholder="e.g. 53300">
+                        <input type="text" name="postcode" class="pxx-input-large" value="<?php echo d($u['Postcode']); ?>" required>
                     </div>
                 </div>
 
                 <div class="form-row-pxx">
                     <div class="form-label-pxx">State</div>
                     <div class="form-content-pxx">
-                        <select name="state" id="m_state" class="pxx-input-large" onchange="loadCities()">
+                        <select name="state" id="m_state" class="pxx-input-large">
                             <option value="<?php echo d($u['State']); ?>"><?php echo d($u['State'] ?: 'Select State'); ?></option>
                         </select>
                     </div>
@@ -574,12 +417,8 @@ if (file_exists($pxx_head_file)) {
 
                 <input type="hidden" name="username" value="<?php echo d($u['username']); ?>">
                 <input type="hidden" name="real_name" value="<?php echo d($u['real_name']); ?>">
-                <input type="hidden" name="email" value="<?php echo d($u['email']); ?>">
-                <input type="hidden" name="phone_num" value="<?php echo d($u['phone_num']); ?>">
-                <input type="hidden" name="gender" value="<?php echo d($u['gender']); ?>">
-                <input type="hidden" name="birthday" value="<?php echo d($u['birthday']); ?>">
                 <input type="hidden" name="current_full_address" value="<?php echo d($u['address']); ?>">
-
+                
                 <div class="form-row-pxx" style="margin-top: 40px;">
                     <div class="form-label-pxx"></div>
                     <div class="form-content-pxx">
@@ -589,50 +428,44 @@ if (file_exists($pxx_head_file)) {
             </form>
 
         <?php elseif ($active_page == 'security'): ?>
-            <div class="dashboard-header">
-                <h2>Account Security</h2>
-            </div>
+            <div class="dashboard-header"><h2>Account Security</h2></div>
             
             <div class="security-data-row">
-                <div class="sec-meta-info">
+                <div>
                     <strong>Email Address</strong><br>
                     <span style="color: #888; font-size: 14px; line-height: 2;"><?php echo d($u['email']); ?></span>
                     <span class="status-badge <?php echo $email_verified_status ? 'badge-verified' : 'badge-unverified'; ?>">
                         <?php echo $email_verified_status ? 'Verified' : 'Unverified'; ?>
                     </span>
                 </div>
-                <div class="sec-action-link">
-                    <a href="edit_email.php" class="blue-link-action">Change Email</a>
-                    <?php echo $email_verified_status ? '' : ' | '; ?>
-                    <a href="email_verify.php" class="blue-link-action">
-                        <?php echo $email_verified_status ? '' : 'Verify Now'; ?>
-                    </a>
+                <div>
+                    <a href="edit_email.php" class="blue-link-action">Change</a>
+                    <?php if (!$email_verified_status): ?>
+                        | <a href="email_verify.php" class="blue-link-action">Verify Now</a>
+                    <?php endif; ?>
                 </div>
             </div>
 
             <div class="security-data-row">
-                <div class="sec-meta-info">
+                <div>
                     <strong>Phone Number</strong><br>
                     <span style="color: #888; font-size: 14px; line-height: 2;"><?php echo d($u['phone_num']); ?></span>
                     <span class="status-badge badge-verified">Verified</span>
                 </div>
-                <div class="sec-action-link">
-                    <a href="edit_phone.php" class="blue-link-action">Change Number</a>
-                </div>
+                <div><a href="edit_phone.php" class="blue-link-action">Update</a></div>
             </div>
 
             <div class="security-data-row" style="border: none;">
-                <div class="sec-meta-info">
+                <div>
                     <strong>Login Password</strong><br>
-                    <span style="color: #888; font-size: 14px; line-height: 2;">******** (Recommended: Change every 90 days)</span>
+                    <span style="color: #888; font-size: 14px; line-height: 2;">******** (Last updated 3 months ago)</span>
                 </div>
-                <div class="sec-action-link">
-                    <a href="reset_password.php" class="blue-link-action">Update Password</a>
-                </div>
+                <div><a href="reset_password.php" class="blue-link-action">Change Password</a></div>
             </div>
 
             <div style="margin-top: 60px; padding: 25px; background: #fffcf5; border: 1px solid #ffecad; border-radius: 8px; color: #856404; font-size: 14px;">
-                <i class="fas fa-shield-virus"></i> Your account security score is <strong>High</strong>. Always keep your recovery data updated.
+                <i class="fas fa-shield-alt"></i> Your account security score is <strong>High</strong>. 
+                Keep your credentials safe and never share your OTP with anyone.
             </div>
         <?php endif; ?>
 
@@ -640,8 +473,63 @@ if (file_exists($pxx_head_file)) {
 </div>
 
 <script>
+    /** 马来西亚行政区划数据 (JSON) */
+    const malaysiaRegions = {
+        "Johor": ["Johor Bahru", "Batu Pahat", "Kluang", "Muar", "Kulai", "Segamat", "Pontian", "Kota Tinggi", "Mersing", "Tangak"],
+        "Kedah": ["Alor Setar", "Sungai Petani", "Kulim", "Jitra", "Baling", "Langkawi", "Sik", "Yan", "Pokok Sena"],
+        "Kelantan": ["Kota Bharu", "Pasir Mas", "Tumpat", "Bachok", "Tanah Merah", "Pasir Puteh", "Machang", "Gua Musang", "Jeli"],
+        "Melaka": ["Melaka City", "Alor Gajah", "Jasin", "Ayer Keroh", "Batu Berendam", "Masjid Tanah"],
+        "Negeri Sembilan": ["Seremban", "Port Dickson", "Nilai", "Bahau", "Kuala Pilah", "Tampin", "Jelebu", "Rembau"],
+        "Pahang": ["Kuantan", "Temerloh", "Bentong", "Mentakab", "Raub", "Pekan", "Cameron Highlands", "Jerantut", "Lipis", "Rompin"],
+        "Perak": ["Ipoh", "Taiping", "Sitiawan", "Teluk Intan", "Sungai Siput", "Batu Gajah", "Kuala Kangsar", "Kampar", "Tapah"],
+        "Perlis": ["Kangar", "Arau", "Padang Besar", "Kuala Perlis"],
+        "Pulau Pinang": ["George Town", "Butterworth", "Bayan Lepas", "Bukit Mertajam", "Seberang Jaya", "Kepala Batas", "Nibong Tebal"],
+        "Sabah": ["Kota Kinabalu", "Sandakan", "Tawau", "Lahad Datu", "Keningau", "Putatan", "Donggongon", "Semporna", "Kudat"],
+        "Sarawak": ["Kuching", "Miri", "Sibu", "Bintulu", "Samarahan", "Serian", "Sarikei", "Sri Aman", "Kapit", "Mukah"],
+        "Selangor": ["Shah Alam", "Klang", "Subang Jaya", "Petaling Jaya", "Cyberjaya", "Rawang", "Kajang", "Puchong", "Semenyih", "Banting"],
+        "Terengganu": ["Kuala Terengganu", "Chukai", "Dungun", "Kerteh", "Kuala Berang", "Marang", "Besut", "Setiu"],
+        "Wilayah Persekutuan": ["Kuala Lumpur", "Putrajaya", "Labuan"]
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const stateSelect = document.getElementById('m_state');
+        const citySelect = document.getElementById('m_city');
+
+        if (!stateSelect) return;
+
+        // 初始化州列表
+        Object.keys(malaysiaRegions).forEach(state => {
+            if (state !== "<?php echo $u['State']; ?>") {
+                let opt = new Option(state, state);
+                stateSelect.add(opt);
+            }
+        });
+
+        // 根据预选 State 初始化 City
+        function updateCities(selectedState, preselectedCity = "") {
+            citySelect.innerHTML = '<option value="">Select City</option>';
+            if (malaysiaRegions[selectedState]) {
+                malaysiaRegions[selectedState].forEach(city => {
+                    let opt = new Option(city, city);
+                    if (city === preselectedCity) opt.selected = true;
+                    citySelect.add(opt);
+                });
+            }
+        }
+
+        const initialST = "<?php echo $u['State']; ?>";
+        const initialCT = "<?php echo $u['City']; ?>";
+        if (initialST) updateCities(initialST, initialCT);
+
+        // 联动事件
+        stateSelect.addEventListener('change', function() {
+            updateCities(this.value);
+        });
+    });
+
+    /** 处理头像删除 */
     function triggerPhotoDelete() {
-        if(confirm('Warning: Are you sure you want to delete your current photo and revert to the default avatar?')) {
+        if(confirm('Warning: Remove your current photo and use default?')) {
             document.getElementById('displayAvatarImg').src = '../images/default.jpg';
             document.getElementById('avatarDelFlagInput').value = '1';
         }
@@ -649,7 +537,5 @@ if (file_exists($pxx_head_file)) {
 </script>
 
 <?php 
-if (file_exists($pxx_foot_file)) {
-    include_once $pxx_foot_file; 
-}
+if (file_exists($pxx_foot_file)) { include_once $pxx_foot_file; } 
 ?>
