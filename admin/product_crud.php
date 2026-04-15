@@ -12,6 +12,7 @@ $params = [];
 $search = $_GET['search'] ?? '';
 $min_price = $_GET['min_price'] ?? '';
 $max_price = $_GET['max_price'] ?? '';
+$category = $_GET['category'] ?? ''; 
 
 if (!empty($search)) {
     $whereConditions[] = "(name LIKE ? OR product_id LIKE ?)";
@@ -25,6 +26,13 @@ if ($min_price !== '') {
 if ($max_price !== '') {
     $whereConditions[] = "price <= ?";
     $params[] = $max_price;
+}
+
+// 💡 核心修复：确保 SQL 能够区分 Man 和 Women 商品
+if (!empty($category)) {
+    // 强制匹配数据库中的 category 字段
+    $whereConditions[] = "category = ?";
+    $params[] = $category;
 }
 
 $whereSQL = implode(" AND ", $whereConditions);
@@ -56,6 +64,7 @@ if (file_exists($admin_head)) { include $admin_head; }
             .filter-input {
                 padding: 12px 18px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 14px;
                 font-family: inherit; font-weight: 600; color: #334155; outline: none; transition: border-color 0.3s;
+                background: white;
             }
             .filter-input:focus { border-color: #3b82f6; }
             .input-search { flex-grow: 1; min-width: 250px; }
@@ -70,38 +79,16 @@ if (file_exists($admin_head)) { include $admin_head; }
                 font-weight: 800; font-size: 14px; text-decoration: none; border: 1px solid #e2e8f0;
             }
 
-            /* ✨ 优化后的高级 Refresh 按钮 */
             .btn-refresh { 
-                background: #ffffff; 
-                color: #475569; 
-                padding: 10px 22px; 
-                border-radius: 14px; 
-                text-decoration: none; 
-                font-weight: 800; 
-                font-size: 13px;
-                border: 1px solid #e2e8f0; 
-                display: inline-flex; 
-                align-items: center; 
-                gap: 10px; 
-                cursor: pointer; 
+                background: #ffffff; color: #475569; padding: 10px 22px; border-radius: 14px; 
+                text-decoration: none; font-weight: 800; font-size: 13px; border: 1px solid #e2e8f0; 
+                display: inline-flex; align-items: center; gap: 10px; cursor: pointer; 
                 transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                 box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
             }
-            .btn-refresh:hover {
-                background: #0f172a;
-                color: #ffffff;
-                border-color: #0f172a;
-                transform: translateY(-3px) scale(1.02);
-                box-shadow: 0 15px 30px -5px rgba(15, 23, 42, 0.2);
-            }
-            .icon-spin { 
-                display: inline-block;
-                transition: transform 0.8s ease; 
-            }
-            .btn-refresh:hover .icon-spin { 
-                transform: rotate(360deg); 
-                color: #3b82f6;
-            }
+            .btn-refresh:hover { background: #0f172a; color: #ffffff; border-color: #0f172a; transform: translateY(-3px) scale(1.02); }
+            .icon-spin { display: inline-block; transition: transform 0.8s ease; }
+            .btn-refresh:hover .icon-spin { transform: rotate(360deg); color: #3b82f6; }
 
             .btn-add { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 700; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3); transition: 0.3s; }
             .btn-add:hover { transform: translateY(-2px); box-shadow: 0 15px 25px -5px rgba(239, 68, 68, 0.4); color: white; }
@@ -114,10 +101,15 @@ if (file_exists($admin_head)) { include $admin_head; }
             .card-body { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
             .p-title { font-size: 16px; font-weight: 700; color: #1e293b; height: 48px; overflow: hidden; margin-bottom: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
             .price-tag { font-size: 22px; font-weight: 800; color: #0f172a; }
-            .card-actions { display: grid; grid-template-columns: 1fr 1fr; background: #f8fafc; border-top: 1px solid #f1f5f9; }
+            
+            /* 💡 核心修改：改为三等分（1fr 1fr 1fr），并加上了 detail-link 样式 */
+            .card-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; background: #f8fafc; border-top: 1px solid #f1f5f9; }
             .btn-action { padding: 16px; text-align: center; text-decoration: none; font-size: 13px; font-weight: 700; }
+            .detail-link { color: #eab308; border-right: 1px solid #f1f5f9; } /* 新增的 Detail 按钮颜色 */
             .edit-link { color: #3b82f6; border-right: 1px solid #f1f5f9; }
-            .del-link { color: #94a3b8; }
+            
+            /* 💡 修改这里：让 delete 按钮一直显示红色 */
+            .del-link { color: #ef4444; } 
             .del-link:hover { color: #dc2626; }
         </style>
 
@@ -138,11 +130,18 @@ if (file_exists($admin_head)) { include $admin_head; }
 
         <form method="GET" action="product_crud.php" class="filter-card">
             <input type="text" name="search" class="filter-input input-search" placeholder="Search product name or ID..." value="<?= htmlspecialchars($search) ?>">
+            
+            <select name="category" class="filter-input" style="width: 140px; cursor: pointer;">
+                <option value="">All Genders</option>
+                <option value="Man" <?= $category === 'Man' ? 'selected' : '' ?>>Man</option>
+                <option value="Women" <?= $category === 'Women' ? 'selected' : '' ?>>Women</option>
+            </select>
+
             <input type="number" name="min_price" class="filter-input input-price" placeholder="Min RM" step="0.01" value="<?= htmlspecialchars($min_price) ?>">
             <input type="number" name="max_price" class="filter-input input-price" placeholder="Max RM" step="0.01" value="<?= htmlspecialchars($max_price) ?>">
             <button type="submit" class="btn-filter">FILTER</button>
             
-            <?php if (!empty($search) || $min_price !== '' || $max_price !== ''): ?>
+            <?php if (!empty($search) || $min_price !== '' || $max_price !== '' || !empty($category)): ?>
                 <a href="product_crud.php" class="btn-reset">✖ Reset</a>
             <?php endif; ?>
         </form>
@@ -163,6 +162,7 @@ if (file_exists($admin_head)) { include $admin_head; }
                         <div class="price-tag">RM <?= number_format($p['price'], 2) ?></div>
                     </div>
                     <div class="card-actions">
+                        <a href="admin_product_detail.php?id=<?= urlencode($p['product_id']) ?>" class="btn-action detail-link">Detail</a>
                         <a href="admin_product_edit.php?id=<?= urlencode($p['product_id']) ?>" class="btn-action edit-link">Edit</a>
                         <a href="admin_product_delete.php?id=<?= urlencode($p['product_id']) ?>" class="btn-action del-link" onclick="return confirm('Delete?')">Delete</a>
                     </div>
@@ -170,8 +170,8 @@ if (file_exists($admin_head)) { include $admin_head; }
                 <?php endforeach; ?>
             <?php else: ?>
                 <div style="grid-column: span 4; text-align: center; padding: 100px; color: #94a3b8; background: white; border-radius: 20px;">
-                    <div style="font-size: 50px;">🛍️</div>
-                    <p>No products found matching your search.</p>
+                    <p style="margin-bottom: 20px;"><img src="https://cdn-icons-png.flaticon.com/512/3501/3501061.png" width="80" style="opacity: 0.5;"></p>
+                    <p style="font-size: 18px; font-weight: 700;">No products found matching your search.</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -179,7 +179,6 @@ if (file_exists($admin_head)) { include $admin_head; }
 </template>
 
 <script>
-// 💡 定义弹窗刷新函数
 function triggerSyncRefresh() {
     alert("✅ Admin records synchronized and refreshed!");
     window.location.href = 'product_crud.php';
@@ -195,6 +194,7 @@ function triggerSyncRefresh() {
         const viewport = document.querySelector('.admin-content-viewport') || 
                          document.querySelector('.main-content') || 
                          document.querySelector('#layout-content') ||
+                         document.querySelector('.content-wrapper') ||
                          document.querySelector('main');
 
         if (viewport) {
@@ -206,8 +206,16 @@ function triggerSyncRefresh() {
     }
 
     const heartBeat = setInterval(performInjection, 500);
-    const observer = new MutationObserver((mutations) => { performInjection(); });
-    observer.observe(document.body, { childList: true, subtree: true });
+    
+    const observer = new MutationObserver((mutations) => { 
+        performInjection(); 
+    });
+
+    observer.observe(document.body, { 
+        childList: true, 
+        subtree: true 
+    });
+
     window.addEventListener('load', performInjection);
     performInjection();
 })();
