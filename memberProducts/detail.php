@@ -1,13 +1,12 @@
 <?php
 session_start();
-require_once '../includes/db.php';
-require_once '../includes/_head.php';
-
 $product_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($product_id <= 0) { 
     header('Location: listing.php'); 
     exit(); 
 }
+require_once '../includes/db.php';
+require_once '../includes/_head.php';
 
 $stmt = $pdo->prepare("SELECT * FROM products WHERE product_id = ?");
 $stmt->execute([$product_id]);
