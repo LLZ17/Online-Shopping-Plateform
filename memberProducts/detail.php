@@ -22,6 +22,16 @@ if (!$product) {
     exit(); 
 }
 
+// --- 🔥 新增功能：检测当前购物车中指定商品的数量 ---
+$existing_cart_qty = 0;
+if (isset($_SESSION['user_id'])) {
+    $stmt_cart = $pdo->prepare("SELECT SUM(quantity) as total_qty FROM cart WHERE user_id = ? AND product_id = ?");
+    $stmt_cart->execute([$_SESSION['user_id'], $product_id]);
+    $cart_res = $stmt_cart->fetch();
+    $existing_cart_qty = (int)($cart_res['total_qty'] ?? 0);
+}
+// --- 结束新增 ---
+
 // 3. 获取评价详情
 $stmt = $pdo->prepare("
     SELECT r.*, u.username 
@@ -174,7 +184,17 @@ $('.col-btn').click(function(){
 });
 
 function addToCart(){
-    let qty = $('#quantity').val();
+    // --- 🔥 购买数量验证功能 ---
+    let enteredQty = parseInt($('#quantity').val()); // 当前页面拟购买数量
+    let cartQty = <?php echo $existing_cart_qty; ?>; // 购物车已存数量
+    let totalStock = <?php echo (int)$product['stock']; ?>; // 数据库库存总量
+
+    if ((enteredQty + cartQty) > totalStock) {
+        alert("Action Failed: You already have " + cartQty + " items in your cart. Adding " + enteredQty + " more would exceed the total available stock of " + totalStock + ".");
+        return; // 拦截请求
+    }
+    // --- 结束验证 ---
+
     let size = $('#selected_size').val();
     let color = $('#selected_colour').val();
     
@@ -188,7 +208,7 @@ function addToCart(){
         method: 'POST',
         data: { 
             product_id: '<?php echo $product_id; ?>', 
-            quantity: qty, 
+            quantity: enteredQty, 
             selected_size: size,
             colour: color
         },
