@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 
 require_once __DIR__ . '/../includes/db.php'; 
 
-// 💡 处理状态修改的请求 (Active/Blocked)
+// 💡 1. 处理状态修改的请求 (Active/Blocked)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
     try {
         $update_id = $_POST['user_id'];
@@ -21,10 +21,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// 💡 抓取会员列表
+// 💡 2. 核心修改：接收搜索词并构建查询逻辑
+$searchQuery = $_GET['search'] ?? '';
+$whereClause = "role = 'Member'";
+$queryParams = [];
+
+if (!empty($searchQuery)) {
+    // 允许搜索 ID, 真实姓名 或 用户名
+    $whereClause .= " AND (user_id LIKE ? OR real_name LIKE ? OR username LIKE ?)";
+    $likeTerm = "%" . $searchQuery . "%";
+    $queryParams = [$likeTerm, $likeTerm, $likeTerm];
+}
+
+// 💡 3. 抓取会员列表 (加入搜索条件)
 try {
-    $sql = "SELECT * FROM users WHERE role = 'Member' ORDER BY user_id ASC";
-    $members = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    $sql = "SELECT * FROM users WHERE $whereClause ORDER BY user_id ASC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($queryParams);
+    $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $members = [];
     $errorMsg = ($errorMsg ?? "") . " Database Error: " . $e->getMessage();
@@ -54,6 +68,28 @@ if (file_exists($admin_head)) { include $admin_head; }
     .page-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
     .page-header h1 { font-size: 32px; font-weight: 900; color: #0f172a; letter-spacing: -1px; margin: 0; }
     
+    /* 💡 新增的搜索框区域样式 */
+    .search-box { 
+        display: flex; gap: 10px; flex-grow: 1; max-width: 400px; 
+        background: #ffffff; padding: 6px; border-radius: 14px; 
+        border: 1px solid #e2e8f0; box-shadow: 0 4px 10px -2px rgba(0,0,0,0.05);
+    }
+    .search-input { 
+        flex-grow: 1; border: none; outline: none; padding: 8px 15px; 
+        font-family: inherit; font-size: 14px; font-weight: 600; color: #1e293b; background: transparent;
+    }
+    .search-input::placeholder { color: #94a3b8; font-weight: 500; }
+    .btn-search { 
+        background: #0f172a; color: white; border: none; padding: 0 20px; 
+        border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; 
+    }
+    .btn-search:hover { background: #334155; }
+    .btn-clear { 
+        display: inline-flex; align-items: center; padding: 0 12px; color: #64748b; 
+        text-decoration: none; font-weight: 700; font-size: 13px; background: #f1f5f9; border-radius: 10px;
+    }
+    .btn-clear:hover { background: #e2e8f0; color: #ef4444; }
+
     .stat-badge { 
         background: #ffffff; padding: 10px 20px; border-radius: 12px; 
         box-shadow: 0 4px 10px -2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; 
@@ -61,7 +97,6 @@ if (file_exists($admin_head)) { include $admin_head; }
     }
     .stat-badge span { color: #3b82f6; font-size: 18px; margin-left: 8px; font-weight: 900; }
 
-    /* 💡 Refresh 按钮新颜色：高级素雅灰白，不喧宾夺主 */
     .btn-refresh {
         background: #ffffff; color: #334155;
         padding: 10px 16px; border-radius: 12px; text-decoration: none; font-weight: 800;
@@ -93,9 +128,7 @@ if (file_exists($admin_head)) { include $admin_head; }
         overflow-x: auto; 
     }
     
-    /* 💡 取消了 1350px 限制，改为 900px，保证能在你的屏幕里完全展开 */
     table { width: 100%; border-collapse: collapse; text-align: left; min-width: 900px; }
-    /* 💡 缩小了左右 padding，把空间挤出来给右边的列 */
     th { background: #f8fafc; padding: 15px 12px; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
     td { padding: 15px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #1e293b; font-size: 14px; }
     tr:last-child td { border-bottom: none; }
@@ -110,9 +143,9 @@ if (file_exists($admin_head)) { include $admin_head; }
     .u-realname { font-size: 15px; font-weight: 800; color: #0f172a; }
     .u-username { font-size: 12px; color: #94a3b8; font-weight: 600; }
 
+    /* 联系方式 */
     .contact-item { font-size: 13px; color: #475569; display: flex; align-items: flex-start; gap: 6px; margin-bottom: 4px; }
     .contact-icon { font-size: 14px; opacity: 0.7; margin-top: 1px; }
-    /* 💡 地址宽度限制到 220px 并自动换行，不抢占右边的空间 */
     .address-text { line-height: 1.4; max-width: 220px; white-space: normal; word-wrap: break-word; font-size: 12px; }
 
     .badge-container { display: flex; flex-direction: column; gap: 6px; }
@@ -136,14 +169,21 @@ if (file_exists($admin_head)) { include $admin_head; }
 
     .points-text { font-size: 16px; font-weight: 900; color: #f59e0b; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 
-    /* 💡 操作按钮强制上下叠放！这是保证 Delete 和 Profile Detail 都能显示的究极方法 */
     .action-group { display: flex; flex-direction: column; gap: 8px; } 
+    
     .btn-profile-detail {
-        background: #f8fafc; color: #3b82f6; padding: 8px 12px; border-radius: 10px;
+        background: #fefce8; color: #ca8a04; padding: 8px 12px; border-radius: 10px;
         text-decoration: none; font-weight: 800; font-size: 11px; transition: all 0.3s ease;
-        display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #e2e8f0; white-space: nowrap; width: 110px; box-sizing: border-box;
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #fef08a; white-space: nowrap; width: 110px; box-sizing: border-box;
     }
-    .btn-profile-detail:hover { background: #3b82f6; color: #ffffff; border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
+    .btn-profile-detail:hover { background: #ca8a04; color: #ffffff; border-color: #ca8a04; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(202, 138, 4, 0.3); }
+
+    .btn-edit {
+        background: #eff6ff; color: #3b82f6; padding: 8px 12px; border-radius: 10px;
+        text-decoration: none; font-weight: 800; font-size: 11px; transition: all 0.3s ease;
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #bfdbfe; white-space: nowrap; width: 110px; box-sizing: border-box;
+    }
+    .btn-edit:hover { background: #3b82f6; color: #ffffff; border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
 
     .btn-delete {
         background: #fef2f2; color: #ef4444; padding: 8px 12px; border-radius: 10px;
@@ -156,6 +196,14 @@ if (file_exists($admin_head)) { include $admin_head; }
 <div class="member-container">
     <div class="page-header">
         <h1>Member CRUD</h1>
+        
+        <form method="GET" action="member_crud.php" class="search-box">
+            <input type="text" name="search" class="search-input" placeholder="Search by Name or ID..." value="<?= htmlspecialchars($searchQuery) ?>">
+            <button type="submit" class="btn-search">SEARCH</button>
+            <?php if (!empty($searchQuery)): ?>
+                <a href="member_crud.php" class="btn-clear">✖</a>
+            <?php endif; ?>
+        </form>
         
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
             <div class="stat-badge">Total Members <span><?= count($members) ?></span></div>
@@ -181,6 +229,7 @@ if (file_exists($admin_head)) { include $admin_head; }
             <table>
                 <thead>
                     <tr>
+                        <th style="width: 50px; text-align: center;">No.</th>
                         <th>ID</th>
                         <th>Member Profile</th>
                         <th>Contact & Address</th>
@@ -191,6 +240,7 @@ if (file_exists($admin_head)) { include $admin_head; }
                 </thead>
                 <tbody>
                     <?php if (!empty($members)): ?>
+                        <?php $counter = 1; ?>
                         <?php foreach ($members as $m): 
                             // 处理头像
                             $photoRaw = !empty($m['profile_photo']) ? $m['profile_photo'] : 'default.jpg';
@@ -214,6 +264,8 @@ if (file_exists($admin_head)) { include $admin_head; }
                             $fullAddress = !empty($addrArr) ? implode(", ", $addrArr) : 'Address not provided';
                         ?>
                         <tr>
+                            <td style="text-align: center; font-weight: 700; color: #64748b;"><?= $counter++ ?></td>
+                            
                             <td style="font-weight: 800; color: #94a3b8;">#<?= htmlspecialchars($m['user_id']) ?></td>
 
                             <td>
@@ -278,9 +330,14 @@ if (file_exists($admin_head)) { include $admin_head; }
 
                             <td>
                                 <div class="action-group">
-                                    <a href="member_edit.php?id=<?= urlencode($m['user_id']) ?>" class="btn-profile-detail">
+                                    <a href="member_detail.php?id=<?= urlencode($m['user_id']) ?>" class="btn-profile-detail">
                                         <span>👁️</span> Profile Detail
                                     </a>
+                                    
+                                    <a href="member_edit.php?id=<?= urlencode($m['user_id']) ?>" class="btn-edit">
+                                        <span>✏️</span> Edit
+                                    </a>
+                                    
                                     <a href="member_delete.php?id=<?= urlencode($m['user_id']) ?>" class="btn-delete" onclick="return confirm('Are you sure you want to delete this member?');">
                                         <span>🗑️</span> Delete
                                     </a>
@@ -290,9 +347,9 @@ if (file_exists($admin_head)) { include $admin_head; }
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="6" style="text-align:center; padding:60px; color:#94a3b8;">
+                            <td colspan="7" style="text-align:center; padding:60px; color:#94a3b8;">
                                 <div style="font-size:40px; margin-bottom:10px;">👥</div>
-                                <div style="font-size:16px; font-weight:700;">No members found.</div>
+                                <div style="font-size:16px; font-weight:700;">No members found matching your search.</div>
                             </td>
                         </tr>
                     <?php endif; ?>
@@ -303,10 +360,9 @@ if (file_exists($admin_head)) { include $admin_head; }
 </div>
 
 <script>
-    // 💡 弹窗刷新函数
     function triggerSyncRefresh() {
         alert("✅ Admin records synchronized and refreshed!");
-        window.location.reload();
+        window.location.href = "member_crud.php"; // 刷新时清除搜索条件
     }
 
     document.addEventListener("DOMContentLoaded", function() {

@@ -1,5 +1,5 @@
 <?php
-// TEE DE YONG's Part: Add Product (Updated for Multiple Photos)
+// TEE DE YONG's Part: Add Product (Updated for Multiple Photos & Auto ID)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -15,12 +15,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
 
-        // 1. 先把基础信息存进去，拿到新的 product_id
-        $stmt = $pdo->prepare("INSERT INTO products (name, price, description) VALUES (?, ?, ?)");
-        $stmt->execute([$name, $price, $description]);
-        $new_id = $pdo->lastInsertId();
+        // 💡 【核心要求】：自动分配 product_id (自动抓取上一个ID并+1)
+        $idQuery = $pdo->query("SELECT product_id FROM products ORDER BY created_at DESC, product_id DESC LIMIT 1");
+        $lastId = $idQuery->fetchColumn();
+        
+        if ($lastId && preg_match('/^([a-zA-Z]+)(\d+)$/', $lastId, $matches)) {
+            $prefix = $matches[1]; // 比如提取出 "MP"
+            $number = intval($matches[2]) + 1; // 比如 "018" 变成 19
+            // 自动补零，保持相同的长度，比如变成 MP019
+            $new_product_id = $prefix . str_pad($number, strlen($matches[2]), '0', STR_PAD_LEFT);
+        } else {
+            // 如果数据库是空的，或者找不到格式，生成一个默认的初始ID
+            $new_product_id = 'PRD001'; 
+        }
 
-        // 2. 【核心修改】：处理多图上传
+        // 1. 先把基础信息和自动生成的 ID 一起存进去
+        $stmt = $pdo->prepare("INSERT INTO products (product_id, name, price, description) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$new_product_id, $name, $price, $description]);
+        
+        $new_id = $new_product_id; // 给后面的图片命名使用
+
+        // 2. 处理多图上传 (保持你的原始逻辑)
         if (isset($_FILES['photos']) && !empty($_FILES['photos']['name'][0])) {
             $upload_dir = __DIR__ . '/../uploads/products/';
             if (!is_dir($upload_dir)) { mkdir($upload_dir, 0777, true); }
@@ -47,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $pdo->commit();
-        echo "<script>alert('✨ Product successfully added!'); window.location.href='product_crud.php';</script>";
+        echo "<script>alert('✨ Product [{$new_product_id}] successfully added!'); window.location.href='product_crud.php';</script>";
         exit;
 
     } catch (Exception $e) {

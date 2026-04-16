@@ -666,8 +666,8 @@ $new_products = $stmt->fetchAll();
                      onerror="this.src='images/default.jpg'">
             </a>
             <div class="quick-buttons">
-                <button class="quick-wishlist <?php echo ($product['is_favourite'] > 0) ? 'active' : ''; ?>" 
-                        onclick="addToWishlist(event, '<?php echo $product['product_id']; ?>')">
+<button class="quick-wishlist <?php echo ($product['is_favourite'] > 0) ? 'active' : ''; ?>" 
+        data-id="<?php echo $product['product_id']; ?>">
                     <?php echo ($product['is_favourite'] > 0) ? '♥ Wishlisted' : '♡ Wishlist'; ?>
                 </button>
             </div>
@@ -689,7 +689,7 @@ $new_products = $stmt->fetchAll();
                         </span>
                     </div>
                     <?php if ($product['stock'] > 0): ?>
-                        <button class="add-to-cart-btn" onclick="addToCart(<?php echo $product['product_id']; ?>)">
+                        <button class="add-to-cart-btn" data-id="<?php echo $product['product_id']; ?>">
                             🛒 Add to Cart
                         </button>
                     <?php else: ?>
@@ -719,8 +719,8 @@ $new_products = $stmt->fetchAll();
                         onerror="this.src='images/default.jpg'">
                     </a>
                     <div class="quick-buttons">
-                        <button class="quick-wishlist <?php echo ($product['is_favourite'] > 0) ? 'active' : ''; ?>"
-                        onclick="addToWishlist(event, '<?php echo $product['product_id']; ?>')">
+                        <button class="quick-wishlist <?php echo ($product['is_favourite'] > 0) ? 'active' : ''; ?>" 
+        data-id="<?php echo $product['product_id']; ?>">
                         <?php echo ($product['is_favourite'] > 0) ? '♥ Wishlisted' : '♡ Wishlist'; ?>
                     </button>
                 </div>
@@ -762,73 +762,43 @@ $new_products = $stmt->fetchAll();
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-/* 轮播图逻辑 - 左右按键控制、小圆点控制 & 自动播放 */
-document.addEventListener("DOMContentLoaded", function() {
-    const slides = document.querySelectorAll('.slide');
-    const dots = document.querySelectorAll('.dot');
-    const prevBtn = document.querySelector('.slider-prev');
-    const nextBtn = document.querySelector('.slider-next');
-    let currentSlide = 0;
-    let slideInterval;
-
-    function showSlide(index) {
-        slides.forEach(slide => slide.classList.remove('active'));
-        dots.forEach(dot => dot.classList.remove('active'));
+$(document).ready(function() {
+    // 加购按钮事件
+    $('.add-to-cart-btn').click(function() {
+        var productId = $(this).data('id');
+        addToCart(productId);
+    });
+    
+    // 心愿单按钮事件
+    $('.quick-wishlist').click(function(e) {
+        var productId = $(this).data('id');
+        var $btn = $(this);
+        var $card = $btn.closest('.product-card');
         
-        currentSlide = index;
-        
-        slides[currentSlide].classList.add('active');
-        dots[currentSlide].classList.add('active');
-    }
-
-    function nextSlide() {
-        let nextIndex = (currentSlide + 1) % slides.length;
-        showSlide(nextIndex);
-    }
-
-    function prevSlide() {
-        let prevIndex = (currentSlide - 1 + slides.length) % slides.length;
-        showSlide(prevIndex);
-    }
-
-    // 绑定左右按键事件
-    if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            nextSlide();
-            resetInterval();
-        });
-    }
-
-    if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-            prevSlide();
-            resetInterval();
-        });
-    }
-
-    // 点击圆点切换图片
-    dots.forEach((dot, index) => {
-        dot.addEventListener('click', () => {
-            showSlide(index);
-            resetInterval();
+        $.ajax({
+            url: 'member/wishlist_toggle.php?id=' + productId,
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'not_logged_in') {
+                    window.location.href = 'login_selection.php';
+                } else if (response.status === 'added') {
+                    $btn.addClass('active');
+                    $card.addClass('is-fav-module');
+                    $btn.html('♥ Wishlisted');
+                } else if (response.status === 'removed') {
+                    $btn.removeClass('active');
+                    $card.removeClass('is-fav-module');
+                    $btn.html('♡ Wishlist');
+                }
+            },
+            error: function() {
+                alert('Error toggling wishlist');
+            }
         });
     });
-
-    // 自动播放 (10000ms = 10秒)
-    function startInterval() {
-        slideInterval = setInterval(nextSlide, 10000);
-    }
-
-    function resetInterval() {
-        clearInterval(slideInterval);
-        startInterval();
-    }
-
-    // 启动自动播放
-    startInterval();
 });
 
-/* 购物车与收藏逻辑 */
 function addToCart(productId) {
     $.ajax({
         url: 'memberProducts/add.php',
@@ -852,38 +822,7 @@ function addToCart(productId) {
         }
     });
 }
-
-function addToWishlist(event, productId) {
-    const btn = event.currentTarget;
-    const card = btn.closest('.product-card');
-
-    $.ajax({
-        url: 'member/wishlist_toggle.php?id=' + productId,
-        method: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            if (response.status === 'not_logged_in') {
-                // 未登录重定向
-                window.location.href = 'login_selection.php';
-            } else if (response.status === 'added') {
-                // 切换为收藏状态
-                btn.classList.add('active');
-                card.classList.add('is-fav-module');
-                btn.innerHTML = '♥ Wishlisted';
-            } else if (response.status === 'removed') {
-                // 恢复为未收藏状态
-                btn.classList.remove('active');
-                card.classList.remove('is-fav-module');
-                btn.innerHTML = '♡ Wishlist';
-            }
-        },
-        error: function() {
-            alert('Error toggling wishlist');
-        }
-    });
-}
 </script>
-
 </div>
 
 <?php require_once 'includes/_foot.php'; ?>

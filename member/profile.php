@@ -267,6 +267,19 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
     .blue-link-action { 
         color: #0055aa; text-decoration: none; font-size: 15px; font-weight: bold; 
     }
+
+    .blue-link-action:hover { 
+        text-decoration: underline; 
+    }
+
+    /* SECURITY ITEM LIST */
+    .security-data-row { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 30px 0; 
+        border-bottom: 1px solid #f9f9f9; 
+    }
 </style>
 
 <div class="pxx-master-wrapper">
@@ -439,7 +452,7 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
                     </span>
                 </div>
                 <div>
-                    <a href="edit_email.php" class="blue-link-action">Change</a>
+                    <a href="edit_email.php" class="blue-link-action">Change Email</a>
                     <?php if (!$email_verified_status): ?>
                         | <a href="email_verify.php" class="blue-link-action">Verify Now</a>
                     <?php endif; ?>
@@ -452,7 +465,7 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
                     <span style="color: #888; font-size: 14px; line-height: 2;"><?php echo d($u['phone_num']); ?></span>
                     <span class="status-badge badge-verified">Verified</span>
                 </div>
-                <div><a href="edit_phone.php" class="blue-link-action">Update</a></div>
+                <div><a href="edit_phone.php" class="blue-link-action">Update Phone Number</a></div>
             </div>
 
             <div class="security-data-row" style="border: none;">
