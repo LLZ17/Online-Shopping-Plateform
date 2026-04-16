@@ -1,5 +1,4 @@
 /* 1. admin/admin_crud.php js LIM LI ZHE part*/
-
 function handleRefresh() {
     alert("✅ Admin records synchronized and refreshed!");
     window.location.reload();
@@ -33,23 +32,13 @@ function openModal(mode, data, fullAddr = "") {
         footer.innerHTML = '<button type="button" class="btn-save" style="background:#64748b;" onclick="closeModal()">Close Window</button>';
     } else {
         document.getElementById('modalTitle').innerText = "Modify Administrator Data";
-        inputs.forEach(i => { 
-            if(i.id !== 'field_created' && i.id !== 'field_login') i.disabled = false; 
-        });
-        footer.innerHTML = `
-            <button type="submit" class="btn-save">Commit Changes</button>
-            <button type="button" onclick="closeModal()" style="background:none; color:#94a3b8; border:none; cursor:pointer; font-weight:700;">Discard Changes</button>
-        `;
+        inputs.forEach(i => { if(i.id !== 'field_created' && i.id !== 'field_login') i.disabled = false; });
+        footer.innerHTML = '<button type="submit" class="btn-save">Commit Changes</button><button type="button" onclick="closeModal()" style="background:none; color:#94a3b8; border:none; cursor:pointer; font-weight:700;">Discard Changes</button>';
     }
 }
 
-function closeModal() { 
-    document.getElementById('adminModal').style.display = 'none'; 
-}
+function closeModal() { document.getElementById('adminModal').style.display = 'none'; }
 
-/**
- * Viewport injection logic to ensure consistency with Member CRUD
- */
 document.addEventListener("DOMContentLoaded", function() {
     let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
     let container = document.querySelector('.admin-container');
@@ -132,30 +121,7 @@ document.addEventListener("DOMContentLoaded", function() {
 /* ---------------------------------------------*/
 
 /* 3. admin/login.php js LIM LI ZHE part*/
-// 切换帮助弹窗
-function toggleModal(show) { 
-    const modal = document.getElementById('helpModal');
-    if(modal) { modal.style.display = show ? 'block' : 'none'; }
-}
 
-// 切换密码显示/隐藏
-function togglePassword(id, icon) {
-    const input = document.getElementById(id);
-    if (input.type === "password") {
-        input.type = "text";
-        icon.classList.replace('fa-eye', 'fa-eye-slash');
-    } else {
-        input.type = "password";
-        icon.classList.replace('fa-eye-slash', 'fa-eye');
-    }
-}
-
-// 点击遮罩层关闭弹窗
-window.onclick = function(event) {
-    const modal = document.getElementById('helpModal');
-    if (event.target == modal) { toggleModal(false); }
-}
-/*---------------------------------------------*/
 
 /* 4. admin/logout.php js LIM LI ZHE part*/
 
