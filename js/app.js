@@ -1,4 +1,4 @@
-/* admin/admin_crud.php jc LIM LI ZHE part*/
+/* 1. admin/admin_crud.php jc LIM LI ZHE part*/
 
 function handleRefresh() {
     alert("✅ Admin records synchronized and refreshed!");
@@ -60,4 +60,75 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 /* ------------------------------------------------*/
 
-/* admin/admin_crud.php css  xxx part*/
+/* 2. admin/category_crud.php css LIM LI ZHE part*/
+/**
+ * PXX Mall - Category CRUD Interaction Logic
+ */
+
+// 处理删除确认
+function handleDelete(id) {
+    if(confirm("🚨 Delete Category #" + id + "?")) {
+        window.location.href = "category_crud.php?delete=" + id;
+    }
+}
+
+// 打开 Modal 逻辑
+function openModal(mode, data = null) {
+    const modal = document.getElementById('catModal');
+    modal.style.display = 'flex';
+    document.getElementById('modalForm').reset();
+    
+    const fId = document.getElementById('f_id');
+    const inputs = modal.querySelectorAll('input, select, textarea');
+
+    if(mode === 'add') {
+        document.getElementById('modalTitle').innerText = "New Category Entry";
+        document.getElementById('f_is_new').value = "true";
+        fId.readOnly = false;
+        fId.style.background = "#fff";
+        document.getElementById('detailExtra').style.display = 'none';
+        document.getElementById('modalFooter').style.display = 'block';
+        document.getElementById('saveBtnText').innerText = "Save Category";
+        inputs.forEach(i => i.disabled = false);
+    } else {
+        document.getElementById('f_is_new').value = "false";
+        fId.value = data.category_id;
+        fId.readOnly = true;
+        fId.style.background = "#f8fafc";
+        document.getElementById('f_name').value = data.category_name;
+        document.getElementById('f_gender').value = data.category_gender;
+        document.getElementById('f_desc').value = data.description;
+
+        if(mode === 'detail') {
+            document.getElementById('modalTitle').innerText = "Category Detail Info";
+            document.getElementById('detailExtra').style.display = 'block';
+            document.getElementById('f_created').innerText = data.created_at;
+            document.getElementById('modalFooter').style.display = 'none';
+            inputs.forEach(i => i.disabled = true);
+        } else {
+            document.getElementById('modalTitle').innerText = "Edit Category";
+            document.getElementById('detailExtra').style.display = 'none';
+            document.getElementById('modalFooter').style.display = 'block';
+            document.getElementById('saveBtnText').innerText = "Update Category";
+            inputs.forEach(i => i.disabled = false);
+        }
+    }
+}
+
+// 关闭 Modal
+function closeModal() { 
+    document.getElementById('catModal').style.display = 'none'; 
+}
+
+// 强制嵌入 Viewport 逻辑 (保持你的代码逻辑不变)
+document.addEventListener("DOMContentLoaded", function() {
+    let vp = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
+    let ct = document.getElementById('pxxMain');
+    if (vp && ct && vp !== ct.parentNode) {
+        vp.innerHTML = ''; 
+        vp.appendChild(ct);
+    }
+});
+/* ---------------------------------------------*/
+
+/* 3. admin/login_process.php css LIM LI ZHE part*/

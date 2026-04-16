@@ -1,8 +1,6 @@
 <?php
 /**
- * PXX Mall - Category CRUD (Merged Options Edition)
- * 📂 逻辑：将 Type 直接合并入 Gender 选项，移除多余联动
- * 📂 颜色：Detail(Blue), Edit(Green), Delete(Red)
+ * PXX Mall - Category CRUD (Separated Edition)
  */
 
 ini_set('display_errors', 1);
@@ -17,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
         $cid    = $_POST['category_id'] ?? '';
         $cname  = $_POST['category_name'] ?? '';
-        $gender = $_POST['category_gender'] ?? ''; // 这里接收的是 "Men - Shirt" 这种字符串
+        $gender = $_POST['category_gender'] ?? ''; 
         $desc   = $_POST['description'] ?? '';
 
         if ($_POST['is_new'] === 'true') {
@@ -44,51 +42,7 @@ $admin_head = $pxx_root . '/includes/_admin_head.php';
 if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
-    .page-title-box { display: none !important; }
-    .cat-container { width: 100%; box-sizing: border-box; padding: 25px; font-family: 'Plus Jakarta Sans', sans-serif; animation: fadeInUp 0.4s ease-out forwards; }
-    @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .cat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-    .cat-header h1 { font-size: 32px; font-weight: 900; color: #0f172a; margin: 0; }
-    
-    .stat-badge { background: #fff; padding: 12px 20px; border-radius: 14px; border: 1px solid #e2e8f0; font-weight: 700; color: #64748b; font-size: 14px; }
-    .stat-badge span { color: #3b82f6; font-size: 18px; margin-left: 8px; font-weight: 900; }
-
-    /* 表格 UI */
-    .cat-card { background: #ffffff; border-radius: 24px; box-shadow: 0 10px 35px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; overflow: hidden; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th { background: #f8fafc; padding: 20px; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; }
-    td { padding: 20px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-
-    /* 样式 Badges */
-    .pill { padding: 6px 14px; border-radius: 10px; font-size: 11px; font-weight: 800; }
-    .pill-men { background: #e0f2fe; color: #0369a1; }
-    .pill-women { background: #fce7f3; color: #be185d; }
-
-    /* 按钮样式 */
-    .act-btns { display: flex; gap: 8px; }
-    .btn-i { padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 12px; border: 1px solid #e2e8f0; transition: 0.2s; cursor: pointer; background: #fff; }
-    .btn-blue { color: #3b82f6; border-color: #3b82f6; }
-    .btn-blue:hover { background: #3b82f6; color: #fff; }
-    .btn-green { color: #15803d; border-color: #15803d; background: #dcfce7; }
-    .btn-green:hover { background: #15803d; color: #fff; }
-    .btn-red { color: #ef4444; border-color: #ef4444; background: #fee2e2; }
-    .btn-red:hover { background: #ef4444; color: #fff; }
-
-    /* Modal */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); display: none; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(5px); }
-    .modal-box { background: #fff; width: 500px; border-radius: 28px; padding: 40px; position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.1); }
-    .modal-close { position: absolute; top: 25px; right: 25px; font-size: 28px; cursor: pointer; color: #cbd5e1; }
-    
-    .f-group { margin-bottom: 20px; }
-    .f-group label { display: block; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
-    .f-group input, .f-group select, .f-group textarea { width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #e2e8f0; font-family: inherit; font-size: 14px; font-weight: 600; box-sizing: border-box; }
-
-    .btn-save { width: 100%; background: #10b981; color: #fff; padding: 16px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; font-size: 15px; }
-</style>
-
+<link rel="stylesheet" href="../css/app.css">
 <div class="cat-container" id="pxxMain">
     <div class="cat-header">
         <h1>Category CRUD</h1>
@@ -113,7 +67,6 @@ if (file_exists($admin_head)) { include $admin_head; }
             </thead>
             <tbody>
                 <?php if ($categories): $idx = 1; foreach ($categories as $c): 
-                    // 根据字符串判断颜色
                     $isWomen = (strpos($c['category_gender'], 'Women') !== false);
                     $gClass = $isWomen ? 'pill-women' : 'pill-men';
                 ?>
@@ -193,65 +146,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     </div>
 </div>
 
-<script>
-function handleDelete(id) {
-    if(confirm("🚨 Delete Category #" + id + "?")) {
-        window.location.href = "category_crud.php?delete=" + id;
-    }
-}
-
-function openModal(mode, data = null) {
-    const modal = document.getElementById('catModal');
-    modal.style.display = 'flex';
-    document.getElementById('modalForm').reset();
-    
-    const fId = document.getElementById('f_id');
-    const inputs = modal.querySelectorAll('input, select, textarea');
-
-    if(mode === 'add') {
-        document.getElementById('modalTitle').innerText = "New Category Entry";
-        document.getElementById('f_is_new').value = "true";
-        fId.readOnly = false;
-        fId.style.background = "#fff";
-        document.getElementById('detailExtra').style.display = 'none';
-        document.getElementById('modalFooter').style.display = 'block';
-        document.getElementById('saveBtnText').innerText = "Save Category";
-        inputs.forEach(i => i.disabled = false);
-    } else {
-        document.getElementById('f_is_new').value = "false";
-        fId.value = data.category_id;
-        fId.readOnly = true;
-        fId.style.background = "#f8fafc";
-        document.getElementById('f_name').value = data.category_name;
-        document.getElementById('f_gender').value = data.category_gender;
-        document.getElementById('f_desc').value = data.description;
-
-        if(mode === 'detail') {
-            document.getElementById('modalTitle').innerText = "Category Detail Info";
-            document.getElementById('detailExtra').style.display = 'block';
-            document.getElementById('f_created').innerText = data.created_at;
-            document.getElementById('modalFooter').style.display = 'none';
-            inputs.forEach(i => i.disabled = true);
-        } else {
-            document.getElementById('modalTitle').innerText = "Edit Category";
-            document.getElementById('detailExtra').style.display = 'none';
-            document.getElementById('modalFooter').style.display = 'block';
-            document.getElementById('saveBtnText').innerText = "Update Category";
-            inputs.forEach(i => i.disabled = false);
-        }
-    }
-}
-
-function closeModal() { document.getElementById('catModal').style.display = 'none'; }
-
-document.addEventListener("DOMContentLoaded", function() {
-    let vp = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
-    let ct = document.getElementById('pxxMain');
-    if (vp && ct && vp !== ct.parentNode) {
-        vp.innerHTML = ''; vp.appendChild(ct);
-    }
-});
-</script>
+<script src="../js/app.js"></script>
 
 <?php 
 $foot = $pxx_root . '/includes/_admin_foot.php'; 
