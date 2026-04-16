@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
                             <td class="price">RM <?php echo number_format($item['price'], 2); ?></td>
                             <td><input type="number" name="quantity[<?php echo $item['cart_id']; ?>]" value="<?php echo $item['quantity']; ?>" min="1" class="qty-input"></td>
                             <td class="price">RM <?php echo number_format($subtotal, 2); ?></td>
-                            <td><a href="?remove=<?php echo $item['cart_id']; ?>" class="remove-link" onclick="return confirm('Remove this item?')">Remove</a></td>
+                            <a href="?remove=<?php echo $item['cart_id']; ?>" class="remove-link" data-id="<?php echo $item['cart_id']; ?>">Remove</a>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -93,5 +93,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
             </div>
         </form>
     <?php endif; ?>
+<script>
+$(document).ready(function() {
+    $('.remove-link').click(function(e) {
+        e.preventDefault();
+        var removeId = $(this).data('id');
+        if (confirm('Remove this item?')) {
+            window.location.href = '?remove=' + removeId;
+        }
+    });
+});
+</script>
 </div>
 <?php require_once '../includes/_foot.php'; ?>
