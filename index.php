@@ -12,8 +12,8 @@ $featured_sql = "
     SELECT p.*, 
     (SELECT COUNT(*) FROM favourites f WHERE f.product_id = p.product_id AND f.user_id = ?) as is_favourite
     FROM products p 
-    ORDER BY stock DESC, product_id DESC 
-    LIMIT 8";
+    ORDER BY p.product_id DESC 
+    LIMIT 12";
 $stmt = $pdo->prepare($featured_sql);
 $stmt->execute([$current_user_id]);
 $featured_products = $stmt->fetchAll();
