@@ -1,4 +1,4 @@
-/* 1. admin/admin_crud.php jc LIM LI ZHE part*/
+/* 1. admin/admin_crud.php js LIM LI ZHE part*/
 
 function handleRefresh() {
     alert("✅ Admin records synchronized and refreshed!");
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 /* ------------------------------------------------*/
 
-/* 2. admin/category_crud.php css LIM LI ZHE part*/
+/* 2. admin/category_crud.php js LIM LI ZHE part*/
 /**
  * PXX Mall - Category CRUD Interaction Logic
  */
@@ -131,4 +131,34 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 /* ---------------------------------------------*/
 
-/* 3. admin/login_process.php css LIM LI ZHE part*/
+/* 3. admin/login_process.php js LIM LI ZHE part*/
+/**
+ * PXX Mall - Admin Login Interaction
+ */
+document.addEventListener("DOMContentLoaded", function() {
+    const loginForm = document.getElementById('loginForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', function() {
+            // 提交时禁用按钮，防止重复点击
+            submitBtn.innerText = "Authenticating...";
+            submitBtn.style.opacity = "0.7";
+            submitBtn.style.pointerEvents = "none";
+        });
+    }
+});
+/---------------------------------------------/
+
+/* 4. admin/login.php js LIM LI ZHE part*/
+
+
+
+
+
+
+
+
+
+
+

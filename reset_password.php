@@ -1,7 +1,7 @@
 <?php
 /**
  * =================================================================================
- * PXX MALL - UNIVERSAL DUAL-THEME RESET ENGINE (V382.0)
+ * PXX MALL - UNIVERSAL DUAL-THEME RESET ENGINE (V384.0)
  * =================================================================================
  */
 
@@ -36,7 +36,7 @@ function canRequestCode() {
     return false;
 }
 
-// --- [STAGE 2: 身份与视觉引擎] ---
+// --- [STAGE 2: 身份判定] ---
 if (!isset($_SESSION['reset_step']) || $_SESSION['reset_step'] == 'identify') {
     $referer = $_SERVER['HTTP_REFERER'] ?? '';
     if (strpos(strtolower($referer), 'admin') !== false) {
@@ -102,28 +102,25 @@ if (isset($_GET['service']) && $_GET['service'] == 'resend' && isset($_SESSION['
     while (ob_get_level()) { ob_end_clean(); }
     header('Content-Type: text/plain');
     if (!canRequestCode()) {
-        echo "Limit reached (2 times/min). Please wait.";
+        echo "LIMIT_REACHED"; // 返回特定标识给 JS
     } else {
         echo sendDynamicOTP($pdo, $_SESSION['reset_username'], $_SESSION['reset_email'], $role, $color);
     }
     exit();
 }
 
-// B. 第一步：验证身份并初次发码
+// B. 第一步：身份核验
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_identity'])) {
     $u = trim($_POST['u']); 
     $e = trim($_POST['e']);
-    
-    // 域名核验：列表存在 OR 包含 .edu
     $domain = strtolower(substr(strrchr($e, "@"), 1));
     $is_valid_domain = in_array($domain, $allowed_domains) || (strpos($domain, '.edu') !== false);
 
     if (!$is_valid_domain) {
         $error_feedback = "Error: Email domain <b>@$domain</b> is not allowed.";
     } elseif (!canRequestCode()) {
-        $error_feedback = "Too many requests. Try again later.";
+        $error_feedback = "Limit reached. Please wait 1 minute.";
     } else {
-        // SQL 严格查询
         $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? AND email = ? AND role = ? LIMIT 1");
         $stmt->execute([$u, $e, $role]);
         if ($stmt->fetch()) {
@@ -131,10 +128,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_identity'])) {
             $_SESSION['reset_email'] = $e;
             $_SESSION['reset_step'] = 'verify';
             sendDynamicOTP($pdo, $u, $e, $role, $color);
-            header("Location: reset_password.php"); 
-            exit();
+            header("Location: reset_password.php"); exit();
         } else {
-            $error_feedback = "Invalid credentials for $role portal.";
+            $error_feedback = "Invalid $role credentials.";
         }
     }
 }
@@ -157,13 +153,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_otp'])) {
 // D. 第三步：最终重置
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_final'])) {
     $p1 = $_POST['p1']; $p2 = $_POST['p2'];
-    if (strlen($p1) < 6) { $error_feedback = "Password too short (Min 6)."; }
-    elseif ($p1 !== $p2) { $error_feedback = "Passwords do not match."; }
+    if (strlen($p1) < 6) { $error_feedback = "Min 6 characters required."; }
+    elseif ($p1 !== $p2) { $error_feedback = "Passwords match fail."; }
     else {
         $stmt = $pdo->prepare("SELECT password_hashed FROM users WHERE username = ? AND role = ?");
         $stmt->execute([$_SESSION['reset_username'], $role]);
         if (password_verify($p1, $stmt->fetch()['password_hashed'])) {
-            $error_feedback = "New password cannot be the same as old.";
+            $error_feedback = "Cannot use your old password.";
         } else {
             $h = password_hash($p1, PASSWORD_DEFAULT);
             $pdo->prepare("UPDATE users SET password_hashed = ?, email_code = NULL WHERE username = ? AND role = ?")
@@ -171,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_final'])) {
             
             $login_url = ($role == 'Admin') ? 'admin/login.php' : 'member/login.php';
             session_destroy();
-            echo "<script>alert('Sync Complete!'); window.location.href='$login_url';</script>"; exit();
+            echo "<script>alert('Updated!'); window.location.href='$login_url';</script>"; exit();
         }
     }
 }
@@ -183,14 +179,13 @@ include 'includes/_head.php';
     :root { --main: <?php echo $color; ?>; }
     body { margin: 0; background: url('images/bg.jpeg') center/cover fixed; font-family: 'Poppins', sans-serif; }
     .viewport { min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-    .auth-card { background: #fff; width: 100%; max-width: 480px; border-radius: 30px; box-shadow: 0 30px 100px rgba(0,0,0,0.2); overflow: hidden; border-top: 12px solid var(--main); }
+    .auth-card { background: #fff; width: 100%; max-width: 480px; border-radius: 30px; box-shadow: 0 30px 100px rgba(0,0,0,0.2); overflow: hidden; border-top: 15px solid var(--main); }
     .card-banner { padding: 40px 40px 0; text-align: center; }
     .card-banner h1 { font-weight: 900; font-size: 28px; color: #222; margin: 0; }
     .card-body { padding: 40px; text-align: center; }
     .f-input { width: 100%; padding: 18px; border: 2px solid #f0f0f0; border-radius: 15px; font-size: 16px; margin-bottom: 20px; text-align: center; box-sizing: border-box; outline: none; transition: 0.3s; }
-    .f-input:focus { border-color: var(--main); background: #fffdfd; }
-    .btn-action { width: 100%; padding: 18px; background: var(--main); color: #fff; border: none; border-radius: 12px; font-weight: 800; font-size: 18px; cursor: pointer; transition: 0.2s; }
-    .btn-action:hover { filter: brightness(1.1); transform: translateY(-2px); }
+    .f-input:focus { border-color: var(--main); }
+    .btn-action { width: 100%; padding: 18px; background: var(--main); color: #fff; border: none; border-radius: 12px; font-weight: 800; font-size: 18px; cursor: pointer; }
     .alert-box { background: #fff1f0; border: 1px solid #ffa39e; color: #cf1322; padding: 12px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; font-weight: bold; }
     .timer-zone { margin-top: 25px; font-size: 15px; color: #999; }
     .btn-resend { color: var(--main); text-decoration: underline; background: none; border: none; font-weight: bold; cursor: pointer; display: none; }
@@ -198,48 +193,34 @@ include 'includes/_head.php';
 
 <div class="viewport">
     <div class="auth-card">
-        <div class="card-banner">
-            <h1><?php echo $role; ?> Access</h1>
-        </div>
+        <div class="card-banner"><h1><?php echo $role; ?> Portal</h1></div>
         <div class="card-body">
-            
             <?php if($error_feedback): ?> <div class="alert-box"><?php echo $error_feedback; ?></div> <?php endif; ?>
 
             <?php if($stage == 'identify'): ?>
-                <p style="color:#666; font-size:14px; margin-bottom:25px;">Provide your registered credentials.</p>
                 <form method="POST">
                     <input type="text" name="u" class="f-input" placeholder="Username" required>
-                    <input type="email" name="e" class="f-input" placeholder="Registered Email" required>
-                    <button type="submit" name="submit_identity" class="btn-action">Request Code</button>
+                    <input type="email" name="e" class="f-input" placeholder="Email" required>
+                    <button type="submit" name="submit_identity" class="btn-action">Verify Account</button>
                 </form>
-
             <?php elseif($stage == 'verify'): ?>
-                <p style="color:#666; font-size:14px; margin-bottom:25px;">OTP sent to: <b><?php echo $_SESSION['reset_email']; ?></b></p>
+                <p>Code sent to: <b><?php echo $_SESSION['reset_email']; ?></b></p>
                 <form method="POST">
-                    <input type="text" name="otp" class="f-input" 
-                           style="font-size:35px; letter-spacing:8px; font-weight:900;" 
-                           placeholder="000000" maxlength="6" inputmode="numeric" 
-                           oninput="this.value = this.value.replace(/[^0-9]/g, '');" 
-                           required autofocus>
+                    <input type="text" name="otp" class="f-input" style="font-size:35px; letter-spacing:8px; font-weight:900;" 
+                           maxlength="6" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required autofocus>
                     <button type="submit" name="submit_otp" class="btn-action">Verify OTP</button>
                 </form>
                 <div class="timer-zone">
-                    <div id="t-ui">Valid for <span id="t-val" style="color:var(--main); font-weight:900;">30</span>s</div>
+                    <div id="t-ui">Expires in <span id="t-val">30</span>s</div>
                     <button id="r-btn" class="btn-resend" onclick="reSend()">Request New Code</button>
                 </div>
-
             <?php elseif($stage == 'reset'): ?>
-                <p style="color:#666; font-size:14px; margin-bottom:25px;">Enter your new secure password.</p>
                 <form method="POST">
                     <input type="password" name="p1" class="f-input" placeholder="New Password" required>
                     <input type="password" name="p2" class="f-input" placeholder="Confirm Password" required>
-                    <button type="submit" name="submit_final" class="btn-action">Finalize Reset</button>
+                    <button type="submit" name="submit_final" class="btn-action">Update Password</button>
                 </form>
             <?php endif; ?>
-
-            <div style="margin-top:30px; border-top:1px solid #f5f5f5; padding-top:20px;">
-                <a href="index.php" style="color:#ccc; text-decoration:none; font-size:13px;">← Back to Home</a>
-            </div>
         </div>
     </div>
 </div>
@@ -248,41 +229,51 @@ include 'includes/_head.php';
 (function() {
     let timeLeft = 30;
     let timerInt = null;
-    const valDisplay = document.getElementById('t-val');
-    const resendBtn = document.getElementById('r-btn');
-    const timerUI = document.getElementById('t-ui');
+    const valDisplay = document.getElementById('t-val'), resendBtn = document.getElementById('r-btn'), timerUI = document.getElementById('t-ui');
 
     function startTimer(duration) {
         clearInterval(timerInt);
         timeLeft = duration;
-        if(timerUI) timerUI.style.display = 'block';
-        if(resendBtn) resendBtn.style.display = 'none';
-        
+        timerUI.style.display = 'block';
+        resendBtn.style.display = 'none';
         timerInt = setInterval(() => {
             timeLeft--;
             if(valDisplay) valDisplay.innerText = timeLeft;
             if(timeLeft <= 0) {
                 clearInterval(timerInt);
-                if(timerUI) timerUI.style.display = 'none';
-                if(resendBtn) resendBtn.style.display = 'inline-block';
+                timerUI.style.display = 'none';
+                resendBtn.style.display = 'inline-block';
+                resendBtn.disabled = false; // 确保按钮可用
             }
         }, 1000);
     }
 
     window.reSend = function() {
         resendBtn.innerText = "Sending...";
-        resendBtn.disabled = true;
+        resendBtn.disabled = true; // 点击瞬间禁用，防止连点
+
         fetch('reset_password.php?service=resend')
             .then(res => res.text())
             .then(data => {
-                if(data.trim() === 'success') {
-                    alert('New code dispatched!');
+                const status = data.trim();
+                if(status === 'success') {
+                    alert('Success: New code sent!');
                     startTimer(30);
+                } else if(status === 'LIMIT_REACHED') {
+                    alert('Warning: You can only request 2 codes per minute. Please try again later.');
+                    // 核心要求：跳过失败后，恢复按钮，不要卡在 Sending
+                    resendBtn.innerText = "Request New Code";
+                    resendBtn.disabled = false;
                 } else {
-                    alert(data);
+                    alert('Error: ' + status);
                     resendBtn.innerText = "Request New Code";
                     resendBtn.disabled = false;
                 }
+            })
+            .catch(err => {
+                alert('Connection Error');
+                resendBtn.innerText = "Request New Code";
+                resendBtn.disabled = false;
             });
     };
 
