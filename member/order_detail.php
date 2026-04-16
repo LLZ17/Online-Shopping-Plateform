@@ -8,21 +8,20 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$order_number = isset($_GET['order_number']) ? $_GET['order_number'] : '';
+$order_id = isset($_GET['order_id']) ? $_GET['order_id'] : '';
 
-if (empty($order_number)) {
+if (empty($order_id)) {
     header('Location: orders_history.php');
     exit();
 }
 
-// 获取订单详情（包含商品图片）
 $stmt = $pdo->prepare("
-    SELECT o.*, p.name as product_name, p.product_image, p.price as original_price
+    SELECT o.*, p.name as product_name, p.product_image, p.price as unit_price
     FROM orders o 
     JOIN products p ON o.product_id = p.product_id 
-    WHERE o.order_number = ? AND o.user_id = ?
+    WHERE o.order_id = ? AND o.user_id = ?
 ");
-$stmt->execute([$order_number, $_SESSION['user_id']]);
+$stmt->execute([$order_id, $_SESSION['user_id']]);
 $items = $stmt->fetchAll();
 
 if (empty($items)) {
@@ -30,7 +29,6 @@ if (empty($items)) {
     exit();
 }
 
-// 计算总额
 $total = 0;
 $points_used = 0;
 $points_earned = 0;
@@ -39,130 +37,102 @@ foreach ($items as $item) {
     $points_used = $item['points_used'];
     $points_earned = $item['points_earned'];
 }
+$order_info = $items[0];
 ?>
 
 <style>
     .detail-container {
         max-width: 1000px;
-        margin: 40px auto;
+        margin: 50px auto;
         background: white;
-        border-radius: 24px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        border-radius: 20px;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.08);
         overflow: hidden;
     }
     
-    /* 订单头部 */
     .order-header {
-        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
         color: white;
-        padding: 35px 40px;
+        padding: 30px;
     }
     
     .order-header h1 {
         margin: 0 0 10px 0;
-        font-size: 28px;
-        font-weight: 700;
-    }
-    
-    .order-header p {
-        margin: 0;
-        opacity: 0.8;
-        font-size: 14px;
-    }
-    
-    .order-badge {
-        display: inline-block;
-        padding: 6px 15px;
-        border-radius: 30px;
-        font-size: 12px;
-        font-weight: 600;
-        margin-top: 15px;
-    }
-    
-    .badge-processing {
-        background: #ff9800;
-        color: #fff;
-    }
-    
-    .badge-shipped {
-        background: #2196f3;
-        color: #fff;
-    }
-    
-    .badge-delivered {
-        background: #4caf50;
-        color: #fff;
-    }
-    
-    .badge-cancelled {
-        background: #f44336;
-        color: #fff;
-    }
-    
-    .badge-paid {
-        background: #4caf50;
-        color: #fff;
-    }
-    
-    .badge-pending {
-        background: #ff9800;
-        color: #fff;
-    }
-    
-    /* 订单信息卡片 */
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 25px;
-        padding: 30px 40px;
-        background: #f9f9f9;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .info-card {
-        background: white;
-        padding: 20px;
-        border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-    
-    .info-card h4 {
-        margin: 0 0 12px 0;
-        font-size: 14px;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    .info-card p {
-        margin: 8px 0;
-        font-size: 15px;
-        color: #333;
-    }
-    
-    .info-card strong {
-        color: #1a1a1a;
-    }
-    
-    /* 商品列表 */
-    .products-section {
-        padding: 30px 40px;
-    }
-    
-    .products-section h3 {
-        margin: 0 0 20px 0;
-        font-size: 20px;
-        color: #1a1a1a;
+        font-size: 24px;
         display: flex;
         align-items: center;
         gap: 10px;
+    }
+    
+    .badge-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .order-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 30px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .badge-delivered { background: #4caf50; color: white; }
+    .badge-paid { background: #4caf50; color: white; }
+    .badge-processing { background: #ff9800; color: white; }
+    .badge-pending { background: #ff9800; color: white; }
+    .badge-shipped { background: #2196f3; color: white; }
+    .badge-cancelled { background: #f44336; color: white; }
+    
+    .order-body {
+        padding: 30px;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .info-card {
+        background: #f8f9fa;
+        padding: 18px;
+        border-radius: 12px;
+    }
+    
+    .info-label {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+    
+    .info-value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #333;
+        word-break: break-word;
+    }
+    
+    .products-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 20px 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e60012;
+        display: inline-block;
     }
     
     .product-item {
         display: flex;
         gap: 20px;
         padding: 20px 0;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid #eee;
         align-items: center;
         flex-wrap: wrap;
     }
@@ -171,68 +141,57 @@ foreach ($items as $item) {
         border-bottom: none;
     }
     
-    .product-image {
-        width: 100px;
-        height: 120px;
-        background: #f5f5f5;
-        border-radius: 12px;
+    .product-img {
+        width: 80px;
+        height: 100px;
         object-fit: cover;
+        border-radius: 10px;
+        background: #f5f5f5;
     }
     
     .product-details {
         flex: 2;
-        min-width: 200px;
+        min-width: 180px;
     }
     
     .product-name {
-        font-size: 16px;
         font-weight: 700;
+        margin-bottom: 5px;
         color: #1a1a1a;
-        margin-bottom: 8px;
     }
     
     .product-meta {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
         font-size: 13px;
         color: #888;
+    }
+    
+    .product-quantity {
+        min-width: 80px;
+        text-align: center;
+        font-weight: 600;
     }
     
     .product-price {
-        text-align: right;
         min-width: 120px;
+        text-align: right;
     }
     
-    .product-price .unit-price {
-        font-size: 13px;
+    .unit-price {
+        font-size: 12px;
         color: #888;
     }
     
-    .product-price .subtotal {
-        font-size: 18px;
+    .subtotal {
+        font-size: 16px;
         font-weight: 700;
         color: #e60012;
     }
     
-    .product-quantity {
-        text-align: center;
-        min-width: 80px;
-    }
-    
-    .quantity-badge {
-        background: #f0f0f0;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 600;
-    }
-    
-    /* 订单汇总 */
-    .summary-section {
-        background: #f9f9f9;
-        padding: 25px 40px;
-        border-top: 1px solid #eee;
+    .summary-box {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 20px;
     }
     
     .summary-row {
@@ -245,16 +204,16 @@ foreach ($items as $item) {
     .summary-row.total {
         border-top: 2px solid #e0e0e0;
         margin-top: 10px;
-        padding-top: 20px;
-        font-size: 22px;
+        padding-top: 15px;
+        font-size: 20px;
         font-weight: 800;
         color: #e60012;
     }
     
     .points-row {
         background: #fff8e1;
-        padding: 15px 20px;
-        border-radius: 12px;
+        padding: 15px;
+        border-radius: 10px;
         margin-top: 15px;
         display: flex;
         justify-content: space-between;
@@ -273,7 +232,6 @@ foreach ($items as $item) {
         font-weight: 700;
     }
     
-    /* 按钮区域 */
     .action-buttons {
         display: flex;
         gap: 15px;
@@ -356,12 +314,6 @@ foreach ($items as $item) {
             padding: 20px;
             gap: 15px;
         }
-        .products-section {
-            padding: 20px;
-        }
-        .summary-section {
-            padding: 20px;
-        }
         .product-item {
             flex-direction: column;
             text-align: center;
@@ -382,51 +334,46 @@ foreach ($items as $item) {
 <div class="detail-container">
     <!-- 头部 -->
     <div class="order-header">
-        <h1>📋 Order Details</h1>
-        <p>Review your order information below</p>
-        <div>
-            <span class="order-badge badge-<?php echo strtolower($items[0]['order_status']); ?>">
-                <?php echo $items[0]['order_status']; ?>
+        <h1><i class="fas fa-receipt"></i> Order Details</h1>
+        <p style="margin: 0; opacity: 0.8; font-size: 14px;">Review your order information below</p>
+        <div class="badge-group">
+            <span class="order-badge badge-<?php echo strtolower($order_info['order_status']); ?>">
+                <i class="fas <?php echo $order_info['order_status'] == 'Delivered' ? 'fa-check-circle' : ($order_info['order_status'] == 'Processing' ? 'fa-clock' : 'fa-truck'); ?>"></i>
+                <?php echo $order_info['order_status']; ?>
             </span>
-            <span class="order-badge badge-<?php echo strtolower($items[0]['payment_status']); ?>" style="margin-left: 10px;">
-                <?php echo $items[0]['payment_status']; ?>
+            <span class="order-badge badge-<?php echo strtolower($order_info['payment_status']); ?>">
+                <i class="fas fa-credit-card"></i>
+                <?php echo $order_info['payment_status']; ?>
             </span>
         </div>
     </div>
     
     <!-- 订单信息网格 -->
-    <div class="info-grid">
-        <div class="info-card">
-            <h4>📄 Order Information</h4>
-            <p><strong>Order Number:</strong><br><?php echo htmlspecialchars($order_number); ?></p>
-            <p><strong>Order Date:</strong><br><?php echo date('d M Y, h:i A', strtotime($items[0]['order_date'])); ?></p>
+    <div class="order-body">
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-label"><i class="fas fa-hashtag"></i> Order ID</div>
+                <div class="info-value"><?php echo htmlspecialchars($order_id); ?></div>
+            </div>
+            <div class="info-card">
+                <div class="info-label"><i class="far fa-calendar-alt"></i> Order Date</div>
+                <div class="info-value"><?php echo date('d M Y, h:i A', strtotime($order_info['order_date'])); ?></div>
+            </div>
+            <div class="info-card">
+                <div class="info-label"><i class="fas fa-truck"></i> Shipping Address</div>
+                <div class="info-value"><?php echo nl2br(htmlspecialchars($order_info['shipping_address'] ?: 'No address provided')); ?></div>
+            </div>
         </div>
         
-        <div class="info-card">
-            <h4>🚚 Shipping Information</h4>
-            <p><strong>Address:</strong><br><?php echo nl2br(htmlspecialchars($items[0]['shipping_address'] ?: 'No address provided')); ?></p>
-            <p><strong>Phone:</strong><br><?php echo htmlspecialchars($items[0]['contact_phone'] ?: 'No phone number'); ?></p>
+        <!-- 商品列表 -->
+        <div class="products-title">
+            <i class="fas fa-box"></i> Items Ordered (<?php echo count($items); ?> item<?php echo count($items) > 1 ? 's' : ''; ?>)
         </div>
-        
-        <div class="info-card">
-            <h4>💳 Payment Information</h4>
-            <p><strong>Payment Method:</strong><br><?php echo htmlspecialchars($items[0]['payment_method'] ?: 'ToyyibPay'); ?></p>
-            <p><strong>Payment Status:</strong><br>
-                <span style="color: <?php echo $items[0]['payment_status'] == 'Paid' ? '#4caf50' : '#ff9800'; ?>">
-                    <?php echo $items[0]['payment_status']; ?>
-                </span>
-            </p>
-        </div>
-    </div>
-    
-    <!-- 商品列表 -->
-    <div class="products-section">
-        <h3>🛍️ Items Ordered (<?php echo count($items); ?> item<?php echo count($items) > 1 ? 's' : ''; ?>)</h3>
         
         <?php foreach ($items as $item): ?>
         <div class="product-item">
             <img src="../images/<?php echo htmlspecialchars($item['product_image'] ?? 'default.jpg'); ?>" 
-                 class="product-image" 
+                 class="product-img" 
                  onerror="this.src='../images/default.jpg'"
                  alt="<?php echo htmlspecialchars($item['product_name']); ?>">
             
@@ -443,41 +390,41 @@ foreach ($items as $item) {
             </div>
             
             <div class="product-price">
-                <div class="unit-price">RM <?php echo number_format($item['total_price'] / $item['quantity'], 2); ?> each</div>
+                <div class="unit-price">RM <?php echo number_format($item['unit_price'], 2); ?> each</div>
                 <div class="subtotal">RM <?php echo number_format($item['total_price'], 2); ?></div>
             </div>
         </div>
         <?php endforeach; ?>
-    </div>
-    
-    <!-- 订单汇总 -->
-    <div class="summary-section">
-        <div class="summary-row">
-            <span>Subtotal</span>
-            <span>RM <?php echo number_format($total, 2); ?></span>
-        </div>
         
-        <div class="summary-row">
-            <span>Shipping Fee</span>
-            <span>RM 0.00</span>
-        </div>
-        
-        <?php if ($points_used > 0): ?>
-        <div class="summary-row">
-            <span>Points Discount (<?php echo number_format($points_used); ?> points)</span>
-            <span>- RM <?php echo number_format($points_used / 100, 2); ?></span>
-        </div>
-        <?php endif; ?>
-        
-        <div class="summary-row total">
-            <span>Total Amount</span>
-            <span>RM <?php echo number_format($total, 2); ?></span>
+        <!-- 订单汇总 -->
+        <div class="summary-box">
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span>RM <?php echo number_format($total, 2); ?></span>
+            </div>
+            
+            <div class="summary-row">
+                <span>Shipping Fee</span>
+                <span>FREE</span>
+            </div>
+            
+            <?php if ($points_used > 0): ?>
+            <div class="summary-row">
+                <span>Points Discount (<?php echo number_format($points_used); ?> points)</span>
+                <span>- RM <?php echo number_format($points_used / 100, 2); ?></span>
+            </div>
+            <?php endif; ?>
+            
+            <div class="summary-row total">
+                <span>Total Amount</span>
+                <span>RM <?php echo number_format($total, 2); ?></span>
+            </div>
         </div>
         
         <!-- 积分信息 -->
         <div class="points-row">
             <div>
-                <span>🏆 Points Earned from this order</span>
+                <span><i class="fas fa-star" style="color: #ff9800;"></i> Points Earned from this order</span>
             </div>
             <div>
                 <span class="points-earned">+<?php echo number_format($points_earned); ?> points</span>
@@ -487,7 +434,7 @@ foreach ($items as $item) {
         <?php if ($points_used > 0): ?>
         <div class="points-row" style="background: #ffebee;">
             <div>
-                <span>💎 Points Used for discount</span>
+                <span><i class="fas fa-coins" style="color: #e60012;"></i> Points Used for discount</span>
             </div>
             <div>
                 <span class="points-used">-<?php echo number_format($points_used); ?> points</span>
@@ -496,42 +443,44 @@ foreach ($items as $item) {
         <?php endif; ?>
         
         <!-- 物流跟踪信息（如果是已发货状态） -->
-        <?php if ($items[0]['order_status'] == 'Shipped' || $items[0]['order_status'] == 'Delivered'): ?>
+        <?php if ($order_info['order_status'] == 'Shipped' || $order_info['order_status'] == 'Delivered'): ?>
         <div class="tracking-info">
-            <span>📦 Tracking Number: <strong>PXX-<?php echo substr($order_number, -8); ?>-MY</strong></span>
-            <span>🚚 Courier: <strong>PXX Express</strong></span>
+            <span><i class="fas fa-tracking"></i> Tracking Number: <strong>PXX-<?php echo substr($order_id, -8); ?>-MY</strong></span>
+            <span><i class="fas fa-truck"></i> Courier: <strong>PXX Express</strong></span>
         </div>
         <?php endif; ?>
         
         <!-- 按钮区域 -->
         <div class="action-buttons">
-            <a href="orders_history.php" class="btn-back">
-                ← Back to Orders
+            <a href="orders_history.php" class="btn-back" id="backToOrdersBtn">
+                <i class="fas fa-arrow-left"></i> Back to Orders
             </a>
             
-            <div style="display: flex; gap: 12px;">
-                <?php if ($items[0]['order_status'] == 'Processing'): ?>
-                <a href="cancel_order.php?order_number=<?php echo urlencode($order_number); ?>" 
-                 class="btn-cancel" 
-                  id="cancelOrderBtn">
-                    ❌ Cancel Order
-                </a>
-                <?php endif; ?>
-                <a href="../ViewAllProduct.php" class="btn-reorder">
-                    🛒 Reorder Items
-                </a>
-                <script>
+            <?php if ($order_info['order_status'] == 'Processing'): ?>
+            <a href="cancel_order.php?order_id=<?php echo urlencode($order_id); ?>" 
+               class="btn-cancel" 
+               id="cancelOrderBtn">
+                <i class="fas fa-times-circle"></i> Cancel Order
+            </a>
+            <?php endif; ?>
+            
+            <a href="../ViewAllProduct.php" class="btn-reorder" id="reorderBtn">
+                <i class="fas fa-shopping-cart"></i> Reorder Items
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
 $(document).ready(function() {
-    $('#cancelOrderBtn').click(function(e) {
+    // 取消订单按钮 - 确认框（无 inline onclick）
+    $('#cancelOrderBtn').on('click', function(e) {
         if (!confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
             e.preventDefault();
         }
     });
 });
 </script>
-            </div>
-        </div>
-    </div>
-</div>
 
 <?php require_once '../includes/_foot.php'; ?>
