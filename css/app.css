@@ -1,0 +1,191 @@
+/* admin/admin_crud.php css LIM LI ZHE part */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
+
+.admin-container { 
+    width: 100%; 
+    box-sizing: border-box; 
+    padding: 20px; 
+    font-family: 'Plus Jakarta Sans', sans-serif; 
+}
+
+.page-header { 
+    margin-bottom: 25px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+.page-header h1 { 
+    font-size: 28px; 
+    font-weight: 900; 
+    color: #0f172a; 
+    margin: 0; 
+}
+
+/* Table Design */
+.table-card { 
+    background: #fff; 
+    border-radius: 20px; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+    border: 1px solid #f1f5f9; 
+    overflow: hidden; 
+}
+
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    text-align: left; 
+}
+
+th { 
+    background: #f8fafc; 
+    padding: 18px 20px; 
+    color: #64748b; 
+    font-size: 12px; 
+    font-weight: 800; 
+    text-transform: uppercase; 
+}
+
+td { 
+    padding: 18px 20px; 
+    border-bottom: 1px solid #f1f5f9; 
+    vertical-align: middle; 
+}
+
+.profile-info { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+}
+
+.profile-img { 
+    width: 45px; 
+    height: 45px; 
+    border-radius: 12px; 
+    object-fit: cover; 
+    border: 2px solid #f1f5f9; 
+}
+
+.u-realname { 
+    font-size: 15px; 
+    font-weight: 800; 
+    color: #0f172a; 
+    display: block; 
+}
+
+/* Badges */
+.badge { 
+    padding: 6px 12px; 
+    border-radius: 8px; 
+    font-size: 11px; 
+    font-weight: 800; 
+    text-transform: uppercase; 
+}
+
+.bg-active { background: #dcfce7; color: #15803d; }
+.bg-blocked { background: #fee2e2; color: #b91c1c; }
+.bg-role { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+
+/* Buttons */
+.action-group { 
+    display: flex; 
+    gap: 8px; 
+}
+
+.btn-op { 
+    padding: 8px 14px; 
+    border-radius: 10px; 
+    text-decoration: none; 
+    font-weight: 800; 
+    font-size: 12px; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    border: 1px solid transparent; 
+    cursor: pointer; 
+    transition: 0.2s; 
+}
+
+.btn-detail { background: #f1f5f9; color: #475569; }
+.btn-edit { background: #dcfce7; color: #15803d; }
+.btn-delete { background: #fee2e2; color: #b91c1c; }
+
+.btn-op:hover { 
+    transform: translateY(-2px); 
+    filter: brightness(0.95); 
+}
+
+/* Modal Styling */
+.modal-overlay { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(15, 23, 42, 0.6); 
+    display: none; 
+    justify-content: center; 
+    align-items: center; 
+    z-index: 10000; 
+    backdrop-filter: blur(4px); 
+}
+
+.modal-content { 
+    background: #fff; 
+    width: 550px; 
+    border-radius: 24px; 
+    padding: 35px; 
+    position: relative; 
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); 
+    max-height: 90vh; 
+    overflow-y: auto; 
+}
+
+.modal-close { 
+    position: absolute; 
+    top: 20px; 
+    right: 20px; 
+    font-size: 24px; 
+    cursor: pointer; 
+    color: #94a3b8; 
+}
+
+.form-group { margin-bottom: 20px; }
+.form-group label { 
+    display: block; 
+    font-size: 12px; 
+    font-weight: 800; 
+    color: #64748b; 
+    margin-bottom: 8px; 
+    text-transform: uppercase; 
+}
+
+.form-group input, 
+.form-group select { 
+    width: 100%; 
+    padding: 12px 15px; 
+    border-radius: 12px; 
+    border: 1px solid #e2e8f0; 
+    font-family: inherit; 
+    font-weight: 600; 
+}
+
+.modal-footer { 
+    margin-top: 30px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+}
+
+.btn-save { 
+    background: #10b981; 
+    color: #fff; 
+    border: none; 
+    padding: 14px; 
+    border-radius: 12px; 
+    font-weight: 800; 
+    cursor: pointer; 
+    width: 100%; 
+}
+/* --------------------------------------- */
