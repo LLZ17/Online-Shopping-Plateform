@@ -170,58 +170,88 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-// 选项点击逻辑
-$('.size-btn').click(function(){
-    $('.size-btn').removeClass('active');
-    $(this).addClass('active');
-    $('#selected_size').val($(this).data('val'));
-});
-
-$('.col-btn').click(function(){
-    $('.col-btn').removeClass('active');
-    $(this).addClass('active');
-    $('#selected_colour').val($(this).data('val'));
-});
-
-function addToCart(){
-    // --- 🔥 购买数量验证功能 ---
-    let enteredQty = parseInt($('#quantity').val()); // 当前页面拟购买数量
-    let cartQty = <?php echo $existing_cart_qty; ?>; // 购物车已存数量
-    let totalStock = <?php echo (int)$product['stock']; ?>; // 数据库库存总量
-
-    if ((enteredQty + cartQty) > totalStock) {
-        alert("Action Failed: You already have " + cartQty + " items in your cart. Adding " + enteredQty + " more would exceed the total available stock of " + totalStock + ".");
-        return; // 拦截请求
-    }
-    // --- 结束验证 ---
-
-    let size = $('#selected_size').val();
-    let color = $('#selected_colour').val();
-    
-    // 简单验证
-    <?php if(!empty($sizes)): ?>
-    if(!size) { alert('Please select a size'); return; }
-    <?php endif; ?>
-
-    $.ajax({
-        url: 'add.php',
-        method: 'POST',
-        data: { 
-            product_id: '<?php echo $product_id; ?>', 
-            quantity: enteredQty, 
-            selected_size: size,
-            colour: color
-        },
-        dataType: 'json',
-        success: function(res){
-            if(res.success) {
-                if(confirm('Added! View cart?')) window.location.href = 'unified_cart.php';
-            } else {
-                alert(res.error);
-            }
-        }
+$(document).ready(function() {
+    // 尺码选择
+    $('.size-btn').click(function(){
+        $('.size-btn').removeClass('active');
+        $(this).addClass('active');
+        $('#selected_size').val($(this).data('size'));
     });
-}
+    
+    // 评分星星
+    $('.rating-star').click(function(){
+        var rating = $(this).data('rating');
+        $('#rating_value').val(rating);
+        $('.rating-star').each(function(){
+            if($(this).data('rating') <= rating) {
+                $(this).html('★').addClass('selected');
+            } else {
+                $(this).html('☆').removeClass('selected');
+            }
+        });
+    });
+    
+    // 数量加减
+    $('.qty-btn').click(function() {
+        var delta = $(this).data('delta');
+        var input = $('#quantity');
+        var current = parseInt(input.val()) || 1;
+        var min = 1;
+        var max = <?php echo $product['stock']; ?>;
+        var newVal = current + delta;
+        if (newVal < min) newVal = min;
+        if (newVal > max) newVal = max;
+        input.val(newVal);
+    });
+    
+    $('#quantity').on('change', function() {
+        var val = parseInt($(this).val()) || 1;
+        var min = 1;
+        var max = <?php echo $product['stock']; ?>;
+        if (val < min) val = min;
+        if (val > max) val = max;
+        $(this).val(val);
+    });
+    
+    // 加购按钮事件
+    $('#addToCartBtn').click(function() {
+        var qty = $('#quantity').val();
+        var size = $('#selected_size').val();
+        
+        <?php if(!empty($sizes)): ?>
+            if(size === ''){
+                alert('Please select a size');
+                return;
+            }
+        <?php endif; ?>
+        
+        $.ajax({
+            url: 'add.php',
+            method: 'POST',
+            data: { 
+                product_id: <?php echo $product_id; ?>, 
+                quantity: qty, 
+                selected_size: size 
+            },
+            dataType: 'json',
+            success: function(response){
+                if(response.success){
+                    if(confirm('✓ Added to cart! Go to cart now?')){
+                        window.location.href = 'unified_cart.php';
+                    }
+                } else {
+                    alert(response.error);
+                    if(response.error === 'Please login first'){
+                        window.location.href = '../login.php';
+                    }
+                }
+            },
+            error: function(){
+                alert('Error adding to cart');
+            }
+        });
+    });
+});
 </script>
 
 <?php require_once '../includes/_foot.php'; ?>
