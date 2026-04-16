@@ -512,14 +512,23 @@ foreach ($items as $item) {
             <div style="display: flex; gap: 12px;">
                 <?php if ($items[0]['order_status'] == 'Processing'): ?>
                 <a href="cancel_order.php?order_number=<?php echo urlencode($order_number); ?>" 
-                   class="btn-cancel" 
-                   onclick="return confirm('Are you sure you want to cancel this order? This action cannot be undone.')">
+                 class="btn-cancel" 
+                  id="cancelOrderBtn">
                     ❌ Cancel Order
                 </a>
                 <?php endif; ?>
                 <a href="../ViewAllProduct.php" class="btn-reorder">
                     🛒 Reorder Items
                 </a>
+                <script>
+$(document).ready(function() {
+    $('#cancelOrderBtn').click(function(e) {
+        if (!confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
             </div>
         </div>
     </div>
