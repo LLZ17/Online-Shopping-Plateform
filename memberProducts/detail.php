@@ -154,7 +154,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
                        style="width: 100px; padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
             </div>
 
-            <button class="btn-add" onclick="addToCart()" <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>>
+            <button class="btn-add-cart" id="addToCartBtn">🛒 Add to Cart</button>
                 <?php echo $product['stock'] > 0 ? 'ADD TO CART' : 'OUT OF STOCK'; ?>
             </button>
 
