@@ -18,6 +18,22 @@ if (!$product) {
     die("<div style='padding:50px; text-align:center; font-family:sans-serif;'><h2>⚠️ Entry not found!</h2><a href='product_crud.php' style='color:#3b82f6;'>← Go Back</a></div>");
 }
 
+// ✨ 智能分类逻辑修复
+$typeLabels = [
+    'MS' => 'Men - Shirt (MS)',
+    'MP' => 'Men - Pants (MP)',
+    'MO' => 'Men - Others (MO)',
+    'WS' => 'Women - Shirt (WS)',
+    'WP' => 'Women - Pants/Skirt (WP)',
+    'WO' => 'Women - Others (WO)',
+    'UN' => 'Unisex (UN)',
+    'ACC'=> 'Accessories (ACC)'
+];
+
+// 如果数据库字段 product_type 为空，则根据 ID 前两位自动识别
+$rawType = !empty($product['product_type']) ? $product['product_type'] : substr($product['product_id'], 0, 2);
+$displayType = $typeLabels[$rawType] ?? $rawType;
+
 $admin_head = __DIR__ . '/../includes/_admin_head.php';
 if (file_exists($admin_head)) { include $admin_head; }
 ?>
@@ -37,13 +53,11 @@ if (file_exists($admin_head)) { include $admin_head; }
         scrollbar-color: #cbd5e1 transparent;
     }
 
-    /* 入场动画 */
     @keyframes smoothReveal {
         0% { opacity: 0; transform: translateY(25px); }
         100% { opacity: 1; transform: translateY(0); }
     }
 
-    /* 极致卡片设计 */
     .ultimate-detail-card { 
         max-width: 780px; 
         margin: 30px auto; 
@@ -55,13 +69,11 @@ if (file_exists($admin_head)) { include $admin_head; }
         animation: smoothReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     
-    /* 顶部标题区 */
     .hero-header { 
         padding: 40px 40px 20px 40px; 
         display: flex; 
         justify-content: space-between; 
         align-items: flex-start; 
-        gap: 20px;
     }
     .title-block h1 { 
         margin: 0 0 8px 0; 
@@ -69,7 +81,6 @@ if (file_exists($admin_head)) { include $admin_head; }
         font-size: 28px; 
         font-weight: 900; 
         letter-spacing: -0.5px; 
-        line-height: 1.3;
     }
     .title-block .meta-id { 
         display: inline-flex;
@@ -78,41 +89,45 @@ if (file_exists($admin_head)) { include $admin_head; }
         color: #64748b; 
         font-size: 13px; 
         font-weight: 700; 
-        letter-spacing: 0.5px; 
         background: #f1f5f9;
         padding: 6px 12px;
         border-radius: 8px;
     }
     
-    /* 状态指示器 */
+    /* ✨ 改成像第2张图这样的 ACTIVE 绿色发光样式 */
     .status-indicator { 
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: #fffbeb; 
-        color: #ca8a04; 
+        background: rgba(16, 185, 129, 0.1) !important; /* 绿色背景 */
+        color: #10b981 !important; /* 绿色文字 */
         padding: 8px 16px; 
         border-radius: 100px; 
         font-size: 13px; 
         font-weight: 800; 
-        box-shadow: 0 4px 10px rgba(234, 179, 8, 0.15);
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15) !important; /* 绿色发光 */
+        border: 1px solid rgba(16, 185, 129, 0.5) !important; /* 绿色边框 */
     }
-    .status-dot { width: 8px; height: 8px; background: #eab308; border-radius: 50%; box-shadow: 0 0 8px #eab308; }
+    /* ✨ 绿色发光圆点 */
+    .status-dot { 
+        width: 8px; 
+        height: 8px; 
+        background: #10b981 !important; /* 绿色圆点 */
+        border-radius: 50%; 
+        box-shadow: 0 0 10px #10b981 !important; /* 绿色发光 */
+    }
 
     .content-body { padding: 0 40px 40px 40px; }
     
-    /* 无缝画廊 */
     .media-gallery { 
         display: flex; 
         gap: 16px; 
         overflow-x: auto; 
         padding: 10px 10px 25px 10px; 
         margin: 0 -10px;
-        scroll-snap-type: x mandatory;
-        -ms-overflow-style: none;  /* IE and Edge */
-        scrollbar-width: none;  /* Firefox */
+        scrollbar-width: none;
     }
-    .media-gallery::-webkit-scrollbar { display: none; } /* Chrome, Safari */
+    .media-gallery::-webkit-scrollbar { display: none; }
     
     .gallery-item { 
         flex: 0 0 auto;
@@ -121,19 +136,11 @@ if (file_exists($admin_head)) { include $admin_head; }
         border-radius: 20px; 
         box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); 
         overflow: hidden;
-        scroll-snap-align: center;
         border: 1px solid rgba(0,0,0,0.03);
-        background: #f8fafc;
     }
-    .gallery-item img { 
-        width: 100%; 
-        height: 100%; 
-        object-fit: cover; 
-        transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); 
-    }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
     .gallery-item:hover img { transform: scale(1.08); }
 
-    /* 数据卡片网格 */
     .data-grid { 
         display: grid; 
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
@@ -145,14 +152,9 @@ if (file_exists($admin_head)) { include $admin_head; }
         padding: 20px; 
         border-radius: 20px; 
         border: 1px solid #f1f5f9;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition: 0.2s;
     }
-    .data-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 12px 20px -8px rgba(0,0,0,0.08);
-        border-color: #e2e8f0;
-    }
+    .data-card:hover { transform: translateY(-3px); box-shadow: 0 12px 20px -8px rgba(0,0,0,0.08); }
     
     .data-label { 
         font-size: 11px; 
@@ -163,57 +165,40 @@ if (file_exists($admin_head)) { include $admin_head; }
         margin-bottom: 10px; 
         display: block; 
     }
-    .data-value { 
-        font-size: 16px; 
-        font-weight: 700; 
-        color: #0f172a; 
-    }
+    .data-value { font-size: 16px; font-weight: 700; color: #0f172a; }
     
-    /* 流光黑金价格 */
     .price-display { 
         font-size: 34px; 
         font-weight: 900; 
-        letter-spacing: -1px;
-        background: linear-gradient(135deg, #0f172a 0%, #334155 50%, #b45309 100%);
+        background: linear-gradient(135deg, #0f172a 0%, #b45309 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
-    .price-display span { font-size: 18px; font-weight: 800; vertical-align: top; margin-right: 2px; }
+    .price-display span { font-size: 18px; font-weight: 800; vertical-align: top; }
 
-    /* 高级药丸标签 */
     .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
     .aesthetic-pill { 
         background: #f8fafc; 
         color: #334155; 
         border: 1px solid #e2e8f0;
         padding: 6px 16px; 
-        border-radius: 100px; /* 全圆角 */
+        border-radius: 100px; 
         font-size: 13px; 
         font-weight: 700; 
-        user-select: none;
-        transition: all 0.2s;
+        transition: 0.2s;
     }
     .aesthetic-pill:hover { background: #0f172a; color: #eab308; border-color: #0f172a; }
 
-    /* 描述区 */
     .narrative-box { 
         background: #f8fafc; 
         padding: 25px; 
         border-radius: 20px; 
-        margin-top: 10px; 
         border: 1px dashed #cbd5e1; 
     }
-    .narrative-text { 
-        font-size: 15px; 
-        font-weight: 500; 
-        color: #475569; 
-        line-height: 1.8; 
-    }
+    .narrative-text { font-size: 15px; color: #475569; line-height: 1.8; }
 
-    /* 底部操作区 */
     .footer-actions { 
         display: flex; 
-        justify-content: flex-start; 
         margin-top: 35px; 
         padding-top: 30px; 
         border-top: 1px solid #f1f5f9; 
@@ -227,17 +212,10 @@ if (file_exists($admin_head)) { include $admin_head; }
         padding: 14px 32px; 
         border-radius: 14px; 
         font-weight: 800; 
-        font-size: 14px; 
         text-decoration: none; 
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
-        box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.3);
+        transition: 0.3s;
     }
-    .btn-return:hover { 
-        background: #eab308; 
-        color: #0f172a; 
-        transform: translateY(-3px); 
-        box-shadow: 0 15px 25px -5px rgba(234, 179, 8, 0.4); 
-    }
+    .btn-return:hover { background: #eab308; color: #0f172a; transform: translateY(-3px); }
 </style>
 
 <div id="detail-wrapper" class="scroll-wrapper" style="display:none;">
@@ -251,9 +229,18 @@ if (file_exists($admin_head)) { include $admin_head; }
                 </div>
                 <h1 style="margin-top: 15px;"><?= htmlspecialchars($product['name'] ?? 'Unnamed Product') ?></h1>
             </div>
+            
             <div class="status-indicator">
                 <div class="status-dot"></div>
-                <?= htmlspecialchars($product['status'] ?? 'Unknown') ?>
+                <?php 
+                    $statusText = $product['status'] ?? 'Unknown';
+                    // 如果状态是 In stock，我们可以将其显示为 ACTIVE，以符合第二张图的意境
+                    if (strcasecmp($statusText, 'In stock') === 0) {
+                        echo 'ACTIVE'; 
+                    } else {
+                        echo htmlspecialchars($statusText);
+                    }
+                ?>
             </div>
         </div>
 
@@ -263,21 +250,10 @@ if (file_exists($admin_head)) { include $admin_head; }
                 <?php 
                     $imgData = $product['product_image'] ?? '';
                     $images = array_filter(array_map('trim', explode(',', $imgData)));
-                    
                     if (!empty($images)) {
                         foreach ($images as $img) {
-                            // 💡 智能路径解析
-                            if (strpos($img, 'http') === 0) {
-                                $imgPath = $img;
-                            } elseif (strpos($img, 'uploads/') === 0) {
-                                $imgPath = '../' . $img; 
-                            } else {
-                                $imgPath = '../images/' . $img;
-                            }
-                            echo "
-                            <div class='gallery-item'>
-                                <img src='" . htmlspecialchars($imgPath) . "' onerror=\"this.src='../images/default.png'\">
-                            </div>";
+                            $imgPath = (strpos($img, 'http') === 0) ? $img : ( (strpos($img, 'uploads/') === 0) ? '../' . $img : '../images/' . $img );
+                            echo "<div class='gallery-item'><img src='" . htmlspecialchars($imgPath) . "' onerror=\"this.src='../images/default.png'\"></div>";
                         }
                     } else {
                         echo "<div style='color:#94a3b8; font-size:14px; font-weight:700; padding: 20px; border: 2px dashed #cbd5e1; border-radius: 16px; width: 100%; text-align: center;'>No Media Assets Uploaded</div>";
@@ -301,6 +277,14 @@ if (file_exists($admin_head)) { include $admin_head; }
             </div>
 
             <div class="data-grid">
+                <div class="data-card" style="border-left: 4px solid #0f172a;">
+                    <span class="data-label">Sequence Classification</span>
+                    <div class="pill-group">
+                         <span class="aesthetic-pill" style="background: #0f172a; color: #eab308; border: none;">
+                            <?= htmlspecialchars($displayType) ?>
+                         </span>
+                    </div>
+                </div>
                 <div class="data-card">
                     <span class="data-label">Category Assignment</span>
                     <span class="data-value"><?= htmlspecialchars($product['category_id'] ?? 'Uncategorized') ?></span>
@@ -309,7 +293,10 @@ if (file_exists($admin_head)) { include $admin_head; }
                     <span class="data-label">Stock Availability</span>
                     <span class="data-value"><?= htmlspecialchars($product['stock'] ?? '0') ?> Units</span>
                 </div>
-                <div class="data-card">
+            </div>
+
+            <div class="data-grid">
+                 <div class="data-card">
                     <span class="data-label">Search Keywords</span>
                     <span class="data-value"><?= htmlspecialchars($product['keywords'] ?? '-') ?></span>
                 </div>
@@ -367,8 +354,7 @@ if (file_exists($admin_head)) { include $admin_head; }
             const allElements = document.body.getElementsByTagName('*');
             for (let el of allElements) {
                 if (el.textContent && el.textContent.includes("Administrative Workspace Ready")) {
-                    viewport = el.parentElement;
-                    break;
+                    viewport = el.parentElement; break;
                 }
             }
         }
