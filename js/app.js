@@ -148,10 +148,40 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 });
-/---------------------------------------------/
+/*---------------------------------------------*/
 
 /* 4. admin/login.php js LIM LI ZHE part*/
+/**
+ * Admin Login Portal Logic
+ */
 
+// 切换 Help Modal 显示状态
+function toggleModal(show) { 
+    const modal = document.getElementById('helpModal');
+    if(modal) { modal.style.display = show ? 'block' : 'none'; }
+}
+
+// 切换密码显示/隐藏
+function togglePassword(id, icon) {
+    const input = document.getElementById(id);
+    if (!input) return;
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = "password";
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+// 点击背景关闭弹窗
+window.onclick = function(event) {
+    const modal = document.getElementById('helpModal');
+    if (event.target == modal) { toggleModal(false); }
+}
+/*---------------------------------------------*/
+
+/* 5. admin/logout.php js LIM LI ZHE part*/
 
 
 
