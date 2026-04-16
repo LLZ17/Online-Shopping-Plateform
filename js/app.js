@@ -131,31 +131,8 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 /* ---------------------------------------------*/
 
-/* 3. admin/login_process.php js LIM LI ZHE part*/
-/**
- * PXX Mall - Admin Login Interaction
- */
-document.addEventListener("DOMContentLoaded", function() {
-    const loginForm = document.getElementById('loginForm');
-    const submitBtn = document.getElementById('submitBtn');
-
-    if (loginForm) {
-        loginForm.addEventListener('submit', function() {
-            // 提交时禁用按钮，防止重复点击
-            submitBtn.innerText = "Authenticating...";
-            submitBtn.style.opacity = "0.7";
-            submitBtn.style.pointerEvents = "none";
-        });
-    }
-});
-/*---------------------------------------------*/
-
-/* 4. admin/login.php js LIM LI ZHE part*/
-/**
- * Admin Login Portal Logic
- */
-
-// 切换 Help Modal 显示状态
+/* 3. admin/login.php js LIM LI ZHE part*/
+// 切换帮助弹窗
 function toggleModal(show) { 
     const modal = document.getElementById('helpModal');
     if(modal) { modal.style.display = show ? 'block' : 'none'; }
@@ -164,7 +141,6 @@ function toggleModal(show) {
 // 切换密码显示/隐藏
 function togglePassword(id, icon) {
     const input = document.getElementById(id);
-    if (!input) return;
     if (input.type === "password") {
         input.type = "text";
         icon.classList.replace('fa-eye', 'fa-eye-slash');
@@ -174,14 +150,14 @@ function togglePassword(id, icon) {
     }
 }
 
-// 点击背景关闭弹窗
+// 点击遮罩层关闭弹窗
 window.onclick = function(event) {
     const modal = document.getElementById('helpModal');
     if (event.target == modal) { toggleModal(false); }
 }
 /*---------------------------------------------*/
 
-/* 5. admin/logout.php js LIM LI ZHE part*/
+/* 4. admin/logout.php js LIM LI ZHE part*/
 
 
 
