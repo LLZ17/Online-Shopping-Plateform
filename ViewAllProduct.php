@@ -7,86 +7,73 @@ require_once 'includes/_head.php';
 $search = isset($_GET['query']) ? trim($_GET['query']) : '';
 $category = isset($_GET['category']) ? trim($_GET['category']) : '';
 
-$sql = "SELECT * FROM products WHERE 1=1";
+// 基础查询：关联 categories 表获取性别信息
+$sql = "SELECT p.*, c.category_gender 
+        FROM products p 
+        LEFT JOIN categories c ON p.category_id = c.category_id 
+        WHERE 1=1";
 $params = [];
 
 // 智能搜索功能
 if (!empty($search)) {
     $search_lower = strtolower($search);
     
-    // 检测关键词来自动分类
-    $auto_category = null;
+    // 检测关键词来自动分类（中文 + 英文）
+    $auto_gender = null;
     $product_type = null;
     
     // 性别检测
-    if (strpos($search_lower, 'men') !== false || strpos($search_lower, 'male') !== false || strpos($search_lower, 'boy') !== false) {
-        $auto_category = 'Men';
-    } elseif (strpos($search_lower, 'women') !== false || strpos($search_lower, 'female') !== false || strpos($search_lower, 'girl') !== false || strpos($search_lower, 'lady') !== false) {
-        $auto_category = 'Women';
+    if (strpos($search_lower, 'men') !== false || strpos($search_lower, 'male') !== false || 
+        strpos($search_lower, 'boy') !== false || strpos($search_lower, '男生') !== false || 
+        strpos($search_lower, '男装') !== false || strpos($search_lower, '男') !== false) {
+        $auto_gender = 'men';
+    } elseif (strpos($search_lower, 'women') !== false || strpos($search_lower, 'female') !== false || 
+              strpos($search_lower, 'girl') !== false || strpos($search_lower, '女生') !== false || 
+              strpos($search_lower, '女装') !== false || strpos($search_lower, '女') !== false) {
+        $auto_gender = 'women';
     }
     
     // 产品类型检测
-    if (strpos($search_lower, 'shirt') !== false || strpos($search_lower, 'tee') !== false || strpos($search_lower, 'top') !== false) {
+    if (strpos($search_lower, 'shirt') !== false || strpos($search_lower, 'tee') !== false || 
+        strpos($search_lower, 'top') !== false || strpos($search_lower, '衣服') !== false || 
+        strpos($search_lower, '上衣') !== false || strpos($search_lower, 't恤') !== false) {
         $product_type = 'shirt';
-    } elseif (strpos($search_lower, 'pants') !== false || strpos($search_lower, 'pant') !== false || strpos($search_lower, 'trousers') !== false || strpos($search_lower, 'jeans') !== false) {
+    } elseif (strpos($search_lower, 'pants') !== false || strpos($search_lower, 'pant') !== false || 
+              strpos($search_lower, 'trousers') !== false || strpos($search_lower, 'jeans') !== false || 
+              strpos($search_lower, '裤子') !== false) {
         $product_type = 'pants';
-    } elseif (strpos($search_lower, 'dress') !== false) {
+    } elseif (strpos($search_lower, 'dress') !== false || strpos($search_lower, '裙子') !== false) {
         $product_type = 'dress';
-    } elseif (strpos($search_lower, 'skirt') !== false) {
+    } elseif (strpos($search_lower, 'skirt') !== false || strpos($search_lower, '半身裙') !== false) {
         $product_type = 'skirt';
-    } elseif (strpos($search_lower, 'jacket') !== false || strpos($search_lower, 'coat') !== false) {
+    } elseif (strpos($search_lower, 'jacket') !== false || strpos($search_lower, 'coat') !== false || 
+              strpos($search_lower, '外套') !== false) {
         $product_type = 'jacket';
-    } elseif (strpos($search_lower, 'shorts') !== false) {
+    } elseif (strpos($search_lower, 'shorts') !== false || strpos($search_lower, '短裤') !== false) {
         $product_type = 'shorts';
+    } elseif (strpos($search_lower, 'hoodie') !== false || strpos($search_lower, '卫衣') !== false) {
+        $product_type = 'hoodie';
     }
     
     // 构建搜索条件
     $sql .= " AND (";
     $conditions = [];
     
-    // 按分类搜索
-    if ($auto_category) {
-        $conditions[] = "category_type = ?";
-        $params[] = $auto_category;
+    // 按性别搜索（通过 category_gender）
+    if ($auto_gender) {
+        $conditions[] = "c.category_gender LIKE ?";
+        $params[] = "%$auto_gender%";
     }
     
-    // 按产品类型搜索（通过关键词匹配 name 或 keywords）
+    // 按产品类型搜索
     if ($product_type) {
-        $conditions[] = "(name LIKE ? OR keywords LIKE ?)";
+        $conditions[] = "(p.name LIKE ? OR p.keywords LIKE ?)";
         $params[] = "%$product_type%";
         $params[] = "%$product_type%";
     }
     
     // 通用搜索（名称、关键词、描述）
-    $conditions[] = "(name LIKE ? OR keywords LIKE ? OR description LIKE ?)";
-    $params[] = "%$search%";
-    $params[] = "%$search%";
-    $params[] = "%$search%";
-    
-    $sql .= implode(" OR ", $conditions);
-    $sql .= ")";
-// 构建搜索条件
-    $sql .= " AND (";
-    $conditions = [];
-    
-    // 【修改点 1】按分类搜索：改为匹配 product_id 的首字母
-    if ($auto_category) {
-        if ($auto_category == 'Men') {
-            $conditions[] = "product_id LIKE 'M%'";
-        } elseif ($auto_category == 'Women') {
-            $conditions[] = "product_id LIKE 'W%'";
-        }
-    }
-    
-    // 按产品类型搜索
-    if ($product_type) {
-        $conditions[] = "(name LIKE ? OR keywords LIKE ?)";
-        $params[] = "%$product_type%";
-        $params[] = "%$product_type%";
-    }
-    
-    // 通用搜索
-    $conditions[] = "(name LIKE ? OR keywords LIKE ? OR description LIKE ?)";
+    $conditions[] = "(p.name LIKE ? OR p.keywords LIKE ? OR p.description LIKE ?)";
     $params[] = "%$search%";
     $params[] = "%$search%";
     $params[] = "%$search%";
@@ -95,16 +82,16 @@ if (!empty($search)) {
     $sql .= ")";
 }
 
-// 【修改点 2】分类筛选（用户手动点击按钮时）：同样改为匹配首字母
+// 分类筛选（用户手动点击按钮时）
 if (!empty($category) && $category != 'All') {
     if ($category == 'Men') {
-        $sql .= " AND product_id LIKE 'M%'";
+        $sql .= " AND c.category_gender LIKE '%men%'";
     } elseif ($category == 'Women') {
-        $sql .= " AND product_id LIKE 'W%'";
+        $sql .= " AND c.category_gender LIKE '%women%'";
     }
 }
 
-$sql .= " ORDER BY product_id DESC";
+$sql .= " GROUP BY p.product_id ORDER BY p.product_id DESC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $products = $stmt->fetchAll();
@@ -112,7 +99,7 @@ $products = $stmt->fetchAll();
 // 获取搜索建议
 $search_suggestion = '';
 if (!empty($search) && empty($products)) {
-    $search_suggestion = 'No products found for "' . htmlspecialchars($search) . '". Try searching for: shirt, pants, dress, skirt, jacket';
+    $search_suggestion = 'No products found for "' . htmlspecialchars($search) . '". Try searching for: shirt, pants, dress, skirt, jacket, 衣服, 裤子, 裙子';
 }
 ?>
 
