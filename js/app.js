@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", function() {
 /* ---------------------------------------------*/
 
 /* 3. admin/login.php js LIM LI ZHE part*/
-
+//
 
 /* 4. admin/logout.php js LIM LI ZHE part*/
 

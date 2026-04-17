@@ -1,174 +1,154 @@
 <?php
-// ================================
-// PXX MALL - RESET PASSWORD (FINAL)
-// ================================
+/**
+ * =================================================================================
+ * PXX MALL - PROFILE SECURITY UPDATE (V430.0)
+ * =================================================================================
+ */
 
-// --- SESSION ---
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
-// --- DB ---
+// --- 数据库连接 (根据你的目录结构，如果在 member 文件夹内则用 ../) ---
 require_once '../includes/db.php';
 
-// --- CHECK LOGIN ---
+// --- 获取当前登录用户的 ID ---
 $user_id = $_SESSION['user_id'] ?? null;
 
 if (!$user_id) {
-    header("Location: login.php");
+    echo "<script>alert('Please login first'); window.location.href='login.php';</script>";
     exit;
 }
 
-// --- MESSAGE ---
 $error_msg = "";
 $success_msg = "";
 
-// --- HANDLE POST ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// --- 处理表单提交 ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_update'])) {
+    $new_p = $_POST['new_password'] ?? '';
+    $conf_p = $_POST['confirm_password'] ?? '';
 
-    $new_pass = $_POST['new_password'] ?? '';
-    $confirm_pass = $_POST['confirm_password'] ?? '';
-
-    // ✅ 1. 长度检查
-    if (strlen($new_pass) < 6) {
-        $error_msg = "Password must be at least 6 characters.";
+    // 1. 验证：长度必须至少 6 位
+    if (strlen($new_p) < 6) {
+        $error_msg = "Security Alert: Password must be at least 6 characters!";
     }
-
-    // ✅ 2. 一致性检查
-    elseif ($new_pass !== $confirm_pass) {
-        $error_msg = "Passwords do not match.";
+    // 2. 验证：两次输入一致
+    elseif ($new_p !== $conf_p) {
+        $error_msg = "Validation Error: Passwords do not match!";
     }
-
-    // ✅ 3. 强密码（可选但推荐）
-    elseif (!preg_match('/^(?=.*[A-Z])(?=.*[0-9]).{6,}$/', $new_pass)) {
-        $error_msg = "Password must contain at least 1 uppercase and 1 number.";
-    }
-
     else {
         try {
-            // ✅ 4. 获取旧密码
-            $stmt = $pdo->prepare("
-                SELECT password_hashed 
-                FROM users 
-                WHERE user_id = ?
-                LIMIT 1
-            ");
+            // 3. 获取旧密码进行比对
+            $stmt = $pdo->prepare("SELECT username, password_hashed FROM users WHERE user_id = ? LIMIT 1");
             $stmt->execute([$user_id]);
             $user = $stmt->fetch();
 
             if ($user) {
-
-                $old_hash = $user['password_hashed'];
-
-                // ❗ 新旧不能一样
-                if (password_verify($new_pass, $old_hash)) {
-                    $error_msg = "New password cannot be same as old password.";
+                // 4. 验证：不能和旧密码一样
+                if (password_verify($new_p, $user['password_hashed'])) {
+                    $error_msg = "Error: New password cannot be the same as your current one!";
                 } else {
-
-                    // ✅ 5. HASH 新密码
-                    $new_hash = password_hash($new_pass, PASSWORD_DEFAULT);
-
-                    // ✅ 6. UPDATE
-                    $update = $pdo->prepare("
-                        UPDATE users 
-                        SET password_hashed = ?
-                        WHERE user_id = ?
-                    ");
-
+                    // 5. 执行更新
+                    $new_hash = password_hash($new_p, PASSWORD_DEFAULT);
+                    $update = $pdo->prepare("UPDATE users SET password_hashed = ? WHERE user_id = ?");
                     $update->execute([$new_hash, $user_id]);
 
-                    if ($update->rowCount() > 0) {
-
-                        $success_msg = "✅ Password updated successfully!";
-
-                        // 🔒 强制重新登录（推荐）
-                        session_destroy();
-                        header("refresh:2;url=login.php");
-
-                    } else {
-                        $error_msg = "Update failed. Try again.";
-                    }
+                    $success_msg = "✅ Password updated successfully!";
+                    // 在 Profile 页面通常不需要销毁 Session，只需让用户知道成功了
                 }
-
-            } else {
-                $error_msg = "User not found.";
             }
-
         } catch (PDOException $e) {
-            $error_msg = "Database error.";
+            $error_msg = "Database Error occurred.";
         }
     }
 }
+
+include '../includes/_head.php'; 
 ?>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Reset Password</title>
-    <style>
-        body {
-            font-family: Arial;
-            background: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+<style>
+    :root { --theme: #28a745; }
+    
+    /* 强制背景，防止走位 */
+    body { 
+        margin: 0; padding: 0; 
+        background: url('../images/bg.jpeg') center/cover no-repeat fixed !important; 
+        min-height: 100vh;
+    }
 
-        .box {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            width: 350px;
-        }
+    /* 屏中锁死卡片 */
+    .security-update-card {
+        position: fixed !important;
+        top: 50vh !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 90% !important;
+        max-width: 420px !important;
+        background: #fff !important;
+        padding: 40px !important;
+        border-radius: 25px !important;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.3) !important;
+        border-top: 15px solid var(--theme) !important;
+        z-index: 999999 !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+    }
 
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-        }
+    .f-input {
+        width: 100% !important;
+        padding: 15px !important;
+        margin-bottom: 20px !important;
+        border: 2px solid #eee !important;
+        border-radius: 12px !important;
+        text-align: center !important;
+        font-size: 16px !important;
+        box-sizing: border-box !important;
+    }
 
-        button {
-            width: 100%;
-            padding: 12px;
-            background: green;
-            color: white;
-            border: none;
-        }
+    .btn-update {
+        width: 100% !important;
+        padding: 16px !important;
+        background: var(--theme) !important;
+        color: #fff !important;
+        border: none !important;
+        border-radius: 12px !important;
+        font-weight: bold !important;
+        font-size: 18px !important;
+        cursor: pointer !important;
+        transition: 0.3s;
+    }
 
-        .error {
-            color: red;
-        }
+    .btn-update:hover { filter: brightness(1.1); }
 
-        .success {
-            color: green;
-        }
-    </style>
-</head>
+    .msg { padding: 12px; margin-bottom: 20px; font-size: 14px; font-weight: bold; border-radius: 8px; }
+    .err-msg { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
+    .ok-msg { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+</style>
 
-<body>
-
-<div class="box">
-    <h2>Reset Password</h2>
+<div class="security-update-card">
+    <h2 style="margin-top:0;">Security Settings</h2>
+    <p style="color:#777; font-size:14px; margin-bottom:25px;">Update your account password</p>
 
     <?php if ($error_msg): ?>
-        <p class="error"><?php echo $error_msg; ?></p>
+        <div class="msg err-msg"><?php echo $error_msg; ?></div>
     <?php endif; ?>
 
     <?php if ($success_msg): ?>
-        <p class="success"><?php echo $success_msg; ?></p>
+        <div class="msg ok-msg"><?php echo $success_msg; ?></div>
+        <button onclick="window.location.href='profile.php?page=security'" class="btn-update" style="background:#555 !important;">Back to Profile</button>
     <?php endif; ?>
 
+    <?php if (!$success_msg): ?>
     <form method="POST">
-        <input type="password" name="new_password" placeholder="New Password" required>
-        <input type="password" name="confirm_password" placeholder="Confirm Password" required>
-
-        <button type="submit">Update Password</button>
+        <input type="password" name="new_password" class="f-input" placeholder="New Password (min 6 chars)" required>
+        <input type="password" name="confirm_password" class="f-input" placeholder="Confirm New Password" required>
+        
+        <button type="submit" name="submit_update" class="btn-update">Update Password</button>
+        
+        <div style="margin-top:20px;">
+            <a href="profile.php" style="color:#aaa; text-decoration:none; font-size:13px;">Cancel and Return</a>
+        </div>
     </form>
-
+    <?php endif; ?>
 </div>
 
-</body>
-</html>
+<?php include '../includes/_foot.php'; ?>

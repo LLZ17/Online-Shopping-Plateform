@@ -1,7 +1,7 @@
 <?php
 /**
  * PXX Mall - Edit Phone Number & Verification (Merged Version)
- * 功能：OTP 模拟发送、严格验证、数据库更新及精准分支重定向
+ * 功能：背景图支持、新旧号码查重、OTP 模拟发送、严格验证
  */
 session_start();
 
@@ -18,21 +18,33 @@ $user_id = $_SESSION['user_id'];
 $message = "";
 $otp_sent = false;
 
+// --- 获取当前用户的旧手机号 (用于查重) ---
+$stmt_check = $pdo->prepare("SELECT phone_num FROM users WHERE user_id = ?");
+$stmt_check->execute([$user_id]);
+$current_user = $stmt_check->fetch();
+$old_phone = $current_user['phone_num'] ?? '';
+
 // 3. 处理逻辑 (Invisible Logic)
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     // A. 模拟发送验证码逻辑
     if (isset($_POST['action']) && $_POST['action'] == 'send_otp') {
         $full_number = $_POST['prefix'] . $_POST['phone_num'];
-        $generated_otp = rand(100000, 999999); // 生成6位数字
         
-        // 将验证码和号码存入 Session 供下一步比对
-        $_SESSION['temp_otp'] = $generated_otp;
-        $_SESSION['temp_phone'] = $full_number;
-        
-        $otp_sent = true;
-        // 本地环境模拟：直接通过页面变量告知用户验证码
-        $message = "【PXX Mall】Your verification code is: $generated_otp (Simulated SMS)";
+        // 【新增检查】：新号码不可以和现有的一样
+        if ($full_number === $old_phone) {
+            $message = "❌ New phone number cannot be the same as your current one.";
+        } else {
+            $generated_otp = rand(100000, 999999); // 生成6位数字
+            
+            // 将验证码和号码存入 Session 供下一步比对
+            $_SESSION['temp_otp'] = $generated_otp;
+            $_SESSION['temp_phone'] = $full_number;
+            
+            $otp_sent = true;
+            // 本地环境模拟：直接通过页面变量告知用户验证码
+            $message = "【PXX Mall】Your verification code is: $generated_otp (Simulated SMS)";
+        }
     }
 
     // B. 核心验证与分支重定向逻辑
@@ -62,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $message = "Database Error: " . $e->getMessage();
             }
         } else {
-            // 验证失败：将数据库状态标记为 Unverified
+            // 验证失败：将数据库状态标记为 Unverified (可选逻辑)
             $sql = "UPDATE `users` SET `phone_status` = 'Unverified' WHERE `user_id` = ?";
             $pdo->prepare($sql)->execute([$user_id]);
             $message = "❌ Incorrect verification code. Please try again.";
@@ -74,23 +86,32 @@ require_once __DIR__ . '/../includes/_head.php';
 ?>
 
 <style>
-    /* 元素“对中聚齐”布局方案 */
+    /* 1. 页面大框架 & 背景图 */
+    body {
+        /* 在这里修改你的背景图路径 */
+        background-image: url('../images/bg.jpeg'); 
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        margin: 0;
+    }
+
     .edit-phone-wrapper {
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 80vh; /* 垂直居中参考高度 */
+        min-height: 80vh;
         padding: 20px;
     }
 
     .phone-card {
         max-width: 480px;
         width: 100%;
-        background: #ffffff;
+        background: rgba(255, 255, 255, 0.95); /* 半透明白色，保持易读性 */
         padding: 40px;
         border-radius: 12px;
         box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-        text-align: center; /* 内部元素居中 */
+        text-align: center;
     }
 
     h1 {
@@ -99,7 +120,7 @@ require_once __DIR__ . '/../includes/_head.php';
         margin-bottom: 25px;
         border-bottom: 2px solid #e60012;
         padding-bottom: 12px;
-        display: inline-block; /* 标题自适应宽度居中 */
+        display: inline-block;
     }
 
     /* 国际区号组合输入框布局 */
@@ -136,7 +157,7 @@ require_once __DIR__ . '/../includes/_head.php';
         border-radius: 8px;
         font-size: 28px;
         text-align: center;
-        letter-spacing: 10px; /* 字符间距增加，便于阅读 */
+        letter-spacing: 10px;
         margin: 20px auto;
         display: block;
         font-family: monospace;
@@ -167,14 +188,16 @@ require_once __DIR__ . '/../includes/_head.php';
 
     .btn-cancel:hover { text-decoration: underline; color: #e60012; }
 
+    /* 错误/提示框颜色调整 */
     .msg-alert {
         padding: 15px;
-        background: #faffcc;
-        color: #5b8c00;
-        border: 1px solid #e1f0a3;
+        background: #fffbe6;
+        color: #856404;
+        border: 1px solid #ffe58f;
         border-radius: 8px;
         margin-bottom: 25px;
         font-size: 14px;
+        line-height: 1.5;
     }
 </style>
 
@@ -198,7 +221,9 @@ require_once __DIR__ . '/../includes/_head.php';
                     <option value="+65">+65 🇸🇬</option>
                 </select>
                 <input type="tel" name="phone_num" class="phone-input" 
-                       placeholder="123456789" required autofocus>
+                       placeholder="123456789" 
+                       value="<?php echo isset($_POST['phone_num']) ? htmlspecialchars($_POST['phone_num']) : ''; ?>"
+                       required autofocus>
             </div>
             
             <button type="submit" class="btn-action-pxx">Send OTP Code</button>

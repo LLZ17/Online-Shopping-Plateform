@@ -473,7 +473,7 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
                     <strong>Login Password</strong><br>
                     <span style="color: #888; font-size: 14px; line-height: 2;">******** (Last updated 3 months ago)</span>
                 </div>
-                <div><a href="reset_password.php" class="blue-link-action">Change Password</a></div>
+                <div><a href="update_password.php" class="blue-link-action">Change Password</a></div>
             </div>
 
             <div style="margin-top: 60px; padding: 25px; background: #fffcf5; border: 1px solid #ffecad; border-radius: 8px; color: #856404; font-size: 14px;">
