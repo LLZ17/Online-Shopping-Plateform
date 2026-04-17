@@ -71,81 +71,19 @@ require_once __DIR__ . '/../includes/_head.php';
         margin: 0;
     }
 
-    .cart-container {
-        max-width: 1000px;
-        margin: 40px auto;
-        padding: 30px;
-        background: rgba(255, 255, 255, 0.95); /* 加了透明度让背景隐约可见 */
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    }
-
     h1 {
         margin-bottom: 25px;
         padding-bottom: 15px;
         color: #333;
         border-bottom: 2px solid #e60012;
     }
-
-    .email-input {
-        width: 100%;
-        max-width: 400px;
-        height: 45px;
-        padding: 0 15px;
-        font-size: 1.2rem;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding-bottom: 15px;
-        padding-top: 15px;
-    }
-
-    .email-input::placeholder {
-        font-weight: 400;
-    }
-
-    .card-flex {
-        padding-bottom: 10px;
-        padding-top: 10px;
-    }
     
-    .btn-submit {
-        background: #e60012;
-        color: white;
-        padding: 10px 25px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: bold;
-        padding-bottom: 10px;
-        padding-top: 10px;
-    }
-
-    .btn-cancel {
-        background: #9c9494;
-        color: white;
-        padding: 10px 25px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: bold;
-        padding-bottom: 10px;
-        padding-top: 10px;
-        opacity: 0.767;
-    }
-
-    .btn-cancel a {
-        color: white;
-        text-decoration: none;
-    }
-
-    .error-alert {
-        color: #e60012;
-        background: #ffe6e6;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 15px;
-    }
 </style>
+
+<head>
+    <link rel = "stylesheet" href = "../css/app.css">
+</head>
+
 
 <div class="cart-container">
     <h1>📧 Changing Email Address</h1>
