@@ -373,7 +373,7 @@ td {
 
 /*---------------------------------------------*/
 
-/* 2. member/update_password.php (Leong Hong Jun) CONFLICT CHECKED*/
+/* 2. member/update_password.php (Leong Hong Jun) CONFLICT CHECKED */
 
 /*---------------------------------------------*/
 
@@ -424,5 +424,98 @@ td {
 .msg { padding: 12px; margin-bottom: 20px; font-size: 14px; font-weight: bold; border-radius: 8px; }
 .err-msg { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
 .ok-msg { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+
+/*---------------------------------------------*/
+
+/* 3. member/edit_email.php (Leong Hong Jun) CONFLICT CHECKED */
+/*---------------------------------------------*/
+
+/* 1. 页面大框架 */
+
+.cart-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.95); /* 加了透明度让背景隐约可见 */
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.email-input {
+    width: 100%;
+    max-width: 400px;
+    height: 45px;
+    padding: 0 15px;
+    font-size: 1.2rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding-bottom: 15px;
+    padding-top: 15px;
+}
+
+.email-input::placeholder {
+        font-weight: 400;
+    }
+    
+.card-flex {
+    padding-bottom: 10px;
+    padding-top: 10px;
+}
+    
+.btn-submit {
+    background: #e60012;
+    color: white;
+    padding: 10px 25px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    padding-bottom: 10px;
+    padding-top: 10px;
+}
+
+.btn-cancel {
+    background: #9c9494;
+    color: white;
+    padding: 10px 25px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    padding-bottom: 10px;
+    padding-top: 10px;
+    opacity: 0.767;
+}
+
+.btn-cancel a {
+    color: white;
+    text-decoration: none;
+}
+
+.error-alert {
+    color: #e60012;
+    background: #ffe6e6;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+/*---------------------------------------------*/
+
+/* (Number). file path (OR NAME) (member name) */
+/*---------------------------------------------*/
+
+/*This field is for css style declaring (Replace this comment while putting your css style)*/
+/* AND PLEASE CHECK NAME CONFLICTING USING (CTRL+F) FUNCTION AND PUT THE CSS STYLE NAME.
+                                                        (PLEASE DO IT FOR EVERY CSS STYLE) */
+
+/*---------------------------------------------*/
+
+/* (Number). file path (OR NAME) (member name) */
+/*---------------------------------------------*/
+
+/*This field is for css style declaring (Replace this comment while putting your css style)*/
+/* AND PLEASE CHECK NAME CONFLICTING USING (CTRL+F) FUNCTION AND PUT THE CSS STYLE NAME.
+                                                        (PLEASE DO IT FOR EVERY CSS STYLE) */
 
 /*---------------------------------------------*/
