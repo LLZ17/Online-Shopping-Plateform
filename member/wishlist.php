@@ -30,6 +30,9 @@ if (isset($_GET['remove_id'])) {
 
 require_once __DIR__ . '/../includes/_head.php';
 ?>
+<head>
+    <link rel = "stylesheet" href = "../css/app.css">
+</head>
 <?php
 // 3. 获取当前用户的愿望清单数据
 $user_id = $_SESSION['user_id'];

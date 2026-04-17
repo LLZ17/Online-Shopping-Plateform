@@ -76,6 +76,10 @@ include '../includes/_head.php';
     }
 </style>
 
+<head>
+    <link rel = "stylesheet" href = "../css/app.css">
+</head>
+
 <div class="security-update-card">
     <h2 style="margin-top:0;">Security Settings</h2>
     <p style="color:#777; font-size:14px; margin-bottom:25px;">Update your account password</p>
@@ -102,5 +106,3 @@ include '../includes/_head.php';
     </form>
     <?php endif; ?>
 </div>
-
-<?php include '../includes/_foot.php'; ?>
