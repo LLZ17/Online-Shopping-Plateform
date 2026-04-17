@@ -1,7 +1,6 @@
 <?php
 session_start();
 require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/_head.php';
 
 $product_id = isset($_GET['id']) ? trim($_GET['id']) : '';
 
@@ -39,7 +38,8 @@ $stmt = $pdo->prepare("
         SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as rating_4,
         SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as rating_3,
         SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as rating_2,
-        SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as rating_1
+        SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as rating_1,
+        SUM(CASE WHEN comment != '' THEN 1 ELSE 0 END) as with_comments
     FROM reviews WHERE product_id = ?
 ");
 $stmt->execute([$product_id]);
@@ -47,18 +47,23 @@ $stats = $stmt->fetch();
 $avg_rating = round($stats['avg_rating'] ?? 0, 1);
 $total_reviews = $stats['total'] ?? 0;
 
-// 解析尺寸和颜色
 $sizes = !empty($product['size']) ? explode(',', $product['size']) : [];
 $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
+
+require_once __DIR__ . '/../includes/_head.php';
 ?>
 
 <style>
+    /* ============================================
+       商品详情页样式 - 无 inline CSS
+    ============================================ */
     .detail-page {
         max-width: 1200px;
         margin: 40px auto;
         padding: 0 20px;
     }
     
+    /* 返回按钮 */
     .back-nav {
         margin-bottom: 25px;
     }
@@ -82,6 +87,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         color: white;
     }
     
+    /* 主容器 */
     .product-container {
         display: flex;
         gap: 50px;
@@ -126,6 +132,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         margin: 0 0 10px 0;
     }
     
+    /* 评分区域 */
     .rating-section {
         display: flex;
         align-items: center;
@@ -157,6 +164,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         padding-left: 15px;
     }
     
+    /* 价格 */
     .price-section {
         margin: 20px 0;
     }
@@ -167,6 +175,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         color: #e60012;
     }
     
+    /* 库存状态 */
     .stock-status {
         display: inline-flex;
         align-items: center;
@@ -183,12 +192,23 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         color: #2e7d32;
     }
     
+    .low-stock {
+        background: #fff3e0;
+        color: #ff9800;
+    }
+    
+    .out-stock {
+        background: #ffebee;
+        color: #f44336;
+    }
+    
     .stock-available {
         color: #666;
         font-size: 14px;
         margin: 10px 0;
     }
     
+    /* 积分 */
     .points-badge {
         display: inline-flex;
         align-items: center;
@@ -201,6 +221,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         margin: 10px 0;
     }
     
+    /* 选项按钮组 */
     .option-group {
         margin: 25px 0;
     }
@@ -241,6 +262,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         color: white;
     }
     
+    /* 数量选择 */
     .quantity-section {
         margin: 25px 0;
     }
@@ -283,6 +305,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         font-size: 16px;
     }
     
+    /* 加购按钮 */
     .add-to-cart-btn {
         width: 100%;
         background: #e60012;
@@ -313,6 +336,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         transform: none;
     }
     
+    /* 商品描述 */
     .description-section {
         margin-top: 30px;
         padding-top: 25px;
@@ -331,6 +355,9 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         line-height: 1.8;
     }
     
+    /* ============================================
+       评论区域样式
+    ============================================ */
     .reviews-section {
         margin-top: 40px;
         background: white;
@@ -410,6 +437,36 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         color: #888;
     }
     
+    /* 筛选按钮 */
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 15px 0;
+    }
+    
+    .filter-btn {
+        padding: 6px 15px;
+        background: #f0f0f0;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 13px;
+        text-decoration: none;
+        color: #333;
+        transition: 0.2s;
+    }
+    
+    .filter-btn:hover {
+        background: #e0e0e0;
+    }
+    
+    .filter-btn.active {
+        background: #e60012;
+        color: white;
+    }
+    
+    /* 评论卡片 */
     .review-card {
         background: #fafafa;
         border-radius: 16px;
@@ -452,6 +509,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         margin-top: 10px;
     }
     
+    /* 写评论表单 */
     .review-form {
         background: #fff8e1;
         padding: 25px;
@@ -503,6 +561,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         transform: translateY(-2px);
     }
     
+    /* 响应式 */
     @media (max-width: 768px) {
         .product-container {
             padding: 20px;
@@ -515,6 +574,13 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         }
         .reviews-section {
             padding: 20px;
+        }
+        .review-summary {
+            flex-direction: column;
+            align-items: center;
+        }
+        .filter-buttons {
+            justify-content: center;
         }
     }
 </style>
@@ -530,7 +596,14 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
     <div class="product-container">
         <!-- 左侧图片 -->
         <div class="product-gallery">
-            <img src="../images/<?php echo !empty($product['product_image']) ? htmlspecialchars($product['product_image']) : 'default.jpg'; ?>" 
+            <?php
+            $product_image = 'default.jpg';
+            if (!empty($product['product_image'])) {
+                $images = explode(',', $product['product_image']);
+                $product_image = trim($images[0]);
+            }
+            ?>
+            <img src="../images/<?php echo htmlspecialchars($product_image); ?>" 
                  class="main-image" 
                  alt="<?php echo htmlspecialchars($product['name']); ?>"
                  id="mainImage">
@@ -539,17 +612,20 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         <!-- 右侧信息 -->
         <div class="product-info">
             <span class="product-category">
-                <i class="fas fa-tag"></i> Men's Collection
+                <i class="fas fa-tag"></i> 
+                <?php echo (strpos($product['product_id'], 'M') === 0) ? 'Men\'s Collection' : 'Women\'s Collection'; ?>
             </span>
             
             <h1 class="product-title"><?php echo htmlspecialchars($product['name']); ?></h1>
             
             <div class="rating-section">
                 <div class="stars" id="starRating">
-                    <?php for($i=1;$i<=5;$i++) echo $i<=$avg_rating?'★':'☆'; ?>
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                        <?php echo $i <= $avg_rating ? '★' : '☆'; ?>
+                    <?php endfor; ?>
                 </div>
                 <a href="#reviews" class="review-link" id="reviewLink">
-                    <?php echo $total_reviews; ?> customer review<?php echo $total_reviews != 1 ? 's' : ''; ?>
+                    <?php echo $total_reviews; ?> review<?php echo $total_reviews != 1 ? 's' : ''; ?>
                 </a>
                 <div class="sales-count">
                     <i class="fas fa-chart-line"></i> <?php echo number_format($product['sales_count'] ?? 0); ?> Sold
@@ -561,8 +637,9 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
             </div>
             
             <div>
-                <span class="stock-status in-stock" id="stockStatus">
-                    <i class="fas fa-check-circle"></i> In stock
+                <span class="stock-status <?php echo $product['stock'] > 10 ? 'in-stock' : ($product['stock'] > 0 ? 'low-stock' : 'out-stock'); ?>">
+                    <i class="fas <?php echo $product['stock'] > 0 ? 'fa-check-circle' : 'fa-times-circle'; ?>"></i>
+                    <?php echo $product['stock'] > 0 ? 'In stock' : 'Out of stock'; ?>
                 </span>
             </div>
             
@@ -610,7 +687,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
                 </div>
             </div>
             
-            <!-- 加购按钮（只有一个） -->
+            <!-- 加购按钮 -->
             <button class="add-to-cart-btn" id="addToCartBtn" <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>>
                 <i class="fas fa-shopping-cart"></i> Add to Cart
             </button>
@@ -637,13 +714,15 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
             <div class="avg-rating-box">
                 <div class="avg-number"><?php echo $avg_rating; ?></div>
                 <div class="avg-stars">
-                    <?php for($i=1;$i<=5;$i++) echo $i<=round($avg_rating)?'★':'☆'; ?>
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                        <?php echo $i <= round($avg_rating) ? '★' : '☆'; ?>
+                    <?php endfor; ?>
                 </div>
                 <div><?php echo $total_reviews; ?> review<?php echo $total_reviews != 1 ? 's' : ''; ?></div>
             </div>
             <div class="rating-bars">
-                <?php for($r=5; $r>=1; $r--): 
-                    $count = $stats['rating_'.$r] ?? 0;
+                <?php for($r = 5; $r >= 1; $r--): 
+                    $count = $stats['rating_' . $r] ?? 0;
                     $percent = $total_reviews > 0 ? ($count / $total_reviews * 100) : 0;
                 ?>
                 <div class="rating-bar-item">
@@ -657,15 +736,26 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
             </div>
         </div>
         
+        <!-- 筛选按钮 -->
+        <div class="filter-buttons">
+            <a href="?id=<?php echo $product_id; ?>" class="filter-btn <?php echo !isset($_GET['rating_filter']) || $_GET['rating_filter'] == 0 ? 'active' : ''; ?>">All (<?php echo $total_reviews; ?>)</a>
+            <a href="?id=<?php echo $product_id; ?>&rating_filter=5" class="filter-btn <?php echo isset($_GET['rating_filter']) && $_GET['rating_filter'] == 5 ? 'active' : ''; ?>">5 ★ (<?php echo $stats['rating_5'] ?? 0; ?>)</a>
+            <a href="?id=<?php echo $product_id; ?>&rating_filter=4" class="filter-btn <?php echo isset($_GET['rating_filter']) && $_GET['rating_filter'] == 4 ? 'active' : ''; ?>">4 ★ (<?php echo $stats['rating_4'] ?? 0; ?>)</a>
+            <a href="?id=<?php echo $product_id; ?>&rating_filter=3" class="filter-btn <?php echo isset($_GET['rating_filter']) && $_GET['rating_filter'] == 3 ? 'active' : ''; ?>">3 ★ (<?php echo $stats['rating_3'] ?? 0; ?>)</a>
+            <a href="?id=<?php echo $product_id; ?>&rating_filter=2" class="filter-btn <?php echo isset($_GET['rating_filter']) && $_GET['rating_filter'] == 2 ? 'active' : ''; ?>">2 ★ (<?php echo $stats['rating_2'] ?? 0; ?>)</a>
+            <a href="?id=<?php echo $product_id; ?>&rating_filter=1" class="filter-btn <?php echo isset($_GET['rating_filter']) && $_GET['rating_filter'] == 1 ? 'active' : ''; ?>">1 ★ (<?php echo $stats['rating_1'] ?? 0; ?>)</a>
+            <a href="?id=<?php echo $product_id; ?>&rating_filter=with_comments" class="filter-btn">With Comments (<?php echo $stats['with_comments'] ?? 0; ?>)</a>
+        </div>
+        
         <!-- 写评论表单 -->
         <?php if(isset($_SESSION['user_id'])):
-            $stmt = $pdo->prepare("SELECT 1 FROM reviews WHERE product_id = ? AND user_id = ?");
-            $stmt->execute([$product_id, $_SESSION['user_id']]);
-            $hasReviewed = $stmt->fetch();
+            $check_stmt = $pdo->prepare("SELECT 1 FROM reviews WHERE product_id = ? AND user_id = ?");
+            $check_stmt->execute([$product_id, $_SESSION['user_id']]);
+            $hasReviewed = $check_stmt->fetch();
             
-            $stmt = $pdo->prepare("SELECT 1 FROM orders WHERE user_id = ? AND product_id = ? AND order_status = 'Delivered' LIMIT 1");
-            $stmt->execute([$_SESSION['user_id'], $product_id]);
-            $canReview = $stmt->fetch();
+            $order_stmt = $pdo->prepare("SELECT 1 FROM orders WHERE user_id = ? AND product_id = ? AND order_status = 'Delivered' LIMIT 1");
+            $order_stmt->execute([$_SESSION['user_id'], $product_id]);
+            $canReview = $order_stmt->fetch();
             
             if(!$hasReviewed && $canReview): ?>
                 <div class="review-form">
@@ -673,7 +763,7 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
                     <form method="POST" action="../member/Reviewsubmit.php" id="reviewForm">
                         <input type="hidden" name="product_id" value="<?php echo $product_id; ?>">
                         <div class="rating-select" id="ratingStars">
-                            <?php for($i=1;$i<=5;$i++): ?>
+                            <?php for($i = 1; $i <= 5; $i++): ?>
                                 <span class="rating-star" data-rating="<?php echo $i; ?>">☆</span>
                             <?php endfor; ?>
                         </div>
@@ -700,29 +790,35 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
         
         <!-- 评论列表 -->
         <?php if(empty($reviews)): ?>
-            <div style="text-align:center; padding:40px; color:#999;">
-                <i class="fas fa-comment-dots" style="font-size:40px; margin-bottom:15px; display:block;"></i>
-                No reviews yet. Be the first to review this product!
+            <div class="empty-reviews">
+                <i class="fas fa-comment-dots"></i>
+                <p>No reviews yet. Be the first to review this product!</p>
             </div>
-        <?php else: foreach($reviews as $review): ?>
+        <?php else: ?>
+            <?php foreach($reviews as $review): ?>
             <div class="review-card">
                 <div class="review-header">
                     <span class="reviewer"><i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($review['username']); ?></span>
-                    <div class="review-stars"><?php for($i=1;$i<=5;$i++) echo $i<=$review['rating']?'★':'☆'; ?></div>
+                    <div class="review-stars">
+                        <?php for($i = 1; $i <= 5; $i++): ?>
+                            <?php echo $i <= $review['rating'] ? '★' : '☆'; ?>
+                        <?php endfor; ?>
+                    </div>
                     <span class="review-date"><i class="far fa-calendar-alt"></i> <?php echo date('d M Y', strtotime($review['created_at'])); ?></span>
                 </div>
                 <?php if(!empty($review['comment'])): ?>
                     <div class="review-comment"><?php echo nl2br(htmlspecialchars($review['comment'])); ?></div>
                 <?php endif; ?>
             </div>
-        <?php endforeach; endif; ?>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
-    // 返回按钮 - 无 inline
+    // 返回按钮
     $('#backBtn').on('click', function(e) {
         e.preventDefault();
         window.history.back();
@@ -785,7 +881,7 @@ $(document).ready(function() {
         });
     });
     
-    // 加购按钮 - 唯一的 Add to Cart
+    // 加购按钮
     $('#addToCartBtn').on('click', function() {
         var qty = $('#quantity').val();
         var size = $('#selected_size').val();
@@ -827,5 +923,21 @@ $(document).ready(function() {
     });
 });
 </script>
+
+<style>
+    .empty-reviews {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    .empty-reviews i {
+        font-size: 48px;
+        margin-bottom: 15px;
+        display: block;
+    }
+    .empty-reviews p {
+        font-size: 16px;
+    }
+</style>
 
 <?php require_once __DIR__ . '/../includes/_foot.php'; ?>
