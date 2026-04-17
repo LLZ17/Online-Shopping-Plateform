@@ -236,7 +236,7 @@ if (file_exists($admin_head)) { include $admin_head; }
                     $statusText = $product['status'] ?? 'Unknown';
                     // 如果状态是 In stock，我们可以将其显示为 ACTIVE，以符合第二张图的意境
                     if (strcasecmp($statusText, 'In stock') === 0) {
-                        echo 'ACTIVE'; 
+                        echo 'In Stock'; 
                     } else {
                         echo htmlspecialchars($statusText);
                     }
