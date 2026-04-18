@@ -171,7 +171,7 @@ function triggerSyncRefresh() {
     performInjection();
 })();
 
-/* 6. admin/product_edit.php js Tee De Yong part*/
+/* 6. admin/product_detail.php js Tee De Yong part*/
 /* --- Product Detail JS Start (TEE DE YONG's Part) --- */
 document.addEventListener("DOMContentLoaded", function() {
     const myContent = document.getElementById('detail-wrapper');
