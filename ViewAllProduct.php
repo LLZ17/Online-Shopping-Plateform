@@ -221,6 +221,10 @@ $(document).ready(function() {
     $('.add-to-cart').click(function() {
         var productId = $(this).data('id');
         var $btn = $(this);
+        
+        // 禁用按钮防止重复点击
+        $btn.prop('disabled', true).text('Adding...');
+
         $.ajax({
             url: 'memberProducts/add.php',
             method: 'POST',
@@ -228,19 +232,34 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    if (confirm('✓ Added to cart! Go to cart now?')) {
-                        window.location.href = 'memberProducts/unified_cart.php';
+                    // 修改这里的逻辑：
+                    // 我们直接提示已添加，并让按钮变成“Added!”
+                    $btn.text('✓ Added!').css('background', '#28a745'); // 变成绿色
+                    
+                    // 询问用户是否要去购物车查看，或者留在原地
+                    if (confirm('Item added! Go to shopping cart?')) {
+                        window.location.href = 'ViewAllProduct.php'; // 如果点“确定”，去购物车
                     } else {
-                        $btn.text('Added!');
-                        setTimeout(function() { $btn.text('Add to Cart'); }, 1500);
+                        // 如果点“取消”，留在原地继续购物
+                        setTimeout(function() { 
+                            $btn.prop('disabled', false).text('Add to Cart').css('background', '#e60012'); 
+                        }, 2000);
                     }
                 } else {
                     alert(response.error);
+                    $btn.prop('disabled', false).text('Add to Cart');
                     if (response.error === 'Please login first') {
                         window.location.href = 'login.php';
                     }
                 }
             },
+            error: function() {
+                alert('Error adding to cart');
+                $btn.prop('disabled', false).text('Add to Cart');
+            }
+        });
+    });
+});
             error: function() {
                 alert('Error adding to cart');
             }
