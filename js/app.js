@@ -129,6 +129,47 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
 
+/* 5. admin/product_crud.php js Tee De Yong part*/
+function triggerSyncRefresh() {
+    alert("✅ Admin records synchronized and refreshed!");
+    window.location.href = 'product_crud.php';
+}
+
+(function() {
+    const templateId = 'final_product_layout';
+    
+    function performInjection() {
+        const template = document.getElementById(templateId);
+        if (!template) return;
+
+        const viewport = document.querySelector('.admin-content-viewport') || 
+                         document.querySelector('.main-content') || 
+                         document.querySelector('#layout-content') ||
+                         document.querySelector('.content-wrapper') ||
+                         document.querySelector('main');
+
+        if (viewport) {
+            if (!viewport.querySelector('.inventory-container')) {
+                viewport.innerHTML = ''; 
+                viewport.appendChild(template.content.cloneNode(true));
+            }
+        }
+    }
+
+    const heartBeat = setInterval(performInjection, 300); // 稍微调快一点点，防止空白时间过长
+    
+    const observer = new MutationObserver((mutations) => { 
+        performInjection(); 
+    });
+
+    observer.observe(document.body, { 
+        childList: true, 
+        subtree: true 
+    });
+
+    window.addEventListener('load', performInjection);
+    performInjection();
+})();
 
 
 
