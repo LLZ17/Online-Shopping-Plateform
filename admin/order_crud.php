@@ -3,7 +3,6 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// 引入数据库
 require_once __DIR__ . '/../includes/db.php'; 
 
 try {
@@ -23,161 +22,11 @@ try {
     $topProducts = [];
 }
 
-// 加载后台头部
 $admin_head = __DIR__ . '/../includes/_admin_head.php';
 if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap');
-
-    /* 强制去掉可能存在的背景冲突 */
-    .page-title-box { display: none !important; }
-    
-    /* 页面载入动画 */
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .sales-container { 
-        max-width: 1400px; 
-        margin: 40px auto; 
-        padding: 0 30px; 
-        font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; 
-        width: 100%; 
-        animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    
-    .page-header { 
-        margin-bottom: 45px; 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: flex-end; 
-    }
-    
-    .page-header h1 { 
-        font-size: 42px; 
-        font-weight: 900; 
-        color: #0f172a; 
-        letter-spacing: -1.5px; 
-        margin: 0; 
-    }
-    .page-header p { color: #64748b; margin-top: 10px; font-size: 16px; font-weight: 500; }
-
-    /* 🔄 极致优化的 Refresh 按钮 */
-    .btn-refresh {
-        background: #ffffff;
-        color: #64748b;
-        padding: 12px 26px;
-        border-radius: 16px;
-        text-decoration: none;
-        font-weight: 800;
-        font-size: 13px;
-        letter-spacing: 0.5px;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-        cursor: pointer;
-    }
-
-    .btn-refresh:hover {
-        background: #0f172a; /* 悬浮变成高级黑 */
-        color: #ffffff;
-        transform: translateY(-3px) scale(1.03);
-        box-shadow: 0 15px 30px -5px rgba(15, 23, 42, 0.2);
-        border-color: #0f172a;
-    }
-
-    .btn-refresh svg { 
-        transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1); 
-    }
-
-    .btn-refresh:hover svg { 
-        transform: rotate(360deg); /* 旋转 360 度 */
-        color: #3b82f6; /* 图标变亮蓝 */
-    }
-
-    /* --- 统计卡片 --- */
-    .summary-grid { 
-        display: grid; 
-        grid-template-columns: 1fr 1fr; 
-        gap: 35px; 
-        margin-bottom: 45px; 
-    }
-    .stat-card { 
-        background: #ffffff; 
-        padding: 35px 45px; 
-        border-radius: 28px; 
-        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05); 
-        display: flex;
-        align-items: center;
-        gap: 25px;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
-    }
-    
-    .card-revenue { border-left: 6px solid #06b6d4; }
-    .card-units { border-left: 6px solid #3b82f6; }
-
-    .icon-box {
-        width: 76px; height: 76px;
-        border-radius: 22px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 34px;
-    }
-
-    .icon-revenue { background: #cffafe; color: #0891b2; }
-    .icon-units { background: #dbeafe; color: #1d4ed8; }
-
-    .stat-info { flex: 1; }
-    .stat-label { color: #64748b; font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; display: block; }
-    .stat-value { font-size: 46px; font-weight: 900; color: #0f172a; letter-spacing: -1.5px; }
-
-    /* --- 排行榜 --- */
-    .top5-card { 
-        background: #ffffff; 
-        border-radius: 32px; 
-        padding: 50px; 
-        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05); 
-        border-top: 6px solid #ef4444; 
-    }
-    .card-title { font-size: 30px; font-weight: 900; color: #0f172a; margin-bottom: 40px; display: flex; align-items: center; gap: 15px; }
-    
-    .product-list-item { 
-        display: flex; 
-        align-items: center; 
-        gap: 25px; 
-        padding: 22px 28px; 
-        border-radius: 24px; 
-        background: #f8fafc; 
-        margin-bottom: 16px; 
-        transition: all 0.3s ease;
-    }
-    .product-list-item:hover { 
-        background: #ffffff; 
-        transform: translateY(-4px); 
-        box-shadow: 0 15px 30px rgba(239, 68, 68, 0.08); 
-    }
-
-    .rank-badge { width: 54px; height: 54px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; }
-    .rank-1 { background: linear-gradient(135deg, #fde047 0%, #f59e0b 100%); color: #fff; }
-    .rank-2 { background: #e2e8f0; color: #64748b; }
-    .rank-3 { background: #fed7aa; color: #ea580c; }
-
-    .p-thumb { width: 84px; height: 84px; border-radius: 20px; object-fit: cover; border: 1px solid #e2e8f0; }
-    .p-details { flex: 1; }
-    .p-details h4 { margin: 0 0 12px 0; font-size: 20px; font-weight: 800; color: #1e293b; }
-    
-    .p-progress-bg { height: 10px; background: #f1f5f9; border-radius: 10px; width: 100%; overflow: hidden; }
-    .p-progress-fill { height: 100%; background: #ef4444; border-radius: 10px; transition: width 1.2s ease; }
-
-    .p-stats { text-align: right; min-width: 150px; }
-    .sold-count { display: block; font-size: 24px; font-weight: 900; color: #0f172a; }
-    .revenue { font-size: 16px; font-weight: 800; color: #e11d48; background: #ffe4e6; padding: 6px 12px; border-radius: 10px; display: inline-block; }
-</style>
+<link rel="stylesheet" href="../css/app.css?v=1.14">
 
 <div id="sales-app" class="sales-container" style="display:none;">
     <div class="page-header">
@@ -251,25 +100,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     </div>
 </div>
 
-<script>
-    // 💡 弹窗刷新函数
-    function triggerSyncRefresh() {
-        alert("✅ Admin records synchronized and refreshed!");
-        window.location.reload();
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-        const salesApp = document.getElementById('sales-app');
-        salesApp.style.display = 'block';
-        
-        // 自动注入逻辑
-        let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
-        if (viewport) {
-            viewport.innerHTML = '';
-            viewport.appendChild(salesApp);
-        }
-    });
-</script>
+<script src="../js/app.js?v=1.14"></script>
 
 <?php 
 $foot = __DIR__ . '/../includes/_foot.php'; 
