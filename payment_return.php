@@ -11,8 +11,8 @@ $status = $_GET['status_id'] ?? '';
 
 // 检查是否有待处理的订单
 if (!isset($_SESSION['pending_order'])) {
-    $order_number = $_GET['order_no'] ?? '';
-    if (!empty($order_number)) {
+    $order_id = $_GET['order_no'] ?? '';
+    if (!empty($order_id)) {
         header("Location: member/orders_history.php");
         exit();
     }
@@ -28,7 +28,8 @@ if ($status == '1') {
     try {
         $pdo->beginTransaction();
         
-        $order_number = 'ORD' . date('Ymd') . rand(1000, 9999);
+        // 使用 order_id
+        $order_id = 'ORD' . date('Ymd') . rand(1000, 9999);
         
         // 计算各项金额
         $items_subtotal = 0;
@@ -51,19 +52,19 @@ if ($status == '1') {
         $points_earned = floor($final_total);
         
         foreach ($order['cart_items'] as $item) {
+            // 修复：移除 contact_phone 字段，使用正确的字段名
             $stmt = $pdo->prepare("
-                INSERT INTO orders (order_number, user_id, product_id, quantity, selected_size, total_price, shipping_address, contact_phone, points_used, points_earned, order_status, payment_status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Processing', 'Paid')
+                INSERT INTO orders (order_id, user_id, product_id, quantity, selected_size, total_price, shipping_address, points_used, points_earned, order_status, payment_status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Processing', 'Paid')
             ");
             $stmt->execute([
-                $order_number,
+                $order_id,
                 $user_id,
                 $item['product_id'],
                 $item['quantity'],
                 $item['selected_size'] ?? '',
                 $item['price'] * $item['quantity'],
                 $order['address'],
-                $order['phone'],
                 $points_used,
                 $points_earned
             ]);
@@ -87,19 +88,19 @@ if ($status == '1') {
         unset($_SESSION['pending_order']);
         
         // 显示成功页面
-        displaySuccessPage($order_number, $items_subtotal, $points_discount, $shipping_fee, $final_total, $points_earned, $points_used, $order['cart_items']);
+        displaySuccessPage($order_id, $items_subtotal, $points_discount, $shipping_fee, $final_total, $points_earned, $points_used, $order['cart_items']);
         exit();
         
-    } catch (Exception $e) {
+    } catch (PDOException $e) {
         $pdo->rollBack();
-        echo "Order failed: " . $e->getMessage();
+        die("Order failed: " . $e->getMessage());
     }
 } else {
     displayFailPage();
     exit();
 }
 
-function displaySuccessPage($order_number, $subtotal, $points_discount, $shipping_fee, $total, $points_earned, $points_used, $cart_items) {
+function displaySuccessPage($order_id, $subtotal, $points_discount, $shipping_fee, $total, $points_earned, $points_used, $cart_items) {
     ?>
     <!DOCTYPE html>
     <html lang="en">
@@ -293,7 +294,7 @@ function displaySuccessPage($order_number, $subtotal, $points_discount, $shippin
                 <h1>🎉 Payment Successful!</h1>
                 <p>Thank you for your purchase. Your order has been confirmed.</p>
                 <div class="order-number">
-                    <i class="fas fa-receipt"></i> Order #: <?php echo htmlspecialchars($order_number); ?>
+                    <i class="fas fa-receipt"></i> Order #: <?php echo htmlspecialchars($order_id); ?>
                 </div>
             </div>
             
