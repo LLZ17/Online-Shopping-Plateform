@@ -7,6 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// 修复：使用 order_id 而不是 order_number
 $order_id = isset($_GET['order_id']) ? $_GET['order_id'] : '';
 
 if (empty($order_id)) {
