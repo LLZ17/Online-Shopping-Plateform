@@ -2,13 +2,14 @@
 session_start();
 require_once __DIR__ . '/../includes/db.php';
 
+// 1. 获取产品ID并验证
 $product_id = isset($_GET['id']) ? trim($_GET['id']) : '';
-
 if (empty($product_id)) { 
     header('Location: listing.php'); 
     exit(); 
 }
 
+// 2. 获取产品详细数据 (包含 stock 和 low_stock_threshold)
 $stmt = $pdo->prepare("SELECT * FROM products WHERE product_id = ?");
 $stmt->execute([$product_id]);
 $product = $stmt->fetch();
@@ -18,18 +19,20 @@ if (!$product) {
     exit(); 
 }
 
-// 获取评价
-$stmt = $pdo->prepare("
-    SELECT r.*, u.username 
-    FROM reviews r 
-    JOIN users u ON r.user_id = u.user_id 
-    WHERE r.product_id = ? 
-    ORDER BY r.created_at DESC
-");
-$stmt->execute([$product_id]);
-$reviews = $stmt->fetchAll();
+// 3. 处理图片逻辑
+$all_images = [];
+if (!empty($product['product_image'])) {
+    $all_images = array_map('trim', explode(',', $product['product_image']));
+} else {
+    $all_images = ['default.jpg'];
+}
 
-// 评分统计
+// 4. 库存逻辑
+$stock = (int)$product['stock'];
+$threshold = (int)($product['low_stock_threshold'] ?? 5);
+$is_out_of_stock = ($stock <= 0);
+
+// 5. 获取评价统计
 $stmt = $pdo->prepare("
     SELECT 
         COUNT(*) as total,
@@ -38,8 +41,7 @@ $stmt = $pdo->prepare("
         SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as rating_4,
         SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as rating_3,
         SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as rating_2,
-        SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as rating_1,
-        SUM(CASE WHEN comment != '' THEN 1 ELSE 0 END) as with_comments
+        SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as rating_1
     FROM reviews WHERE product_id = ?
 ");
 $stmt->execute([$product_id]);
@@ -53,253 +55,210 @@ $colours = !empty($product['colour']) ? explode(',', $product['colour']) : [];
 require_once __DIR__ . '/../includes/_head.php';
 ?>
 
-<link rel="stylesheet" href="../css/app.css">
+<style>
+    .detail-page { max-width: 1200px; margin: 40px auto; padding: 0 20px; font-family: 'Inter', sans-serif; }
+    
+    /* 图片展示区 */
+    .product-container { display: flex; gap: 50px; flex-wrap: wrap; background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .product-gallery { flex: 1; min-width: 350px; }
+    
+    .main-image-container { position: relative; width: 100%; aspect-ratio: 1/1; background: #f9f9f9; border-radius: 20px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(0,0,0,0.05); }
+    .main-image { max-width: 100%; max-height: 100%; transition: 0.3s; }
+    
+    /* 左右按钮 */
+    .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; z-index: 10; transition: 0.3s; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .nav-btn:hover { background: #e60012; color: white; }
+    .prev-btn { left: 15px; }
+    .next-btn { right: 15px; }
 
-<div class="product-detail-page">
-    <!-- 返回按钮 -->
-    <div class="product-detail-back-nav">
-        <a href="javascript:history.back()" class="product-detail-back-btn" id="productDetailBackBtn">
-            <i class="fas fa-arrow-left"></i> Back to Products
-        </a>
-    </div>
+    /* 缩略图 */
+    .thumbnail-list { display: flex; gap: 12px; margin-top: 15px; overflow-x: auto; padding-bottom: 5px; }
+    .thumb-item { width: 75px; height: 75px; border: 2px solid transparent; border-radius: 10px; cursor: pointer; overflow: hidden; flex-shrink: 0; transition: 0.2s; }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-item.active { border-color: #e60012; }
+
+    /* 产品信息区 */
+    .product-info { flex: 1; min-width: 350px; }
+    .product-title { font-size: 30px; font-weight: 800; color: #1a1a1a; margin-bottom: 15px; }
+    .current-price { font-size: 38px; font-weight: 800; color: #e60012; margin: 20px 0; display: block; }
     
-    <div class="product-detail-container">
-        <!-- 左侧图片 -->
-        <div class="product-detail-gallery">
-            <?php
-            $product_image = 'default.jpg';
-            if (!empty($product['product_image'])) {
-                $images = explode(',', $product['product_image']);
-                $product_image = trim($images[0]);
-            }
-            ?>
-            <img src="../images/<?php echo htmlspecialchars($product_image); ?>" 
-                 class="product-detail-main-image" 
-                 alt="<?php echo htmlspecialchars($product['name']); ?>"
-                 id="productDetailMainImage">
-        </div>
-        
-        <!-- 右侧信息 -->
-        <div class="product-detail-info">
-            <span class="product-detail-category">
-                <i class="fas fa-tag"></i> 
-                <?php echo (strpos($product['product_id'], 'M') === 0) ? 'Men\'s Collection' : 'Women\'s Collection'; ?>
-            </span>
-            
-            <h1 class="product-detail-title"><?php echo htmlspecialchars($product['name']); ?></h1>
-            
-            <div class="product-detail-rating-section">
-                <div class="product-detail-stars" id="productDetailStarRating">
-                    <?php for($i = 1; $i <= 5; $i++): ?>
-                        <?php echo $i <= $avg_rating ? '★' : '☆'; ?>
-                    <?php endfor; ?>
-                </div>
-                <a href="#reviews" class="product-detail-review-link" id="productDetailReviewLink">
-                    <?php echo $total_reviews; ?> review<?php echo $total_reviews != 1 ? 's' : ''; ?>
-                </a>
-                <div class="product-detail-sales-count">
-                    <i class="fas fa-chart-line"></i> <?php echo number_format($product['sales_count'] ?? 0); ?> Sold
-                </div>
-            </div>
-            
-            <div class="product-detail-price-section">
-                <span class="product-detail-current-price">RM <?php echo number_format($product['price'], 2); ?></span>
-            </div>
-            
-<div class="product-detail-stock-detail">
-    <div class="stock-left-detail">
-        <i class="fas fa-boxes"></i> Available Stock: <strong><?php echo $product['stock']; ?></strong> pieces
-    </div>
-    <div class="sales-count-detail">
-        <i class="fas fa-chart-simple"></i> Total Sold: <strong><?php echo number_format($product['sales_count'] ?? 0); ?></strong> units
-    </div>
-</div>
-            
-            <div>
-                <span class="product-detail-stock-status <?php echo $product['stock'] > 10 ? 'in-stock' : ($product['stock'] > 0 ? 'low-stock' : 'out-stock'); ?>">
-                    <i class="fas <?php echo $product['stock'] > 0 ? 'fa-check-circle' : 'fa-times-circle'; ?>"></i>
-                    <?php echo $product['stock'] > 0 ? 'In stock' : 'Out of stock'; ?>
-                </span>
-            </div>
-            
-            <div class="product-detail-stock-available">
-                <i class="fas fa-cubes"></i> Stock: <?php echo $product['stock']; ?> pieces available
-            </div>
-            
-            <div class="product-detail-points-badge">
-                <i class="fas fa-gift"></i> Earn <?php echo floor($product['price']); ?> reward points with this purchase
-            </div>
-            
-            <!-- 颜色选择 -->
-            <?php if(!empty($colours)): ?>
-            <div class="product-detail-option-group">
-                <span class="product-detail-option-label"><i class="fas fa-palette"></i> Select Colour:</span>
-                <div class="product-detail-option-buttons" id="productDetailColourButtons">
-                    <?php foreach($colours as $c): ?>
-                        <button class="product-detail-option-btn colour-btn" data-value="<?php echo trim($c); ?>"><?php echo trim($c); ?></button>
-                    <?php endforeach; ?>
-                </div>
-                <input type="hidden" id="productDetailSelectedColour">
-            </div>
-            <?php endif; ?>
-            
-            <!-- 尺码选择 -->
-            <?php if(!empty($sizes)): ?>
-            <div class="product-detail-option-group">
-                <span class="product-detail-option-label"><i class="fas fa-ruler"></i> Select Size:</span>
-                <div class="product-detail-option-buttons" id="productDetailSizeButtons">
-                    <?php foreach($sizes as $s): ?>
-                        <button class="product-detail-option-btn size-btn" data-value="<?php echo trim($s); ?>"><?php echo trim($s); ?></button>
-                    <?php endforeach; ?>
-                </div>
-                <input type="hidden" id="productDetailSelectedSize">
-            </div>
-            <?php endif; ?>
-            
-            <!-- 数量选择 -->
-            <div class="product-detail-quantity-section">
-                <span class="product-detail-quantity-label"><i class="fas fa-sort-amount-up"></i> Quantity:</span>
-                <div class="product-detail-quantity-selector">
-                    <button class="product-detail-qty-btn" id="productDetailQtyMinus">-</button>
-                    <input type="number" id="productDetailQuantity" value="1" min="1" max="<?php echo $product['stock']; ?>" class="product-detail-quantity-input">
-                    <button class="product-detail-qty-btn" id="productDetailQtyPlus">+</button>
-                </div>
-            </div>
-            
-            <!-- 加购按钮 -->
-            <button class="product-detail-add-to-cart-btn" id="productDetailAddToCartBtn" <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>>
-                <i class="fas fa-shopping-cart"></i> Add to Cart
-            </button>
-            
-            <!-- 商品描述 -->
-            <div class="product-detail-description-section">
-                <div class="product-detail-description-title">
-                    <i class="fas fa-file-alt"></i> Product Description
-                </div>
-                <div class="product-detail-description-text">
-                    <?php echo nl2br(htmlspecialchars($product['description'] ?: 'No description available for this product.')); ?>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 评论区域 -->
-    <div id="reviews" class="product-detail-reviews-section">
-        <div class="product-detail-reviews-title">
-            <i class="fas fa-star"></i> Customer Reviews
-        </div>
-        
-        <div class="product-detail-review-summary">
-            <div class="product-detail-avg-rating-box">
-                <div class="product-detail-avg-number"><?php echo $avg_rating; ?></div>
-                <div class="product-detail-avg-stars">
-                    <?php for($i = 1; $i <= 5; $i++): ?>
-                        <?php echo $i <= round($avg_rating) ? '★' : '☆'; ?>
-                    <?php endfor; ?>
-                </div>
-                <div><?php echo $total_reviews; ?> review<?php echo $total_reviews != 1 ? 's' : ''; ?></div>
-            </div>
-            <div class="product-detail-rating-bars">
-                <?php for($r = 5; $r >= 1; $r--): 
-                    $count = $stats['rating_' . $r] ?? 0;
-                    $percent = $total_reviews > 0 ? ($count / $total_reviews * 100) : 0;
-                ?>
-                <div class="product-detail-rating-bar-item">
-                    <span class="product-detail-rating-bar-label"><?php echo $r; ?> ★</span>
-                    <div class="product-detail-rating-bar-bg">
-                        <div class="product-detail-rating-bar-fill" style="width: <?php echo $percent; ?>%;"></div>
-                    </div>
-                    <span class="product-detail-rating-bar-count"><?php echo $count; ?></span>
-                </div>
-                <?php endfor; ?>
-            </div>
-        </div>
-        
-        <!-- 筛选按钮 -->
-        <div class="product-detail-filter-buttons">
-            <a href="?id=<?php echo $product_id; ?>" class="product-detail-filter-btn <?php echo !isset($_GET['rating_filter']) || $_GET['rating_filter'] == 0 ? 'active' : ''; ?>">All (<?php echo $total_reviews; ?>)</a>
-            <a href="?id=<?php echo $product_id; ?>&rating_filter=5" class="product-detail-filter-btn <?php echo isset($_GET['rating_filter']) && $_GET['rating_filter'] == 5 ? 'active' : ''; ?>">5 ★ (<?php echo $stats['rating_5'] ?? 0; ?>)</a>
-            <a href="?id=<?php echo $product_id; ?>&rating_filter=4" class="product-detail-filter-btn <?php echo isset($_GET['rating_filter']) && $_GET['rating_filter'] == 4 ? 'active' : ''; ?>">4 ★ (<?php echo $stats['rating_4'] ?? 0; ?>)</a>
-            <a href="?id=<?php echo $product_id; ?>&rating_filter=3" class="product-detail-filter-btn <?php echo isset($_GET['rating_filter']) && $_GET['rating_filter'] == 3 ? 'active' : ''; ?>">3 ★ (<?php echo $stats['rating_3'] ?? 0; ?>)</a>
-            <a href="?id=<?php echo $product_id; ?>&rating_filter=2" class="product-detail-filter-btn <?php echo isset($_GET['rating_filter']) && $_GET['rating_filter'] == 2 ? 'active' : ''; ?>">2 ★ (<?php echo $stats['rating_2'] ?? 0; ?>)</a>
-            <a href="?id=<?php echo $product_id; ?>&rating_filter=1" class="product-detail-filter-btn <?php echo isset($_GET['rating_filter']) && $_GET['rating_filter'] == 1 ? 'active' : ''; ?>">1 ★ (<?php echo $stats['rating_1'] ?? 0; ?>)</a>
-            <a href="?id=<?php echo $product_id; ?>&rating_filter=with_comments" class="product-detail-filter-btn">With Comments (<?php echo $stats['with_comments'] ?? 0; ?>)</a>
-        </div>
-        
-        <!-- 写评论表单 -->
-        <?php if(isset($_SESSION['user_id'])):
-            $check_stmt = $pdo->prepare("SELECT 1 FROM reviews WHERE product_id = ? AND user_id = ?");
-            $check_stmt->execute([$product_id, $_SESSION['user_id']]);
-            $hasReviewed = $check_stmt->fetch();
-            
-            $order_stmt = $pdo->prepare("SELECT 1 FROM orders WHERE user_id = ? AND product_id = ? AND order_status = 'Delivered' LIMIT 1");
-            $order_stmt->execute([$_SESSION['user_id'], $product_id]);
-            $canReview = $order_stmt->fetch();
-            
-            if(!$hasReviewed && $canReview): ?>
-                <div class="product-detail-review-form">
-                    <h4>✍️ Write Your Review</h4>
-                    <form method="POST" action="../member/Reviewsubmit.php" id="productDetailReviewForm">
-                        <input type="hidden" name="product_id" value="<?php echo $product_id; ?>">
-                        <div class="product-detail-rating-select" id="productDetailRatingStars">
-                            <?php for($i = 1; $i <= 5; $i++): ?>
-                                <span class="product-detail-rating-star" data-rating="<?php echo $i; ?>">☆</span>
-                            <?php endfor; ?>
-                        </div>
-                        <input type="hidden" name="rating" id="productDetailRatingValue" required>
-                        <textarea name="comment" class="product-detail-review-textarea" rows="4" placeholder="Share your experience with this product..." id="productDetailReviewComment"></textarea>
-                        <button type="submit" class="product-detail-submit-btn" id="productDetailSubmitReviewBtn">Submit Review</button>
-                    </form>
-                </div>
-            <?php elseif($hasReviewed): ?>
-                <div class="product-detail-review-card product-detail-already-reviewed">
-                    <i class="fas fa-check-circle" style="color:#4caf50;"></i> You have already reviewed this product. Thank you for your feedback!
-                </div>
-            <?php elseif(!$canReview): ?>
-                <div class="product-detail-review-card product-detail-cannot-review">
-                    <i class="fas fa-lock"></i> You can only review products you have purchased and received. 
-                    <a href="../member/orders_history.php" style="color:#e60012;">View your orders →</a>
-                </div>
-            <?php endif; 
-        else: ?>
-            <div class="product-detail-review-card product-detail-login-prompt">
-                <i class="fas fa-sign-in-alt"></i> <a href="../login.php" style="color:#e60012;">Login</a> to write a review.
-            </div>
-        <?php endif; ?>
-        
-        <!-- 评论列表 -->
-        <?php if(empty($reviews)): ?>
-            <div class="product-detail-empty-reviews">
-                <i class="fas fa-comment-dots"></i>
-                <p>No reviews yet. Be the first to review this product!</p>
-            </div>
-        <?php else: ?>
-            <?php foreach($reviews as $review): ?>
-            <div class="product-detail-review-card">
-                <div class="product-detail-review-header">
-                    <span class="product-detail-reviewer"><i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($review['username']); ?></span>
-                    <div class="product-detail-review-stars">
-                        <?php for($i = 1; $i <= 5; $i++): ?>
-                            <?php echo $i <= $review['rating'] ? '★' : '☆'; ?>
-                        <?php endfor; ?>
-                    </div>
-                    <span class="product-detail-review-date"><i class="far fa-calendar-alt"></i> <?php echo date('d M Y', strtotime($review['created_at'])); ?></span>
-                </div>
-                <?php if(!empty($review['comment'])): ?>
-                    <div class="product-detail-review-comment"><?php echo nl2br(htmlspecialchars($review['comment'])); ?></div>
+    /* 库存与按钮 */
+    .stock-tag { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 50px; font-weight: 600; font-size: 14px; margin-bottom: 10px; }
+    .in-stock-tag { background: #e8f5e9; color: #2e7d32; }
+    .low-stock-tag { background: #fff3e0; color: #ef6c00; border: 1px solid #ffcc80; }
+    .out-stock-tag { background: #ffebee; color: #c62828; }
+
+    .quantity-selector { display: flex; align-items: center; gap: 15px; margin-top: 10px; }
+    .qty-btn { width: 40px; height: 40px; border: 1px solid #ddd; background: white; border-radius: 10px; cursor: pointer; font-size: 20px; transition: 0.2s; }
+    .qty-btn:hover:not(:disabled) { background: #f0f0f0; border-color: #999; }
+    .qty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .quantity-input { width: 60px; height: 40px; text-align: center; border: 1px solid #ddd; border-radius: 10px; font-weight: 700; font-size: 16px; -moz-appearance: textfield; }
+    .quantity-input::-webkit-outer-spin-button, .quantity-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .option-btn { padding: 10px 20px; border: 1.5px solid #e0e0e0; background: white; border-radius: 12px; cursor: pointer; transition: 0.2s; font-weight: 500; }
+    .option-btn.active { border-color: #e60012; color: #e60012; background: #fff5f5; }
+
+    .add-to-cart-btn { width: 100%; background: #e60012; color: white; padding: 18px; border: none; border-radius: 15px; font-size: 20px; font-weight: 700; cursor: pointer; margin-top: 30px; transition: 0.3s; }
+    .add-to-cart-btn:hover:not(:disabled) { background: #cc0010; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(230,0,18,0.2); }
+    .add-to-cart-btn:disabled { background: #ccc; cursor: not-allowed; }
+</style>
+
+<div class="detail-page">
+    <div class="product-container">
+        <div class="product-gallery">
+            <div class="main-image-container">
+                <img src="../images/<?php echo htmlspecialchars($all_images[0]); ?>" class="main-image" id="mainDisplay">
+                <?php if(count($all_images) > 1): ?>
+                    <button class="nav-btn prev-btn" id="prevImg"><i class="fas fa-chevron-left"></i></button>
+                    <button class="nav-btn next-btn" id="nextImg"><i class="fas fa-chevron-right"></i></button>
                 <?php endif; ?>
             </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+            <div class="thumbnail-list">
+                <?php foreach($all_images as $idx => $img): ?>
+                    <div class="thumb-item <?php echo $idx === 0 ? 'active' : ''; ?>" data-index="<?php echo $idx; ?>">
+                        <img src="../images/<?php echo htmlspecialchars($img); ?>">
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div class="product-info">
+            <h1 class="product-title"><?php echo htmlspecialchars($product['name']); ?></h1>
+            
+            <div class="rating-info">
+                <span style="color:#ffc107">★ <?php echo $avg_rating; ?></span> | 
+                <span style="color:#666"><?php echo $total_reviews; ?> Reviews</span> | 
+                <span style="font-weight: 700; color:#333"><?php echo number_format($product['sales_count']); ?> Sold</span>
+            </div>
+
+            <span class="current-price">RM <?php echo number_format($product['price'], 2); ?></span>
+
+            <?php if($is_out_of_stock): ?>
+                <span class="stock-tag out-stock-tag"><i class="fas fa-times-circle"></i> Out of Stock</span>
+            <?php elseif($stock <= $threshold): ?>
+                <span class="stock-tag low-stock-tag"><i class="fas fa-exclamation-triangle"></i> Low Stock: Only <?php echo $stock; ?> left</span>
+            <?php else: ?>
+                <span class="stock-tag in-stock-tag"><i class="fas fa-check-circle"></i> In Stock (<?php echo $stock; ?> available)</span>
+            <?php endif; ?>
+
+            <?php if(!empty($colours)): ?>
+                <div style="margin: 20px 0;">
+                    <p style="font-weight: 700; margin-bottom: 10px;">Colour:</p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <?php foreach($colours as $idx => $c): ?>
+                            <button class="option-btn colour-btn" data-color="<?php echo trim($c); ?>" data-target-index="<?php echo $idx; ?>">
+                                <?php echo trim($c); ?>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+                    <input type="hidden" id="selected_colour">
+                </div>
+            <?php endif; ?>
+
+            <div style="margin: 25px 0;">
+                <p style="font-weight: 700; margin-bottom: 10px;">Quantity:</p>
+                <div class="quantity-selector">
+                    <button class="qty-btn" id="minus">-</button>
+                    <input type="number" id="qtyInput" value="<?php echo $is_out_of_stock ? 0 : 1; ?>" readonly class="quantity-input">
+                    <button class="qty-btn" id="plus">+</button>
+                </div>
+            </div>
+
+            <button class="add-to-cart-btn" id="buyBtn" <?php echo $is_out_of_stock ? 'disabled' : ''; ?>>
+                <?php echo $is_out_of_stock ? 'Sold Out' : '<i class="fas fa-shopping-cart"></i> Add to Cart'; ?>
+            </button>
+        </div>
     </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    var productStock = <?php echo $product['stock']; ?>;
-    var productId = '<?php echo $product_id; ?>';
-    var hasSizes = <?php echo !empty($sizes) ? 'true' : 'false'; ?>;
+$(document).ready(function() {
+    // 数据初始化
+    const images = <?php echo json_encode($all_images); ?>;
+    const maxStock = <?php echo $stock; ?>;
+    let currentIdx = 0;
+
+    // --- 图片切换逻辑 ---
+    function updateGallery(index) {
+        currentIdx = index;
+        const newSrc = "../images/" + images[currentIdx];
+        $('#mainDisplay').fadeOut(100, function() {
+            $(this).attr('src', newSrc).fadeIn(100);
+        });
+        $('.thumb-item').removeClass('active');
+        $('.thumb-item[data-index="'+index+'"]').addClass('active');
+    }
+
+    $('#nextImg').click(function() {
+        let next = (currentIdx + 1) % images.length;
+        updateGallery(next);
+    });
+
+    $('#prevImg').click(function() {
+        let prev = (currentIdx - 1 + images.length) % images.length;
+        updateGallery(prev);
+    });
+
+    $('.thumb-item').click(function() {
+        updateGallery($(this).data('index'));
+    });
+
+    // --- 颜色联动图片 ---
+    $('.colour-btn').click(function() {
+        $('.colour-btn').removeClass('active');
+        $(this).addClass('active');
+        $('#selected_colour').val($(this).data('color'));
+        
+        // 假设颜色顺序和图片顺序一致 (Shopee 逻辑)
+        let targetIdx = $(this).data('target-index');
+        if(images[targetIdx]) {
+            updateGallery(targetIdx);
+        }
+    });
+
+    // --- 数量增减逻辑 (严格) ---
+    $('#plus').click(function() {
+        let currentVal = parseInt($('#qtyInput').val());
+        if (currentVal < maxStock) {
+            $('#qtyInput').val(currentVal + 1);
+        } else {
+            alert("Maximum available stock reached!");
+        }
+    });
+
+    $('#minus').click(function() {
+        let currentVal = parseInt($('#qtyInput').val());
+        if (currentVal > 1) {
+            $('#qtyInput').val(currentVal - 1);
+        }
+    });
+
+    // --- 加购逻辑 ---
+    $('#buyBtn').click(function() {
+        const qty = $('#qtyInput').val();
+        const colour = $('#selected_colour').val();
+
+        if ($('.colour-btn').length > 0 && !colour) {
+            alert("Please select a colour first!");
+            return;
+        }
+
+        $.ajax({
+            url: 'add_to_cart_process.php', // 确保你有这个处理程序
+            method: 'POST',
+            data: {
+                product_id: '<?php echo $product_id; ?>',
+                quantity: qty,
+                colour: colour
+            },
+            success: function(res) {
+                // 处理返回结果 (例如提示跳转到购物车)
+                alert("Item added to cart successfully!");
+            }
+        });
+    });
+});
 </script>
-<script src="../js/app.js"></script>
 
 <?php require_once __DIR__ . '/../includes/_foot.php'; ?>

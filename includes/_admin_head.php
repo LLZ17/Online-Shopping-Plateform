@@ -264,7 +264,7 @@ $noti_count = 3;
                 <div class="s-sub-box">
                     <a href="../admin/product_crud.php" class="sub-nav-link">Product CRUD</a>
                     <a href="../admin/category_crud.php" class="sub-nav-link">Category CRUD</a>
-                    <a href="../admin/order-crud.php" class="sub-nav-link">Sales Data</a>
+                    <a href="../admin/order_crud.php" class="sub-nav-link">Sales Data</a>
                 </div>
             </div>
         </nav>
