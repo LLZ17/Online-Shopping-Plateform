@@ -72,67 +72,7 @@ $admin_head = __DIR__ . '/../includes/_admin_head.php';
 if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
-
-    .page-title-box { display: none !important; }
-    html, body { background: #f8fafc !important; overflow: hidden !important; }
-    
-    .scroll-wrapper {
-        height: 100vh; overflow-y: auto; padding-bottom: 150px; box-sizing: border-box;
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
-    .premium-form-card { 
-        max-width: 700px; margin: 30px auto; background: #ffffff; border-radius: 24px; 
-        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08); border: 1px solid rgba(226, 232, 240, 0.8); 
-        overflow: hidden; 
-    }
-    
-    .form-header { 
-        background: #0f172a; padding: 25px 35px; 
-        border-bottom: 4px solid #3b82f6; /* 会员专属蓝 */
-    }
-    .form-header h2 { margin: 0; color: white; font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
-    .form-header p { margin: 5px 0 0; color: #94a3b8; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; }
-    
-    .form-body { padding: 30px 35px; }
-    
-    .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-    .grid-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-    .form-group { margin-bottom: 20px; }
-    .grid-row .form-group, .grid-row-3 .form-group { margin-bottom: 0; }
-
-    .form-group label { display: block; font-weight: 800; color: #64748b; margin-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-    .input-style { 
-        width: 100%; padding: 14px 18px; border-radius: 12px; border: 2px solid #f1f5f9; 
-        font-size: 14px; font-weight: 600; color: #1e293b; background: #f8fafc; 
-        transition: all 0.3s ease; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-    .input-style:focus { border-color: #3b82f6; background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-    .input-readonly { background: #e2e8f0; color: #64748b; cursor: not-allowed; }
-    
-    /* 头像上传框 */
-    .file-upload-box { 
-        border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 16px; 
-        background: #f8fafc; transition: 0.3s; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 20px; 
-    }
-    .file-upload-box:hover { border-color: #3b82f6; background: #fff; }
-    .current-photo { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); object-fit: cover; }
-    .upload-text { text-align: left; }
-    .upload-text strong { font-weight: 800; color: #1e293b; display: block; font-size: 15px; }
-    .upload-text span { font-size: 12px; color: #64748b; font-weight: 600; }
-
-    /* 底部按钮 */
-    .btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 25px; border-top: 1px solid #f1f5f9; }
-    .btn-submit { 
-        background: #3b82f6; color: #ffffff; padding: 14px 35px; border: none; border-radius: 12px; 
-        font-size: 14px; font-weight: 800; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 10px rgba(59,130,246,0.3); 
-    }
-    .btn-submit:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(59,130,246,0.4); }
-    .btn-back { color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 800; transition: 0.3s; display: flex; align-items: center; gap: 6px; }
-    .btn-back:hover { color: #0f172a; }
-</style>
+<link rel="stylesheet" href="../css/app.css?v=1.13">
 
 <div id="edit-wrapper" class="scroll-wrapper" style="display:none;">
     <div class="premium-form-card">
@@ -212,51 +152,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     </div>
 </div>
 
-<script>
-    // 图片上传实时预览
-    document.getElementById('photo-input').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                document.getElementById('image-preview').src = event.target.result;
-            }
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // 原封不动保留你的视口注入保护代码
-    document.addEventListener("DOMContentLoaded", function() {
-        const myContent = document.getElementById('edit-wrapper');
-        if (!myContent) return;
-        myContent.style.display = 'block';
-        
-        let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, .page-content, main');
-        if (!viewport) {
-            const allElements = document.body.getElementsByTagName('*');
-            for (let el of allElements) {
-                if (el.textContent && el.textContent.includes("Administrative Workspace Ready")) {
-                    viewport = el.parentElement;
-                    break;
-                }
-            }
-        }
-        
-        if (viewport) {
-            viewport.innerHTML = ''; 
-            viewport.appendChild(myContent);
-        } else {
-            myContent.style.position = 'fixed';
-            myContent.style.top = '60px'; 
-            myContent.style.right = '0';
-            myContent.style.width = 'calc(100vw - 250px)'; 
-            myContent.style.height = 'calc(100vh - 60px)';
-            myContent.style.background = '#f8fafc';
-            myContent.style.zIndex = '9999';
-            document.body.appendChild(myContent);
-        }
-    });
-</script>
+<script src="../js/app.js?v=1.13"></script>
 
 <?php 
 $foot = __DIR__ . '/../includes/_foot.php';

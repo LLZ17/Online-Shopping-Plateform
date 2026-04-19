@@ -171,7 +171,38 @@ function triggerSyncRefresh() {
     performInjection();
 })();
 
-
+/* 6. admin/product_detail.php js Tee De Yong part*/
+/* --- Product Detail JS Start (TEE DE YONG's Part) --- */
+document.addEventListener("DOMContentLoaded", function() {
+    const myContent = document.getElementById('detail-wrapper');
+    if (!myContent) return;
+    myContent.style.display = 'block';
+    
+    let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, .page-content, main');
+    if (!viewport) {
+        const allElements = document.body.getElementsByTagName('*');
+        for (let el of allElements) {
+            if (el.textContent && el.textContent.includes("Administrative Workspace Ready")) {
+                viewport = el.parentElement; break;
+            }
+        }
+    }
+    
+    if (viewport) {
+        viewport.innerHTML = ''; 
+        viewport.appendChild(myContent);
+    } else {
+        myContent.style.position = 'fixed';
+        myContent.style.top = '60px'; 
+        myContent.style.right = '0';
+        myContent.style.width = 'calc(100vw - 250px)'; 
+        myContent.style.height = 'calc(100vh - 60px)';
+        myContent.style.background = '#f1f5f9';
+        myContent.style.zIndex = '9999';
+        document.body.appendChild(myContent);
+    }
+});
+/* --- Product Detail JS End --- */
 
 
 

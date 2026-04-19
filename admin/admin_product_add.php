@@ -10,32 +10,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = $_POST['price'] ?? 0;
     $description = $_POST['description'] ?? '';
     
-    $uploaded_images = []; // 用于存放多个文件名
+    $uploaded_images = []; 
 
     try {
         $pdo->beginTransaction();
 
-        // 💡 【核心要求】：自动分配 product_id (自动抓取上一个ID并+1)
         $idQuery = $pdo->query("SELECT product_id FROM products ORDER BY created_at DESC, product_id DESC LIMIT 1");
         $lastId = $idQuery->fetchColumn();
         
         if ($lastId && preg_match('/^([a-zA-Z]+)(\d+)$/', $lastId, $matches)) {
-            $prefix = $matches[1]; // 比如提取出 "MP"
-            $number = intval($matches[2]) + 1; // 比如 "018" 变成 19
-            // 自动补零，保持相同的长度，比如变成 MP019
+            $prefix = $matches[1]; 
+            $number = intval($matches[2]) + 1; 
             $new_product_id = $prefix . str_pad($number, strlen($matches[2]), '0', STR_PAD_LEFT);
         } else {
-            // 如果数据库是空的，或者找不到格式，生成一个默认的初始ID
             $new_product_id = 'PRD001'; 
         }
 
-        // 1. 先把基础信息和自动生成的 ID 一起存进去
         $stmt = $pdo->prepare("INSERT INTO products (product_id, name, price, description) VALUES (?, ?, ?, ?)");
         $stmt->execute([$new_product_id, $name, $price, $description]);
         
-        $new_id = $new_product_id; // 给后面的图片命名使用
+        $new_id = $new_product_id; 
 
-        // 2. 处理多图上传 (保持你的原始逻辑)
         if (isset($_FILES['photos']) && !empty($_FILES['photos']['name'][0])) {
             $upload_dir = __DIR__ . '/../uploads/products/';
             if (!is_dir($upload_dir)) { mkdir($upload_dir, 0777, true); }
@@ -43,7 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($_FILES['photos']['tmp_name'] as $key => $tmp_name) {
                 if ($_FILES['photos']['error'][$key] === UPLOAD_ERR_OK) {
                     $file_extension = pathinfo($_FILES['photos']['name'][$key], PATHINFO_EXTENSION);
-                    // 文件名格式：ID_时间_序号.后缀
                     $new_filename = $new_id . '_' . time() . '_' . $key . '.' . $file_extension;
                     $target_file = $upload_dir . $new_filename;
 
@@ -54,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!empty($uploaded_images)) {
-                // 将多个路径用逗号隔开存入数据库
                 $final_images_path = implode(',', $uploaded_images);
                 $updateImg = $pdo->prepare("UPDATE products SET product_image = ? WHERE product_id = ?");
                 $updateImg->execute([$final_images_path, $new_id]);
@@ -75,39 +68,7 @@ $admin_head = __DIR__ . '/../includes/_admin_head.php';
 if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
-<style>
-    .page-title-box { display: none !important; }
-    html, body { background: #f8fafc !important; overflow: hidden !important; }
-    
-    .scroll-wrapper { height: 100vh; overflow-y: auto; padding-bottom: 150px; box-sizing: border-box; }
-
-    .premium-form-card { max-width: 650px; margin: 20px auto; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.04); overflow: hidden; font-family: 'Inter', sans-serif; }
-    .form-header { background: #111; padding: 20px 30px; border-bottom: 4px solid #e60012; }
-    .form-header h2 { margin: 0; color: white; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-    .form-header p { margin: 5px 0 0; color: #94a3b8; font-size: 11px; font-weight: 600; }
-    
-    .form-body { padding: 25px 30px; }
-    
-    .grid-row { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 15px; }
-    .form-group { margin-bottom: 15px; }
-    .grid-row .form-group { margin-bottom: 0; }
-
-    .form-group label { display: block; font-weight: 800; color: #64748b; margin-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-    .input-style { width: 100%; padding: 12px 16px; border-radius: 10px; border: 2px solid #f1f5f9; font-size: 14px; font-weight: 600; color: #1e293b; background: #f8fafc; transition: all 0.3s ease; box-sizing: border-box; }
-    .input-style:focus { border-color: #e60012; background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(230,0,18,0.1); }
-    
-    /* 修改上传框以适应多图预览 */
-    .file-upload-box { border: 2px dashed #cbd5e1; padding: 15px; text-align: center; border-radius: 10px; background: #f8fafc; transition: 0.3s; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; min-height: 100px; }
-    .file-upload-box:hover { border-color: #e60012; background: #fff; }
-    .current-photo { width: 60px; height: 60px; border-radius: 8px; border: 2px solid #e2e8f0; object-fit: cover; }
-    .no-photo-icon { font-size: 30px; color: #cbd5e1; }
-
-    .btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 20px; border-top: 1px solid #f1f5f9; }
-    .btn-submit { background: linear-gradient(135deg, #e60012 0%, #ff1a2d 100%); color: white; padding: 14px 30px; border: none; border-radius: 10px; font-size: 13px; font-weight: 900; cursor: pointer; transition: all 0.3s ease; }
-    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(230,0,18,0.3); }
-    .btn-back { color: #94a3b8; text-decoration: none; font-size: 12px; font-weight: 800; padding-left: 5px; transition: 0.3s; }
-    .btn-back:hover { color: #1e293b; }
-</style>
+<link rel="stylesheet" href="../css/app.css?v=1.6">
 
 <div id="add-wrapper" class="scroll-wrapper" style="display:none;">
     <div id="add-product-app" class="premium-form-card">
@@ -160,65 +121,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     </div>
 </div>
 
-<script>
-    document.getElementById('photo-input').addEventListener('change', function(e) {
-        const files = e.target.files;
-        const container = document.getElementById('preview-container');
-        const placeholder = document.getElementById('no-photo-placeholder');
-        
-        // 清除现有的预览图（保留 input 本身）
-        const oldPreviews = container.querySelectorAll('.current-photo');
-        oldPreviews.forEach(img => img.remove());
-
-        if (files.length > 0) {
-            placeholder.style.display = 'none';
-            
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = document.createElement('img');
-                    img.src = event.target.result;
-                    img.classList.add('current-photo');
-                    container.appendChild(img);
-                }
-                reader.readAsDataURL(file);
-            });
-        } else {
-            placeholder.style.display = 'flex';
-        }
-    });
-
-    document.addEventListener("DOMContentLoaded", function() {
-        const myContent = document.getElementById('add-wrapper');
-        if (!myContent) return;
-        myContent.style.display = 'block';
-        
-        let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, .page-content, main');
-        if (!viewport) {
-            const allElements = document.body.getElementsByTagName('*');
-            for (let el of allElements) {
-                if (el.textContent && el.textContent.includes("Administrative Workspace Ready")) {
-                    viewport = el.parentElement;
-                    break;
-                }
-            }
-        }
-        
-        if (viewport) {
-            viewport.innerHTML = ''; 
-            viewport.appendChild(myContent);
-        } else {
-            myContent.style.position = 'fixed';
-            myContent.style.top = '60px'; 
-            myContent.style.right = '0';
-            myContent.style.width = 'calc(100vw - 250px)'; 
-            myContent.style.height = 'calc(100vh - 60px)';
-            myContent.style.background = '#f8fafc';
-            myContent.style.zIndex = '9999';
-            document.body.appendChild(myContent);
-        }
-    });
-</script>
+<script src="../js/app.js?v=1.6"></script>
 
 <?php 
 $foot = __DIR__ . '/../includes/_foot.php';

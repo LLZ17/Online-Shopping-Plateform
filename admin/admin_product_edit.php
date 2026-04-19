@@ -73,58 +73,7 @@ $admin_head = __DIR__ . '/../includes/_admin_head.php';
 if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
-<style>
-    .page-title-box { display: none !important; }
-    html, body { background: #f8fafc !important; }
-    
-    .scroll-wrapper { height: 100vh; overflow-y: auto; padding-bottom: 150px; box-sizing: border-box; }
-
-    .premium-form-card { max-width: 650px; margin: 20px auto; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.04); overflow: hidden; font-family: 'Inter', sans-serif; }
-    .form-header { background: #111; padding: 20px 30px; border-bottom: 4px solid #eab308; }
-    .form-header h2 { margin: 0; color: white; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-    .form-header p { margin: 5px 0 0; color: #94a3b8; font-size: 11px; font-weight: 600; }
-    
-    .form-body { padding: 25px 30px; }
-    
-    .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-    .grid-row-large { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 15px; }
-    .form-group { margin-bottom: 15px; }
-
-    .form-group label { display: block; font-weight: 800; color: #64748b; margin-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-    .input-style { width: 100%; padding: 12px 16px; border-radius: 10px; border: 2px solid #f1f5f9; font-size: 14px; font-weight: 600; color: #1e293b; background: #f8fafc; transition: all 0.3s ease; box-sizing: border-box; }
-    .input-style:focus { border-color: #eab308; background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(234,179,8,0.1); }
-    
-    /* ✨ 自定义选择器样式 */
-    .custom-select-wrapper { position: relative; cursor: pointer; }
-    .custom-select-trigger { display: flex; align-items: center; justify-content: space-between; border: 2px solid #eab308; background: #fff; }
-    .custom-options { 
-        position: absolute; top: 105%; left: 0; right: 0; 
-        background: #fff; border: 2px solid #eab308; border-radius: 12px; 
-        opacity: 0; visibility: hidden; transform: translateY(-10px); 
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden;
-    }
-    .custom-select-wrapper.open .custom-options { opacity: 1; visibility: visible; transform: translateY(0); }
-    .options-inner { max-height: 350px; overflow-y: auto; padding: 8px; }
-    .option-group-title { font-size: 11px; font-weight: 900; color: #111; background: #fdfaf3; padding: 8px 12px; border-radius: 6px; margin: 8px 0 4px; text-transform: uppercase; }
-    .custom-option { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #64748b; transition: 0.2s; }
-    .custom-option:hover { background: #0f172a; color: #eab308; }
-    .custom-option.selected { background: #fdfaf3; color: #854d0e; }
-
-    /* Tags 样式 */
-    .tag-container { display: flex; flex-wrap: wrap; gap: 10px; padding: 5px 0; }
-    .tag-item { padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 800; color: #64748b; background: #ffffff; border: 2px solid #e2e8f0; cursor: pointer; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); user-select: none; }
-    .tag-item:hover { border-color: #cbd5e1; transform: translateY(-2px); }
-    .tag-item.active { background: #0f172a; color: #eab308; border-color: #0f172a; transform: translateY(-2px); box-shadow: 0 8px 15px -3px rgba(15, 23, 42, 0.3); }
-
-    .file-upload-box { border: 2px dashed #cbd5e1; padding: 15px; text-align: center; border-radius: 10px; background: #f8fafc; transition: 0.3s; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 15px; }
-    .current-photo { width: 80px; height: 80px; border-radius: 8px; border: 2px solid #e2e8f0; object-fit: cover; }
-
-    .btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 20px; border-top: 1px solid #f1f5f9; }
-    .btn-submit { background: #111; color: #eab308; padding: 14px 30px; border: 2px solid #eab308; border-radius: 10px; font-size: 13px; font-weight: 900; cursor: pointer; transition: 0.3s; }
-    .btn-submit:hover { background: #eab308; color: #111; transform: translateY(-2px); }
-    .btn-back { color: #94a3b8; text-decoration: none; font-size: 12px; font-weight: 800; }
-</style>
+<link rel="stylesheet" href="../css/app.css?v=1.5">
 
 <div id="edit-wrapper" class="scroll-wrapper" style="display:none;">
     <div id="edit-product-app" class="premium-form-card">
@@ -230,82 +179,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     </div>
 </div>
 
-<script>
-    // Tag Logic
-    function setupTags(boxId, inputId) {
-        const box = document.getElementById(boxId);
-        const input = document.getElementById(inputId);
-        if(!box) return;
-        box.addEventListener('click', function(e) {
-            if (e.target.classList.contains('tag-item')) {
-                e.target.classList.toggle('active');
-                let vals = [];
-                box.querySelectorAll('.tag-item.active').forEach(t => vals.push(t.dataset.value));
-                input.value = vals.join(',');
-            }
-        });
-    }
-    setupTags('size-tags', 'hidden-size');
-
-    // Custom Select Logic
-    const wrapper = document.getElementById('type-select-wrapper');
-    const hiddenType = document.getElementById('hidden-product-type');
-    const triggerText = wrapper.querySelector('.trigger-text');
-    
-    if(hiddenType.value) {
-        const opt = wrapper.querySelector(`.custom-option[data-value="${hiddenType.value}"]`);
-        if(opt) {
-            triggerText.innerText = opt.innerText;
-            opt.classList.add('selected');
-        }
-    }
-
-    wrapper.addEventListener('click', function(e) {
-        const opt = e.target.closest('.custom-option');
-        if (opt) {
-            hiddenType.value = opt.dataset.value;
-            triggerText.innerText = opt.innerText;
-            wrapper.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
-            opt.classList.add('selected');
-            this.classList.remove('open');
-        } else {
-            this.classList.toggle('open');
-        }
-    });
-
-    // Image Preview
-    document.getElementById('photo-input').addEventListener('change', function(e) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const img = document.getElementById('image-preview');
-            img.src = event.target.result;
-            img.style.display = 'block';
-            document.getElementById('no-photo-placeholder').style.display = 'none';
-        }
-        reader.readAsDataURL(this.files[0]);
-    });
-
-    // Viewport Loader
-    document.addEventListener("DOMContentLoaded", function() {
-        const myContent = document.getElementById('edit-wrapper');
-        myContent.style.display = 'block';
-        let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, .page-content, main');
-        if (!viewport) {
-            const allElements = document.body.getElementsByTagName('*');
-            for (let el of allElements) {
-                if (el.textContent && el.textContent.includes("Administrative Workspace Ready")) {
-                    viewport = el.parentElement; break;
-                }
-            }
-        }
-        if (viewport) {
-            viewport.innerHTML = ''; 
-            viewport.appendChild(myContent);
-        } else {
-            document.body.appendChild(myContent);
-        }
-    });
-</script>
+<script src="../js/app.js?v=1.5"></script>
 
 <?php 
 $foot = __DIR__ . '/../includes/_foot.php';
