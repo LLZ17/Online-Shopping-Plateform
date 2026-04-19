@@ -126,6 +126,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
 /* 4. admin/product_crud.php js Tee De Yong part*/
+/* --- TEE DE YONG: Product CRUD Logic --- */
 function triggerSyncRefresh() {
     alert("✅ Admin records synchronized and refreshed!");
     window.location.href = 'product_crud.php';
@@ -133,40 +134,19 @@ function triggerSyncRefresh() {
 
 (function() {
     const templateId = 'final_product_layout';
-    
     function performInjection() {
         const template = document.getElementById(templateId);
         if (!template) return;
-
-        const viewport = document.querySelector('.admin-content-viewport') || 
-                         document.querySelector('.main-content') || 
-                         document.querySelector('#layout-content') ||
-                         document.querySelector('.content-wrapper') ||
-                         document.querySelector('main');
-
-        if (viewport) {
-            if (!viewport.querySelector('.inventory-container')) {
-                viewport.innerHTML = ''; 
-                viewport.appendChild(template.content.cloneNode(true));
-            }
+        const viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
+        if (viewport && !viewport.querySelector('.inventory-container')) {
+            viewport.innerHTML = ''; 
+            viewport.appendChild(template.content.cloneNode(true));
         }
     }
-
-    const heartBeat = setInterval(performInjection, 300); // 稍微调快一点点，防止空白时间过长
-    
-    const observer = new MutationObserver((mutations) => { 
-        performInjection(); 
-    });
-
-    observer.observe(document.body, { 
-        childList: true, 
-        subtree: true 
-    });
-
+    setInterval(performInjection, 300);
     window.addEventListener('load', performInjection);
     performInjection();
 })();
-
 
 /* 5. admin/product_detail.php js Tee De Yong part*/
 /* --- Product Detail JS Start (TEE DE YONG's Part) --- */
