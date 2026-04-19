@@ -798,35 +798,49 @@ html, body { background: #f8fafc !important; }
 
 
 /* 4. admin/product_add.php (Tee De Yong) CONFLICT CHECKED*/
-/* --- Add Product CSS Start (TEE DE YONG's Part) --- */
-.premium-form-card { max-width: 650px; margin: 20px auto; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.04); overflow: hidden; font-family: 'Inter', sans-serif; }
-.form-header { background: #111; padding: 20px 30px; border-bottom: 4px solid #e60012; }
-.form-header h2 { margin: 0; color: white; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-.form-header p { margin: 5px 0 0; color: #94a3b8; font-size: 11px; font-weight: 600; }
+.size-selector-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 12px;
+    border: 2px solid #f1f5f9;
+}
 
-.form-body { padding: 25px 30px; }
+.size-chip {
+    cursor: pointer;
+}
 
-.grid-row { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 15px; }
-.form-group { margin-bottom: 15px; }
-.grid-row .form-group { margin-bottom: 0; }
+.size-chip input {
+    display: none; /* 隐藏原始复选框 */
+}
 
-.form-group label { display: block; font-weight: 800; color: #64748b; margin-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-.input-style { width: 100%; padding: 12px 16px; border-radius: 10px; border: 2px solid #f1f5f9; font-size: 14px; font-weight: 600; color: #1e293b; background: #f8fafc; transition: all 0.3s ease; box-sizing: border-box; }
-.input-style:focus { border-color: #e60012; background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(230,0,18,0.1); }
+.size-chip span {
+    display: inline-block;
+    padding: 8px 18px;
+    background: #fff;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #64748b;
+    transition: all 0.3s ease;
+}
 
-/* 修改上传框以适应多图预览 */
-.file-upload-box { border: 2px dashed #cbd5e1; padding: 15px; text-align: center; border-radius: 10px; background: #f8fafc; transition: 0.3s; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; min-height: 100px; }
-.file-upload-box:hover { border-color: #e60012; background: #fff; }
-.current-photo { width: 60px; height: 60px; border-radius: 8px; border: 2px solid #e2e8f0; object-fit: cover; }
-.no-photo-icon { font-size: 30px; color: #cbd5e1; }
+/* 选中后的样式 */
+.size-chip input:checked + span {
+    background: #0f172a;
+    color: #fff;
+    border-color: #0f172a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+}
 
-.btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 20px; border-top: 1px solid #f1f5f9; }
-.btn-submit { background: linear-gradient(135deg, #e60012 0%, #ff1a2d 100%); color: white; padding: 14px 30px; border: none; border-radius: 10px; font-size: 13px; font-weight: 900; cursor: pointer; transition: all 0.3s ease; }
-.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(230,0,18,0.3); }
-.btn-back { color: #94a3b8; text-decoration: none; font-size: 12px; font-weight: 800; padding-left: 5px; transition: 0.3s; }
-.btn-back:hover { color: #1e293b; }
-/* --- Add Product CSS End --- */
-
+.size-chip:hover span {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
 
 
 /* 5. admin/member_crud.php (Tee De Yong) CONFLICT CHECKED*/

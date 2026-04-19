@@ -126,6 +126,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
 /* 4. admin/product_crud.php js Tee De Yong part*/
+/* --- TEE DE YONG: Product CRUD Logic --- */
 function triggerSyncRefresh() {
     alert("✅ Admin records synchronized and refreshed!");
     window.location.href = 'product_crud.php';
@@ -133,40 +134,19 @@ function triggerSyncRefresh() {
 
 (function() {
     const templateId = 'final_product_layout';
-    
     function performInjection() {
         const template = document.getElementById(templateId);
         if (!template) return;
-
-        const viewport = document.querySelector('.admin-content-viewport') || 
-                         document.querySelector('.main-content') || 
-                         document.querySelector('#layout-content') ||
-                         document.querySelector('.content-wrapper') ||
-                         document.querySelector('main');
-
-        if (viewport) {
-            if (!viewport.querySelector('.inventory-container')) {
-                viewport.innerHTML = ''; 
-                viewport.appendChild(template.content.cloneNode(true));
-            }
+        const viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
+        if (viewport && !viewport.querySelector('.inventory-container')) {
+            viewport.innerHTML = ''; 
+            viewport.appendChild(template.content.cloneNode(true));
         }
     }
-
-    const heartBeat = setInterval(performInjection, 300); // 稍微调快一点点，防止空白时间过长
-    
-    const observer = new MutationObserver((mutations) => { 
-        performInjection(); 
-    });
-
-    observer.observe(document.body, { 
-        childList: true, 
-        subtree: true 
-    });
-
+    setInterval(performInjection, 300);
     window.addEventListener('load', performInjection);
     performInjection();
 })();
-
 
 /* 5. admin/product_detail.php js Tee De Yong part*/
 /* --- Product Detail JS Start (TEE DE YONG's Part) --- */
@@ -295,68 +275,41 @@ document.addEventListener("DOMContentLoaded", function() {
 /* 6. admin/product_add.php js Tee De Yong part*/
 /* --- Add Product JS Start (TEE DE YONG's Part) --- */
 document.addEventListener("DOMContentLoaded", function() {
-    const photoInput = document.getElementById('photo-input');
-    const container = document.getElementById('preview-container');
-    const placeholder = document.getElementById('no-photo-placeholder');
-
-    if (photoInput && container) {
-        photoInput.addEventListener('change', function(e) {
-            const files = e.target.files;
-            
-            // 清除现有的预览图（保留 input 本身）
-            const oldPreviews = container.querySelectorAll('.current-photo');
-            oldPreviews.forEach(img => img.remove());
-
-            if (files.length > 0) {
-                if(placeholder) placeholder.style.display = 'none';
-                
-                Array.from(files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        const img = document.createElement('img');
-                        img.src = event.target.result;
-                        img.classList.add('current-photo');
-                        container.appendChild(img);
-                    }
-                    reader.readAsDataURL(file);
-                });
-            } else {
-                if(placeholder) placeholder.style.display = 'flex';
-            }
-        });
-    }
-
-    // Viewport Loader for Add Product
+    // 注入逻辑
     const addWrapper = document.getElementById('add-wrapper');
     if (addWrapper) {
         addWrapper.style.display = 'block';
-        let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, .page-content, main');
-        if (!viewport) {
-            const allElements = document.body.getElementsByTagName('*');
-            for (let el of allElements) {
-                if (el.textContent && el.textContent.includes("Administrative Workspace Ready")) {
-                    viewport = el.parentElement;
-                    break;
-                }
-            }
-        }
-        
+        const viewport = document.querySelector('.admin-content-viewport, .main-content, main');
         if (viewport) {
             viewport.innerHTML = ''; 
             viewport.appendChild(addWrapper);
-        } else {
-            addWrapper.style.position = 'fixed';
-            addWrapper.style.top = '60px'; 
-            addWrapper.style.right = '0';
-            addWrapper.style.width = 'calc(100vw - 250px)'; 
-            addWrapper.style.height = 'calc(100vh - 60px)';
-            addWrapper.style.background = '#f8fafc';
-            addWrapper.style.zIndex = '9999';
-            document.body.appendChild(addWrapper);
         }
     }
+
+    // 图片预览
+    const photoInput = document.getElementById('photo-input');
+    const container = document.getElementById('preview-container');
+    if (photoInput && container) {
+        container.onclick = () => photoInput.click();
+        photoInput.onchange = (e) => {
+            const files = e.target.files;
+            container.querySelectorAll('.current-photo').forEach(img => img.remove());
+            if (files.length > 0) {
+                document.getElementById('no-photo-placeholder').style.display = 'none';
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const img = document.createElement('img');
+                        img.src = ev.target.result;
+                        img.className = 'current-photo';
+                        container.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        };
+    }
 });
-/* --- Add Product JS End --- */
 
 
 /* 7. admin/member_crud.php js Tee De Yong part*/
