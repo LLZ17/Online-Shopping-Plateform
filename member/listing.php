@@ -98,6 +98,10 @@ $categories = ['Men', 'Women'];
                         <div class="price">RM <?php echo number_format($product['price'], 2); ?></div>
                         <div class="points">🎁 Earn <?php echo floor($product['price']); ?> points</div>
                         <div class="stock <?php echo $product['stock'] > 0 ? 'in-stock' : 'out-stock'; ?>">
+                             <div class="member-product-stock-info">
+        <span class="stock-left">📦 Stock: <?php echo $product['stock']; ?> left</span>
+        <span class="sales-count">📈 Sold: <?php echo number_format($product['sales_count'] ?? 0); ?></span>
+    </div>
                             <?php echo $product['stock'] > 0 ? '✓ In Stock (' . $product['stock'] . ')' : '✗ Out of Stock'; ?>
                         </div>
                         <?php if ($product['stock'] > 0): ?>
