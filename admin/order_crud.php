@@ -73,7 +73,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     </div>
 
     <div class="top5-card">
-        <div class="card-title">🏆 Top Selling Products (Lifetime)</div>
+        <div class="card-title">🏆 Top 5 Selling </div>
         
         <?php if (!empty($topProducts)): ?>
             <?php foreach ($topProducts as $index => $p): 
