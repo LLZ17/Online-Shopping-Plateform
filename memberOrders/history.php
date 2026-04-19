@@ -19,29 +19,20 @@ $stmt->execute([$user_id]);
 $orders = $stmt->fetchAll();
 ?>
 
-<style>
-    .orders-container { max-width: 1000px; margin: 40px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    h1 { color: #333; border-bottom: 2px solid #e60012; padding-bottom: 15px; margin-bottom: 25px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-    th { background: #f5f5f5; }
-    .status-Processing { color: #ff9800; }
-    .status-Shipped { color: #2196f3; }
-    .status-Delivered { color: #4caf50; }
-    .status-Cancelled { color: #f44336; }
-    .btn-view { background: #e60012; color: white; padding: 6px 15px; text-decoration: none; border-radius: 5px; font-size: 12px; }
-    .empty-orders { text-align: center; padding: 50px; color: #999; }
-    .actions { margin-top: 20px; text-align: center; }
-    .btn-back { background: #666; color: white; padding: 10px 25px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 5px; }
-</style>
+<link rel="stylesheet" href="../css/app.css">
 
-<div class="orders-container">
+<div class="member-history-container">
     <h1>📦 My Orders</h1>
     <?php if (empty($orders)): ?>
-        <div class="empty-orders"><p>You haven't placed any orders yet.</p><a href="../memberProducts/listing.php" class="btn-view">Start Shopping</a></div>
+        <div class="member-history-empty">
+            <p>You haven't placed any orders yet.</p>
+            <a href="../memberProducts/listing.php" class="member-history-view-btn">Start Shopping</a>
+        </div>
     <?php else: ?>
-        <table>
-            <thead><tr><th>Order #</th><th>Date</th><th>Total</th><th>Points Used</th><th>Points Earned</th><th>Status</th><th></th></tr></thead>
+        <table class="member-history-table">
+            <thead>
+                <tr><th>Order #</th><th>Date</th><th>Total</th><th>Points Used</th><th>Points Earned</th><th>Status</th><th></th></tr>
+            </thead>
             <tbody>
                 <?php foreach ($orders as $order): ?>
                     <tr>
@@ -49,16 +40,19 @@ $orders = $stmt->fetchAll();
                         <td>RM <?php echo number_format($order['total_price'], 2); ?></td>
                         <td><?php echo $order['points_used']; ?></td>
                         <td><?php echo $order['points_earned']; ?></td>
-                        <td class="status-<?php echo $order['order_status']; ?>"><?php echo $order['order_status']; ?></td>
-                        <td><a href="detail.php?order_number=<?php echo $order['order_number']; ?>" class="btn-view">View →</a></td>
+                        <td class="member-history-status status-<?php echo $order['order_status']; ?>"><?php echo $order['order_status']; ?></td>
+                        <td><a href="detail.php?order_number=<?php echo $order['order_number']; ?>" class="member-history-view-btn">View →</a></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
-        <div class="actions">
-            <a href="../index.php" class="btn-back">🏠 Home</a>
-            <a href="../memberProducts/listing.php" class="btn-back" style="background:#e60012;">🛍️ Shop</a>
+        <div class="member-history-actions">
+            <a href="../index.php" class="member-history-back-btn">🏠 Home</a>
+            <a href="../memberProducts/listing.php" class="member-history-back-btn member-history-shop-btn">🛍️ Shop</a>
         </div>
     <?php endif; ?>
 </div>
+
+<script src="../js/app.js"></script>
+
 <?php require_once __DIR__ . '/../includes/_foot.php'; ?>
