@@ -85,7 +85,17 @@ if (file_exists($admin_head)) { include $admin_head; }
                 <?php foreach ($products as $p): 
                     $imgData = $p['product_image'] ?? ''; 
                     $imgArr = explode(',', $imgData);
-                    $path = !empty($imgArr[0]) ? "../images/" . trim($imgArr[0]) : "../images/default.png";
+                    
+                    // --- 只有这里做了微调以支持空格文件名 ---
+                    if (!empty($imgArr[0])) {
+                        $firstImg = trim($imgArr[0]);
+                        // 使用 rawurlencode 处理文件名中的空格，但保留路径斜杠 /
+                        $encodedImg = str_replace('%2F', '/', rawurlencode($firstImg));
+                        $path = "../images/" . $encodedImg;
+                    } else {
+                        $path = "../images/default.png";
+                    }
+                    // ---------------------------------------
                 ?>
                 <div class="product-card">
                     <div class="card-img-box"><img src="<?= $path ?>" class="card-img" onerror="this.src='../images/default.png'"></div>
