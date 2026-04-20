@@ -1,183 +1,233 @@
 <?php
 session_start();
+// 包含数据库连接
 require_once __DIR__ . '/../includes/db.php';
 
-// 1. 数据抓取与安全处理
+// 1. 获取产品 ID 并从数据库抓取数据
 $product_id = isset($_GET['id']) ? trim($_GET['id']) : '';
 $stmt = $pdo->prepare("SELECT * FROM products WHERE product_id = ?");
 $stmt->execute([$product_id]);
 $product = $stmt->fetch();
 
-if (!$product) { exit("Product Not Found!"); }
+if (!$product) {
+    die("Product not found! Please check your product ID.");
+}
 
-// 2. 解析规格
+// 2. 解析产品规格
 $all_images = !empty($product['product_image']) ? array_map('trim', explode(',', $product['product_image'])) : ['default.jpg'];
 $colours = !empty($product['colour']) ? array_map('trim', explode(',', $product['colour'])) : [];
 $sizes = !empty($product['size']) ? array_map('trim', explode(',', $product['size'])) : [];
 
-// 3. 抓取该产品的真实评论
+// 3. 核心显示字段与库存逻辑
+$sql_rating = (float)($product['rating'] ?? 0); 
+$stock = (int)$product['stock'];
+$is_out_of_stock = ($stock <= 0); // 判断是否没货
+$description = !empty($product['description']) ? $product['description'] : "No description provided.";
+$reward_points = floor($product['price'] * 1); 
+
+// 4. 获取评论列表
 $stmt_rev = $pdo->prepare("SELECT * FROM reviews WHERE product_id = ? ORDER BY created_at DESC");
 $stmt_rev->execute([$product_id]);
 $reviews = $stmt_rev->fetchAll();
 $review_count = count($reviews);
 
-// 4. 计算评分分布 (用于进度条展示)
-$rating_data = [5=>0, 4=>0, 3=>0, 2=>0, 1=>0];
-$sum_rating = 0;
-foreach($reviews as $r) {
-    $rating_data[$r['rating']]++;
-    $sum_rating += $r['rating'];
-}
-$avg_rating = ($review_count > 0) ? round($sum_rating / $review_count, 1) : 0;
-
-// 检查当前登录用户是否已评价过
-$user_id = $_SESSION['user_id'] ?? null;
-$has_reviewed = false;
-if($user_id) {
-    $check_stmt = $pdo->prepare("SELECT 1 FROM reviews WHERE product_id = ? AND user_id = ?");
-    $check_stmt->execute([$product_id, $user_id]);
-    $has_reviewed = $check_stmt->fetchColumn();
-}
-
 require_once __DIR__ . '/../includes/_head.php';
 ?>
 
 <style>
-    /* 核心 UI 规范 - 确保各部分不跑位 */
-    :root { --main-red: #e60012; --bg: #f5f5f5; --border: rgba(0,0,0,0.09); }
-    body { background: var(--bg); font-family: sans-serif; }
-    .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
-    
-    /* 产品主区域 */
-    .product-main { background: #fff; display: flex; padding: 25px; gap: 30px; border-radius: 2px; }
-    .gallery { width: 450px; }
-    .main-img { width: 100%; aspect-ratio: 1/1; border: 1px solid #f0f0f0; object-fit: contain; }
-    
-    /* 价格与积分卡片 */
-    .price-tag { font-size: 30px; color: var(--main-red); background: #fafafa; padding: 15px; margin: 20px 0; font-weight: 600; }
-    .reward-banner { background: #fffcf5; border: 1px solid #f9eacc; color: #ff9800; padding: 10px; display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 15px; }
+    :root { --shopee-red: #e60012; --star-yellow: #ffc107; --bg-gray: #f5f5f5; --orange-tint: #fffbf8; }
+    body { background-color: var(--bg-gray); font-family: -apple-system, sans-serif; }
+    .main-wrap { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
 
-    /* 选项按钮选中态 */
-    .opt-btn { border: 1px solid var(--border); background: #fff; padding: 8px 15px; cursor: pointer; }
-    .opt-btn.active { border-color: var(--main-red); color: var(--main-red); }
+    /* 产品展示卡片 */
+    .product-card { display: flex; gap: 40px; background: white; padding: 25px; border-radius: 4px; box-shadow: 0 1px 1px rgba(0,0,0,0.05); }
+    .viewer-side { width: 450px; position: relative; }
+    .main-img-box { width: 100%; aspect-ratio: 1/1; border: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: center; position: relative; }
+    .main-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    
+    .nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.1); border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; color: #fff; z-index: 5; }
+    .nav-arrow:hover { background: rgba(0,0,0,0.3); }
+    .arrow-l { left: 10px; } .arrow-r { right: 10px; }
 
-    /* 评论区样式 */
-    .section-card { background: #fff; margin-top: 20px; padding: 25px; }
-    .review-summary { display: flex; align-items: center; background: #fffbf8; border: 1px solid #f9ede5; padding: 30px; }
-    .rating-bars { flex: 1; margin-left: 40px; }
-    .bar-row { display: flex; align-items: center; gap: 10px; height: 20px; margin-bottom: 5px; }
-    .bar-outer { flex: 1; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
-    .bar-inner { height: 100%; background: #ffc107; transition: width 0.3s; }
+    .thumbs { display: flex; gap: 10px; margin-top: 15px; overflow-x: auto; }
+    .thumb-item { width: 80px; height: 80px; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; }
+    .thumb-item.active { border-color: var(--shopee-red); }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* 右侧表单区 */
+    .info-side { flex: 1; }
+    .p-title { font-size: 22px; font-weight: 500; margin-bottom: 12px; }
+    .stats-row { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; font-size: 14px; }
+    .price-box { background: #fafafa; padding: 15px 20px; color: var(--shopee-red); font-size: 30px; font-weight: 600; margin-bottom: 20px; }
+    
+    .points-card { background: #fffcf5; border: 1px solid #f9eacc; padding: 12px; border-radius: 4px; color: #ff9800; display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 25px; }
+
+    .spec-btn { border: 1px solid rgba(0,0,0,0.09); background: #fff; padding: 8px 15px; cursor: pointer; min-width: 60px; }
+    .spec-btn.active { border-color: var(--shopee-red); color: var(--shopee-red); }
+
+    /* 按钮组 */
+    .action-group { display: flex; gap: 15px; margin-top: 30px; }
+    .btn-cart { flex: 1; height: 48px; background: rgba(208,1,27,0.08); color: var(--shopee-red); border: 1px solid var(--shopee-red); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-buy { flex: 1; height: 48px; background: var(--shopee-red); color: white; border: none; cursor: pointer; font-size: 16px; }
+    
+    /* 新增：Wishlist 和 禁用按钮样式 */
+    .btn-wishlist { flex: 1; height: 48px; background: #fff; color: #555; border: 1px solid #ddd; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-wishlist:hover { background: #f8f8f8; color: var(--shopee-red); border-color: var(--shopee-red); }
+    .btn-disabled { flex: 1; height: 48px; background: #eee; color: #bbb; border: 1px solid #ddd; cursor: not-allowed; font-size: 16px; }
+
+    /* 详情与评价 */
+    .content-section { background: white; margin-top: 20px; padding: 25px; }
+    .sect-title { background: #fafafa; padding: 12px 15px; font-size: 18px; margin-bottom: 20px; }
+
+    .rating-header { display: flex; align-items: center; background: var(--orange-tint); border: 1px solid #f9ede5; padding: 30px; margin-bottom: 20px; }
+    .score-big { color: var(--shopee-red); font-size: 30px; margin-right: 40px; font-weight: 600; }
+    .rev-row { padding: 20px 0; border-bottom: 1px solid #eee; }
 </style>
 
-<div class="container">
-    <div class="product-main">
-        <div class="gallery">
-            <img src="../images/<?php echo $all_images[0]; ?>" class="main-img" id="mainDisplay">
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <?php foreach($all_images as $img): ?>
-                    <img src="../images/<?php echo $img; ?>" style="width:80px; height:80px; cursor:pointer; border:1px solid #ddd;" onclick="document.getElementById('mainDisplay').src=this.src">
+<div class="main-wrap">
+    <div class="product-card">
+        <div class="viewer-side">
+            <button class="nav-arrow arrow-l" onclick="changeSlide(-1)">&#10094;</button>
+            <div class="main-img-box">
+                <img src="../images/<?php echo $all_images[0]; ?>" id="targetDisplay">
+            </div>
+            <button class="nav-arrow arrow-r" onclick="changeSlide(1)">&#10095;</button>
+
+            <div class="thumbs">
+                <?php foreach($all_images as $i => $img): ?>
+                    <div class="thumb-item <?php echo $i==0?'active':''; ?>" onclick="setSlide(<?php echo $i; ?>)">
+                        <img src="../images/<?php echo $img; ?>">
+                    </div>
                 <?php endforeach; ?>
             </div>
         </div>
 
-        <div class="details" style="flex:1;">
-            <h2><?php echo htmlspecialchars($product['name']); ?></h2>
-            <div style="margin:10px 0; color:#666;">
-                <span style="color:#ffc107;">★ <?php echo $avg_rating; ?></span> | <?php echo $review_count; ?> Reviews | <?php echo $product['sales_count'] ?? 0; ?> Sold
-            </div>
-            
-            <div class="price-tag">RM <?php echo number_format($product['price'], 2); ?></div>
-
-            <div class="reward-banner">
-                <i class="fas fa-gift"></i>
-                Earn <?php echo floor($product['price']); ?> reward points with this purchase
+        <div class="info-side">
+            <h1 class="p-title"><?php echo htmlspecialchars($product['name']); ?></h1>
+            <div class="stats-row">
+                <span style="color:var(--star-yellow);"><?php echo number_format($sql_rating, 1); ?> ★★★★★</span>
+                <span style="color:#757575;">| <?php echo $review_count; ?> Reviews | <?php echo $product['sales_count'] ?? 0; ?> Sold</span>
             </div>
 
-            <form action="cart.php" method="POST">
-                <input type="hidden" name="pid" value="<?php echo $product_id; ?>">
-                <div style="margin-bottom:15px;">
-                    <p style="color:#757575;">Colour:</p>
-                    <?php foreach($colours as $c): ?>
-                        <button type="button" class="opt-btn" onclick="selectOpt(this, 'color', '<?php echo $c; ?>')"><?php echo $c; ?></button>
-                    <?php endforeach; ?>
-                    <input type="hidden" name="selected_color" id="input_color" required>
+            <div class="price-box">RM <?php echo number_format($product['price'], 2); ?></div>
+
+            <div class="points-card">
+                <i class="fas fa-coins"></i>
+                <span>Earn <strong><?php echo $reward_points; ?></strong> reward points</span>
+            </div>
+
+            <form action="wishlist_toggle.php" method="POST" id="mainForm">
+                <input type="hidden" name="p_id" value="<?php echo $product_id; ?>">
+                
+                <?php if(!empty($colours)): ?>
+                <div style="margin-bottom:20px;">
+                    <label style="color:#757575; display:block; margin-bottom:10px;">Colour:</label>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <?php foreach($colours as $idx => $c): ?>
+                            <button type="button" class="spec-btn col-opt" onclick="pickColor(this, <?php echo $idx; ?>, '<?php echo $c; ?>')"><?php echo $c; ?></button>
+                        <?php endforeach; ?>
+                    </div>
+                    <input type="hidden" name="sel_color" id="inputColor">
+                </div>
+                <?php endif; ?>
+
+                <?php if(!empty($sizes)): ?>
+                <div style="margin-bottom:20px;">
+                    <label style="color:#757575; display:block; margin-bottom:10px;">Size:</label>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <?php foreach($sizes as $s): ?>
+                            <button type="button" class="spec-btn size-opt" onclick="pickSize(this, '<?php echo $s; ?>')"><?php echo $s; ?></button>
+                        <?php endforeach; ?>
+                    </div>
+                    <input type="hidden" name="sel_size" id="inputSize">
+                </div>
+                <?php endif; ?>
+
+                <div style="margin-bottom:25px; display:flex; align-items:center; gap:15px;">
+                    <span style="color:#757575;">Quantity:</span>
+                    <div style="display:flex; border:1px solid #ddd;">
+                        <button type="button" onclick="adjQty(-1)" style="width:32px; background:#fff; border:none; cursor:pointer;">-</button>
+                        <input type="number" name="qty" id="qtyVal" value="1" readonly style="width:50px; text-align:center; border:none; border-left:1px solid #ddd; border-right:1px solid #ddd;">
+                        <button type="button" onclick="adjQty(1)" style="width:32px; background:#fff; border:none; cursor:pointer;">+</button>
+                    </div>
+                    <span style="color:<?php echo $is_out_of_stock ? 'red' : '#757575'; ?>; font-size:14px;">
+                        <?php echo $is_out_of_stock ? 'Out of Stock' : $stock . ' pieces available'; ?>
+                    </span>
                 </div>
 
-                <div class="action-btns" style="display:flex; gap:10px; margin-top:30px;">
-                    <button type="submit" name="add_to_cart" style="flex:1; height:48px; border:1px solid var(--main-red); color:var(--main-red); background:#fff;">Add to Cart</button>
-                    <button type="submit" name="buy_now" style="flex:1; background:var(--main-red); color:#fff; border:none;">Buy Now</button>
+                <div class="action-group">
+                    <?php if($is_out_of_stock): ?>
+                        <button type="submit" name="btn_action" value="wishlist" class="btn-wishlist">
+                            <i class="fas fa-heart"></i> Add To Wishlist
+                        </button>
+                        <button type="button" class="btn-disabled" disabled>Sold Out</button>
+                    <?php else: ?>
+                        <button type="submit" name="btn_action" value="add" class="btn-cart">
+                            <i class="fas fa-cart-plus"></i> Add To Cart
+                        </button>
+                        <button type="submit" name="btn_action" value="buy" class="btn-buy">Buy Now</button>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="section-card">
-        <h3 style="background:#fafafa; padding:10px;">PRODUCT DESCRIPTION</h3>
-        <div style="padding:15px; white-space: pre-wrap;"><?php echo htmlspecialchars($product['description']); ?></div>
-    </div>
-
-    <div class="section-card">
-        <h3 style="background:#fafafa; padding:10px;">CUSTOMER REVIEWS</h3>
-        
-        <div class="review-summary">
-            <div style="text-align:center;">
-                <div style="font-size:32px; color:var(--main-red); font-weight:600;"><?php echo $avg_rating; ?> <small style="font-size:16px; color:#666;">out of 5</small></div>
-                <div style="color:#ffc107; font-size:20px;">★★★★★</div>
-            </div>
-            
-            <div class="rating-bars">
-                <?php for($i=5; $i>=1; $i--): 
-                    $percent = ($review_count > 0) ? ($rating_data[$i] / $review_count * 100) : 0;
-                ?>
-                <div class="bar-row">
-                    <span style="width:30px;"><?php echo $i; ?> ★</span>
-                    <div class="bar-outer"><div class="bar-inner" style="width:<?php echo $percent; ?>%;"></div></div>
-                    <span style="width:30px; color:#999;"><?php echo $rating_data[$i]; ?></span>
-                </div>
-                <?php endfor; ?>
-            </div>
-        </div>
-
-        <div style="margin-top:20px;">
-            <?php if($user_id && !$has_reviewed): ?>
-                <div style="background:#fffef5; padding:20px; border:1px dashed #eee;">
-                    <h4>Write Your Review</h4>
-                    <form action="post_review.php" method="POST">
-                        <input type="hidden" name="pid" value="<?php echo $product_id; ?>">
-                        <textarea name="comment" style="width:100%; height:80px; margin:10px 0; border:1px solid #ddd;" placeholder="Share your thoughts..."></textarea>
-                        <button type="submit" style="background:var(--main-red); color:#fff; border:none; padding:8px 20px; border-radius:4px;">Submit Review</button>
-                    </form>
-                </div>
-            <?php elseif($has_reviewed): ?>
-                <div style="background:#f6ffed; border:1px solid #b7eb8f; padding:10px; margin-bottom:15px; border-radius:4px;">
-                    <i class="fas fa-check-circle" style="color:#52c41a;"></i> You have already reviewed this product.
-                </div>
-            <?php endif; ?>
-
-            <?php if($review_count > 0): ?>
-                <?php foreach($reviews as $rev): ?>
-                    <div style="padding:20px 0; border-bottom:1px solid #eee;">
-                        <strong>@<?php echo htmlspecialchars($rev['username'] ?? 'User'); ?></strong>
-                        <div style="color:#ffc107; margin:5px 0;">★★★★★</div>
-                        <p><?php echo htmlspecialchars($rev['comment']); ?></p>
-                        <small style="color:#999;"><?php echo $rev['created_at']; ?></small>
-                    </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div style="text-align:center; padding:50px; color:#999;">No reviews yet.</div>
-            <?php endif; ?>
-        </div>
+    <div class="content-section">
+        <div class="sect-title">PRODUCT DESCRIPTION</div>
+        <div style="padding:0 15px; line-height:1.8; white-space: pre-wrap;"><?php echo htmlspecialchars($description); ?></div>
     </div>
 </div>
 
 <script>
-function selectOpt(btn, type, val) {
-    // 同组按钮取消 active
-    btn.parentNode.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
-    // 当前选中
-    btn.classList.add('active');
-    // 赋值给隐藏 input
-    document.getElementById('input_' + type).value = val;
-}
+    const images = <?php echo json_encode($all_images); ?>;
+    let currentIdx = 0;
+
+    function setSlide(i) {
+        currentIdx = i;
+        document.getElementById('targetDisplay').src = "../images/" + images[currentIdx];
+        document.querySelectorAll('.thumb-item').forEach((box, index) => {
+            box.classList.toggle('active', index === currentIdx);
+        });
+    }
+    function changeSlide(n) {
+        currentIdx = (currentIdx + n + images.length) % images.length;
+        setSlide(currentIdx);
+    }
+
+    function pickColor(btn, i, name) {
+        document.querySelectorAll('.col-opt').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('inputColor').value = name;
+        setSlide(i);
+    }
+
+    function pickSize(btn, name) {
+        document.querySelectorAll('.size-opt').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('inputSize').value = name;
+    }
+
+    function adjQty(n) {
+        const input = document.getElementById('qtyVal');
+        let val = parseInt(input.value) + n;
+        if(val >= 1 && val <= <?php echo $stock; ?>) input.value = val;
+    }
+
+    // 提交校验修正
+    document.getElementById('mainForm').onsubmit = function(e) {
+        // 获取当前点击的按钮
+        const action = document.activeElement.value;
+
+        // 如果是加入愿望单，直接允许提交，不需要检查颜色和尺寸
+        if (action === 'wishlist') return true;
+
+        // 购买/加入购物车才检查规格
+        if(<?php echo count($colours); ?> > 0 && !document.getElementById('inputColor').value) {
+            alert("Please select a Color!"); return false;
+        }
+        if(<?php echo count($sizes); ?> > 0 && !document.getElementById('inputSize').value) {
+            alert("Please select a Size!"); return false;
+        }
+        return true;
+    };
 </script>
