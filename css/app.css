@@ -1240,6 +1240,13 @@ tr:hover td { background: #fcfdfe; }
 
 /* 11. admin/order_crud.php (Tee De Yong) CONFLICT CHECKED*/
 /* --- Sales Analytics CSS Start (TEE DE YONG's Part) --- */
+/* --- Sales Analytics: Ultimate Premium UI (Unified & Optimized) --- */
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .sales-container { 
     max-width: 1400px; 
     margin: 40px auto; 
@@ -1266,16 +1273,17 @@ tr:hover td { background: #fcfdfe; }
     color: #3b82f6; 
 }
 
-/* 统计卡片 */
+/* 统计卡片布局 */
 .summary-grid { 
     display: grid; 
     grid-template-columns: 1fr 1fr; 
     gap: 35px; 
     margin-bottom: 45px; 
 }
+
 .stat-card { 
     background: #ffffff; 
-    padding: 35px 45px; 
+    padding: 30px 40px; /* 稍微压缩内边距，给长数字腾空间 */
     border-radius: 28px; 
     box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05); 
     display: flex;
@@ -1283,6 +1291,7 @@ tr:hover td { background: #fcfdfe; }
     gap: 25px;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
 }
+
 .card-revenue { border-left: 6px solid #06b6d4; }
 .card-units { border-left: 6px solid #3b82f6; }
 
@@ -1295,9 +1304,32 @@ tr:hover td { background: #fcfdfe; }
 .icon-revenue { background: #cffafe; color: #0891b2; }
 .icon-units { background: #dbeafe; color: #1d4ed8; }
 
-.stat-value { font-size: 46px; font-weight: 900; color: #0f172a; letter-spacing: -1.5px; }
+/* 💡 核心修改：减小数字字体防止撑破容器 */
+.stat-value { 
+    font-size: 32px; /* 之前是 46px，现在改为 32px 更高级 */
+    font-weight: 900; 
+    color: #0f172a; 
+    letter-spacing: -1px; 
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+}
 
-/* 排行榜 */
+/* 缩小 RM 符号的比例 */
+.currency-symbol {
+    font-size: 18px; 
+    color: #64748b;
+    font-weight: 700;
+}
+
+/* 缩小 items 字样 */
+.unit-text {
+    font-size: 14px; 
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+/* 排行榜样式 */
 .top5-card { 
     background: #ffffff; 
     border-radius: 32px; 
@@ -1305,7 +1337,16 @@ tr:hover td { background: #fcfdfe; }
     box-shadow: 0 20px 40px -10px rgba(0,0,0,0.05); 
     border-top: 6px solid #ef4444; 
 }
-.card-title { font-size: 30px; font-weight: 900; color: #0f172a; margin-bottom: 40px; display: flex; align-items: center; gap: 15px; }
+
+.card-title { 
+    font-size: 30px; 
+    font-weight: 900; 
+    color: #0f172a; 
+    margin-bottom: 40px; 
+    display: flex; 
+    align-items: center; 
+    gap: 15px; 
+}
 
 .product-list-item { 
     display: flex; 
@@ -1317,23 +1358,66 @@ tr:hover td { background: #fcfdfe; }
     margin-bottom: 16px; 
     transition: all 0.3s ease;
 }
+
 .product-list-item:hover { 
     background: #ffffff; 
     transform: translateY(-4px); 
     box-shadow: 0 15px 30px rgba(239, 68, 68, 0.08); 
 }
 
-.rank-badge { width: 54px; height: 54px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; }
+.rank-badge { 
+    width: 54px; height: 54px; 
+    border-radius: 18px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: 900; 
+    font-size: 22px; 
+}
+
 .rank-1 { background: linear-gradient(135deg, #fde047 0%, #f59e0b 100%); color: #fff; }
 .rank-2 { background: #e2e8f0; color: #64748b; }
 .rank-3 { background: #fed7aa; color: #ea580c; }
 
-.p-thumb { width: 84px; height: 84px; border-radius: 20px; object-fit: cover; border: 1px solid #e2e8f0; }
-.p-progress-bg { height: 10px; background: #f1f5f9; border-radius: 10px; width: 100%; overflow: hidden; }
-.p-progress-fill { height: 100%; background: #ef4444; border-radius: 10px; transition: width 1.2s ease; }
+.p-thumb { 
+    width: 84px; height: 84px; 
+    border-radius: 20px; 
+    object-fit: cover; 
+    border: 1px solid #e2e8f0; 
+}
 
-.sold-count { display: block; font-size: 24px; font-weight: 900; color: #0f172a; }
-.revenue { font-size: 16px; font-weight: 800; color: #e11d48; background: #ffe4e6; padding: 6px 12px; border-radius: 10px; display: inline-block; }
+.p-progress-bg { 
+    height: 10px; 
+    background: #f1f5f9; 
+    border-radius: 10px; 
+    width: 100%; 
+    overflow: hidden; 
+}
+
+.p-progress-fill { 
+    height: 100%; 
+    background: #ef4444; 
+    border-radius: 10px; 
+    transition: width 1.2s ease; 
+}
+
+.sold-count { 
+    display: block; 
+    font-size: 24px; 
+    font-weight: 900; 
+    color: #0f172a; 
+}
+
+.revenue { 
+    font-size: 16px; 
+    font-weight: 800; 
+    color: #e11d48; 
+    background: #ffe4e6; 
+    padding: 6px 12px; 
+    border-radius: 10px; 
+    display: inline-block; 
+}
+
 /* --- Sales Analytics CSS End --- */
 
 
