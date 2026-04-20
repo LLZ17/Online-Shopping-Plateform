@@ -1,7 +1,7 @@
 <?php
 /**
  * =================================================================================
- * PXX MALL - ENTERPRISE GLOBAL HEADER (STABLE VERSION 8.6 - FINAL FIX)
+ * PXX MALL - ENTERPRISE GLOBAL HEADER (VERSION 9.1 - CLEAN FIX)
  * =================================================================================
  */
 
@@ -10,33 +10,36 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // ----------------------------------------------------------------
-// 1. 全局变量初始化与权限判定
+// 1. 数据库连接 - 只尝试 ../includes/db.php (因为你说这个路径是对的)
+// ----------------------------------------------------------------
+if (!isset($pdo) || $pdo === null) {
+    $db_path = __DIR__ . '/../includes/db.php';
+    if (file_exists($db_path)) {
+        require_once $db_path;
+    }
+}
+
+// ----------------------------------------------------------------
+// 2. 全局变量初始化
 // ----------------------------------------------------------------
 $isLoggedIn = false;
 $username = "";
 $avatar_file = "default.jpg";
 
-// 🌟 核心：判定当前运行的文件夹层级 (解决相对路径报错)
 $current_page_dir = basename(dirname($_SERVER['PHP_SELF']));
 $is_subfolder = ($current_page_dir === 'admin' || $current_page_dir === 'member' || $current_page_dir === 'memberProducts');
 $path_prefix = $is_subfolder ? '../' : '';
 
-// 🔗 引入数据库连接 (必须在所有查询之前)
-$db_file = __DIR__ . '/db.php';
-if (file_exists($db_file)) {
-    require_once $db_file;
-}
-
-// 2. 获取用户数据：强制连接 SQL 获取最新头像
+// 3. 获取用户数据 - 强制从 SQL 获取头像
 if (isset($_SESSION['username']) || isset($_SESSION['user_id'])) {
     $isLoggedIn = true;
     $username = $_SESSION['username'];
     
-    if (isset($pdo)) {
+    if (isset($pdo) && $pdo !== null) {
         try {
             $stmt = $pdo->prepare("SELECT profile_photo FROM users WHERE username = ? LIMIT 1");
             $stmt->execute([$username]);
-            $user_data = $stmt->fetch();
+            $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($user_data && !empty($user_data['profile_photo'])) {
                 $avatar_file = $user_data['profile_photo'];
@@ -45,53 +48,46 @@ if (isset($_SESSION['username']) || isset($_SESSION['user_id'])) {
         } catch (PDOException $e) {
             $avatar_file = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 'default.jpg';
         }
+    } else {
+        $avatar_file = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 'default.jpg';
     }
 }
 
-// 3. Remember Me 自动登录
-if (!$isLoggedIn && isset($_COOKIE['remember_me'])) {
-    if (isset($pdo)) {
-        $token = $_COOKIE['remember_me'];
+// 4. Remember Me
+if (!$isLoggedIn && isset($_COOKIE['remember_me']) && isset($pdo) && $pdo !== null) {
+    try {
         $stmt = $pdo->prepare("SELECT * FROM users WHERE remember_token = ? LIMIT 1");
-        $stmt->execute([$token]);
-        $user = $stmt->fetch();
-        
+        $stmt->execute([$_COOKIE['remember_me']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($user) {
             $_SESSION['user_id'] = $user['user_id']; 
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
-            $db_avatar = !empty($user['profile_photo']) ? $user['profile_photo'] : 'default.jpg';
-            $_SESSION['profile_photo'] = $db_avatar;
-            
+            $avatar_file = !empty($user['profile_photo']) ? $user['profile_photo'] : 'default.jpg';
+            $_SESSION['profile_photo'] = $avatar_file;
             $isLoggedIn = true;
             $username = $_SESSION['username'];
-            $avatar_file = $db_avatar;
         }
-    }
+    } catch (PDOException $e) {}
 }
 
-// 最终合成图片物理路径 - 使用绝对路径避免子文件夹问题
 $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
 
 // =================================================================================
-// 4. 动态获取搜索关键词 (根据 gender 页面切换) - 修复：正确匹配 category_gender
+// 5. 动态获取搜索关键词 (根据 gender 页面切换)
 // =================================================================================
 $current_category = isset($_GET['category']) ? $_GET['category'] : '';
-$gender_filter = ''; // 用于后面链接和判断
+$gender_filter = '';
+$dynamic_keywords = [];
 
-if (isset($pdo)) {
+if (isset($pdo) && $pdo !== null) {
     try {
-        // 判断当前分类性别 - 修复：支持 "Men" 和 "Men - Shirt" 格式
         if (!empty($current_category)) {
-            if (stripos($current_category, 'Men') === 0) {
-                $gender_filter = 'Men';
-            } elseif (stripos($current_category, 'Women') === 0) {
-                $gender_filter = 'Women';
-            }
+            if (stripos($current_category, 'Men') === 0) $gender_filter = 'Men';
+            elseif (stripos($current_category, 'Women') === 0) $gender_filter = 'Women';
         }
         
         if (!empty($gender_filter)) {
-            // 根据性别获取关键词 - 使用 LIKE 'Men%' 匹配 "Men - Shirt" 等
             $kw_stmt = $pdo->prepare("
                 SELECT DISTINCT p.keywords 
                 FROM products p
@@ -101,20 +97,11 @@ if (isset($pdo)) {
             ");
             $kw_stmt->execute(['gender' => $gender_filter . '%']);
         } else {
-            // 如果没有指定，随机抓取全站的 keywords
-            $kw_stmt = $pdo->prepare("
-                SELECT DISTINCT keywords 
-                FROM products 
-                WHERE keywords IS NOT NULL AND TRIM(keywords) != '' 
-                LIMIT 5
-            ");
+            $kw_stmt = $pdo->prepare("SELECT DISTINCT keywords FROM products WHERE keywords IS NOT NULL AND TRIM(keywords) != '' LIMIT 5");
             $kw_stmt->execute();
         }
         
         $fetched_keywords = $kw_stmt->fetchAll(PDO::FETCH_COLUMN);
-        $dynamic_keywords = [];
-        
-        // 处理逗号分隔的关键词
         foreach ($fetched_keywords as $kw_string) {
             $parts = explode(',', $kw_string);
             foreach ($parts as $p) {
@@ -130,19 +117,14 @@ if (isset($pdo)) {
     }
 }
 
-// 如果数据库里完全没设定 keywords，根据页面给默认值
 if (empty($dynamic_keywords)) {
-    if ($gender_filter == 'Women') {
-        $dynamic_keywords = ['Korean', 'Dress', 'Heels', 'Handbag', 'Skirt'];
-    } elseif ($gender_filter == 'Men') {
-        $dynamic_keywords = ['Streetwear', 'Sneakers', 'Suit', 'T-Shirt', 'Jeans'];
-    } else {
-        $dynamic_keywords = ['Korean', 'Streetwear', 'New Arrival', 'Sale', 'Trending'];
-    }
+    if ($gender_filter == 'Women') $dynamic_keywords = ['Korean', 'Dress', 'Heels', 'Handbag', 'Skirt'];
+    elseif ($gender_filter == 'Men') $dynamic_keywords = ['Streetwear', 'Sneakers', 'Suit', 'T-Shirt', 'Jeans'];
+    else $dynamic_keywords = ['Korean', 'Streetwear', 'New Arrival', 'Sale', 'Trending'];
 }
 
 // =================================================================================
-// 5. 获取用户的通知、愿望清单和购物车数据 (修复：强制类型转换和错误处理)
+// 6. 获取用户的通知、愿望清单和购物车数据
 // =================================================================================
 $notif_count = 0; 
 $recent_notifs = [];
@@ -151,17 +133,18 @@ $recent_wishlist = [];
 $cart_count = 0; 
 $recent_cart = [];
 
-if ($isLoggedIn && isset($pdo)) {
+if ($isLoggedIn && isset($pdo) && $pdo !== null) {
     $uid = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
     
     if ($uid > 0) {
-        // --- 购物车数据 ---
+        
+        // --- CART 数据 ---
         try {
             $stmt = $pdo->prepare("SELECT COALESCE(SUM(quantity), 0) as total FROM cart WHERE user_id = ?");
             $stmt->execute([$uid]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $cart_count = isset($result['total']) ? (int)$result['total'] : 0;
-
+            
             if ($cart_count > 0) {
                 $stmt = $pdo->prepare("
                     SELECT p.name, p.price, c.quantity, p.product_image, 
@@ -177,24 +160,15 @@ if ($isLoggedIn && isset($pdo)) {
             }
         } catch(PDOException $e) {
             $cart_count = 0;
-            $recent_cart = [];
         }
 
-        // --- 愿望清单数据 (修复：使用 fetch 而不是 fetchColumn 避免 PDO 问题) ---
+        // --- WISHLIST 数据 ---
         try {
-            // 获取准确数量 - 修复：使用 fetch + 强制类型转换
             $count_stmt = $pdo->prepare("SELECT COUNT(*) as total FROM wishlist WHERE user_id = ?");
             $count_stmt->execute([$uid]);
             $count_result = $count_stmt->fetch(PDO::FETCH_ASSOC);
+            $wishlist_count = isset($count_result['total']) ? (int)$count_result['total'] : 0;
             
-            // 修复：确保正确获取数字
-            if ($count_result && isset($count_result['total'])) {
-                $wishlist_count = (int)$count_result['total'];
-            } else {
-                $wishlist_count = 0;
-            }
-
-            // 获取预览数据
             if ($wishlist_count > 0) {
                 $stmt = $pdo->prepare("
                     SELECT p.name, p.price, p.product_image 
@@ -208,29 +182,23 @@ if ($isLoggedIn && isset($pdo)) {
             }
         } catch(PDOException $e) {
             $wishlist_count = 0;
-            $recent_wishlist = [];
         }
 
-        // --- 通知数据 ---
+        // --- NOTIFICATIONS ---
         try {
             $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM notifications WHERE user_id = ? AND is_read = 0");
             $stmt->execute([$uid]);
             $notif_result = $stmt->fetch(PDO::FETCH_ASSOC);
             $notif_count = isset($notif_result['total']) ? (int)$notif_result['total'] : 0;
-
-            // 预览展示最新的3条
+            
             $stmt = $pdo->prepare("SELECT message, is_read FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 3");
             $stmt->execute([$uid]);
             $recent_notifs = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch(PDOException $e) {
             $notif_count = 0;
-            $recent_notifs = [];
         }
     }
 }
-
-// 调试模式 - 取消注释查看变量值
-// echo "<!-- DEBUG: uid=$uid, wishlist=$wishlist_count, cart=$cart_count, notif=$notif_count, gender=$gender_filter -->";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -242,9 +210,6 @@ if ($isLoggedIn && isset($pdo)) {
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* ============================================================
-           CSS 系统设置 
-           ============================================================ */
         :root {
             --pxx-red: #e60012;
             --white: #ffffff;
@@ -256,7 +221,6 @@ if ($isLoggedIn && isset($pdo)) {
         * { box-sizing: border-box; }
         a { text-decoration: none; color: inherit; transition: var(--transition); }
 
-        /* 顶部导航容器 */
         .pxx-header { 
             background-color: var(--pxx-red); 
             color: white; 
@@ -272,7 +236,6 @@ if ($isLoggedIn && isset($pdo)) {
             height: 70px;
         }
 
-        /* Logo 样式 */
         .logo-link { 
             font-family: 'Montserrat', sans-serif;
             font-size: 40px; font-weight: 800; letter-spacing: -1px; 
@@ -280,19 +243,18 @@ if ($isLoggedIn && isset($pdo)) {
             height: 100%;
             margin-right: 20px;
             white-space: nowrap;
-            flex-shrink: 0; /* 防止 logo 被压缩 */
+            flex-shrink: 0;
         }
         .logo-link sup { font-size: 16px; font-weight: 700; margin-left: 2px; }
 
-        /* 搜索栏样式 - 修复：缩小宽度防止重叠 */
         .search-section { 
             flex: 1; 
-            max-width: 550px; /* 缩小最大宽度 */
+            max-width: 550px; 
             min-width: 300px;
             display: flex; 
             flex-direction: column; 
             justify-content: center;
-            margin: 0 20px; /* 添加左右间距 */
+            margin: 0 20px; 
         }
         .search-container { 
             display: flex; 
@@ -331,7 +293,6 @@ if ($isLoggedIn && isset($pdo)) {
             height: 100%;
         }
 
-        /* 关键词样式 - 强制单行，防止重叠 */
         .search-keywords {
             margin-top: 4px;
             font-size: 11px;
@@ -342,7 +303,7 @@ if ($isLoggedIn && isset($pdo)) {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 100%; /* 限制宽度 */
+            max-width: 100%;
         }
         .search-keywords span { 
             font-weight: 700; 
@@ -358,13 +319,12 @@ if ($isLoggedIn && isset($pdo)) {
         }
         .search-keywords a:hover { color: #ffffff; text-decoration: underline; }
 
-        /* 图标动作区 */
         .nav-actions { 
             display: flex; 
             align-items: center; 
             gap: 24px; 
             height: 100%;
-            flex-shrink: 0; /* 防止被压缩 */
+            flex-shrink: 0; 
         } 
         .nav-item { 
             position: relative; 
@@ -400,7 +360,6 @@ if ($isLoggedIn && isset($pdo)) {
             white-space: nowrap; 
         }
 
-        /* 徽章样式 */
         .badge { 
             position: absolute; 
             top: -5px; 
@@ -418,7 +377,6 @@ if ($isLoggedIn && isset($pdo)) {
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* 头像圆形 */
         .user-avatar { 
             width: 32px; 
             height: 32px; 
@@ -427,9 +385,6 @@ if ($isLoggedIn && isset($pdo)) {
             border: 2px solid white; 
         }
 
-        /* =========================================
-           悬停预览与下拉菜单样式
-           ========================================= */
         .preview-box, .user-dropdown {
             position: absolute; 
             top: calc(100% + 8px); 
@@ -492,7 +447,6 @@ if ($isLoggedIn && isset($pdo)) {
         .user-dropdown a:hover { color: #28a745; background: #fafafa; }
         .user-dropdown a.logout-btn:hover, .user-dropdown a.logout-btn:hover i { color: var(--pxx-red); }
 
-        /* 预览框详情样式 */
         .preview-box { 
             right: -20px; 
             width: 340px; 
@@ -525,7 +479,7 @@ if ($isLoggedIn && isset($pdo)) {
             border-radius: 6px; 
             border: 1px solid #eee; 
             background: #f0f0f0; 
-            display: block; /* 确保图片显示 */
+            display: block; 
         }
         .preview-item-info { 
             display: flex; 
@@ -660,7 +614,7 @@ if ($isLoggedIn && isset($pdo)) {
                 <?php endif; ?>
             </div>
 
-            <!-- Wishlist - 修复：确保徽章始终显示 -->
+            <!-- Wishlist -->
             <div class="nav-item <?php echo $isLoggedIn ? 'hover-trigger' : ''; ?>">
                 <a href="<?php echo $isLoggedIn ? $path_prefix.'member/wishlist.php' : $path_prefix.'login_selection.php'; ?>" class="nav-trigger-link">
                     <div class="icon-wrap">
@@ -694,7 +648,7 @@ if ($isLoggedIn && isset($pdo)) {
                 <?php endif; ?>
             </div>
 
-            <!-- Cart - 修复：图片路径和尺寸颜色显示 -->
+            <!-- Cart -->
             <div class="nav-item <?php echo $isLoggedIn ? 'hover-trigger' : ''; ?>">
                 <a href="<?php echo $isLoggedIn ? $path_prefix.'memberProducts/unified_cart.php' : $path_prefix.'login_selection.php'; ?>" class="nav-trigger-link">
                     <div class="icon-wrap">
@@ -716,7 +670,14 @@ if ($isLoggedIn && isset($pdo)) {
                                      alt="<?php echo htmlspecialchars($item['name']); ?>">
                                 <div class="preview-item-info">
                                     <span class="preview-item-name"><?php echo htmlspecialchars($item['name']); ?></span>
-                                    <span class="preview-item-meta">Size: <?php echo htmlspecialchars($item['size']); ?> | Color: <?php echo htmlspecialchars($item['color']); ?></span>
+                                    <span class="preview-item-meta">
+                                        <?php if (isset($item['size']) && $item['size'] != 'N/A'): ?>
+                                            Size: <?php echo htmlspecialchars($item['size']); ?> 
+                                        <?php endif; ?>
+                                        <?php if (isset($item['color']) && $item['color'] != 'N/A'): ?>
+                                            | Color: <?php echo htmlspecialchars($item['color']); ?>
+                                        <?php endif; ?>
+                                    </span>
                                     <span class="preview-item-price">RM <?php echo number_format($item['price'], 2); ?> <span class="preview-item-qty">x <?php echo $item['quantity']; ?></span></span>
                                 </div>
                             </div>

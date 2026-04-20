@@ -172,7 +172,7 @@ require_once __DIR__ . '/../includes/_head.php';
             <button type="submit" class="btn-submit">Update Email</button>
         </form>
 
-        <a href="profile.php?page=security" class="btn-cancel">Cancel and Go Back</a>
+        <a href="profile.php?page=security" class="btn-cancel">Cancel</a>
     </div>
 </div>
 

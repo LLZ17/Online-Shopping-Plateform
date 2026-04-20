@@ -299,7 +299,7 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
             <div class="nav-section-header"><i class="fas fa-user-circle"></i> My Account</div>
             <a href="?page=my_profile" class="nav-link-item <?php echo $active_page=='my_profile'?'active':''; ?>">My Profile</a>
             <a href="?page=addresses" class="nav-link-item <?php echo $active_page=='addresses'?'active':''; ?>">My Shipping Addresses</a>
-            <a href="add_bank.php" class="nav-link-item <?php echo $active_page=='bank'?'active':''; ?>">My Bank Accounts / Cards</a>
+            <a href="?page=bank" class="nav-link-item <?php echo $active_page=='bank'?'active':''; ?>">My Bank Accounts</a>
             <a href="?page=security" class="nav-link-item <?php echo $active_page=='security'?'active':''; ?>">My Account Security</a>
             
             <div style="margin-top: 50px;">
@@ -440,8 +440,30 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
                 </div>
             </form>
 
+        <?php elseif ($active_page == 'bank'): ?>
+            <div class="dashboard-header"><h2>My Bank Account</h2></div>
+            
+            <div class="security-data-row" style="border: none;">
+                <div>
+                    <strong style="font-size: 18px; color: #333;">Preferred Bank</strong><br>
+                    <span style="color: #888; font-size: 16px; line-height: 2.5;">
+                        <?php echo !empty($u['bank_name']) ? d($u['bank_name']) : 'No bank records found'; ?>
+                    </span>
+                    <span class="status-badge <?php echo !empty($u['bank_name']) ? 'badge-verified' : 'badge-unverified'; ?>">
+                        <?php echo !empty($u['bank_name']) ? 'LINKED' : 'UNLINKED'; ?>
+                    </span>
+                </div>
+                <div>
+                    <a href="edit_bank.php" class="blue-link-action">Edit</a>
+                </div>
+            </div>
+
+            <div style="margin-top: 60px; padding: 25px; background: #fffcf5; border: 1px solid #ffecad; border-radius: 8px; color: #856404; font-size: 14px;">
+                <i class="fas fa-lock"></i> Your banking information is encrypted. PXX Mall will never store your banking details for any reason!
+            </div>
+
         <?php elseif ($active_page == 'security'): ?>
-            <div class="dashboard-header"><h2>Account Security</h2></div>
+            <div class="dashboard-header"><h2>My Account Security</h2></div>
             
             <div class="security-data-row">
                 <div>
@@ -499,7 +521,7 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
         const initialCT = "<?php echo d($u['City']); ?>";
 
         // 1. 发起 Fetch 请求读取 JSON 文件
-        fetch('../includes/state.json') // 请确保 state.json 和 profile.php 在同一目录下，或填写正确路径
+        fetch('../includes/state.json') 
             .then(response => {
                 if (!response.ok) throw new Error('Network response was not ok');
                 return response.json();
@@ -508,12 +530,11 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
                 const malaysiaRegions = data;
 
                 // 2. 初始化州列表 (State)
-                // 强制清空一次，防止 PHP 渲染的和 JSON 重复
                 stateSelect.innerHTML = '<option value="">Select State</option>';
                 
                 Object.keys(malaysiaRegions).forEach(state => {
                     let opt = new Option(state, state);
-                    if (state === initialST) opt.selected = true; // 匹配数据库已有的州
+                    if (state === initialST) opt.selected = true; 
                     stateSelect.add(opt);
                 });
 
