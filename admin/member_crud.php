@@ -52,7 +52,7 @@ if (file_exists($admin_head)) { include $admin_head; }
 
 <div class="member-container">
     <div class="page-header">
-        <h1>Member CRUD</h1>
+        <h1>My Member CRUD</h1>
         
         <form method="GET" action="member_crud.php" class="search-box">
             <input type="text" name="search" class="search-input" placeholder="Search by Name or ID..." value="<?= htmlspecialchars($searchQuery) ?>">

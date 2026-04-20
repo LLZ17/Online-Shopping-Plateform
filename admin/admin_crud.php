@@ -108,7 +108,7 @@ if (file_exists($admin_head)) { include $admin_head; }
 
 <div class="admin-container">
     <div class="page-header">
-        <h1>MyAdmin CRUD</h1>
+        <h1>My Admin CRUD</h1>
         <div style="display: flex; gap: 12px;">
             <button onclick="handleRefresh()" class="btn-op" id="refreshBtn" style="background:#fff; border:1px solid #e2e8f0;"><span>🔄</span> Refresh</button>
             <button onclick="openModal('add')" class="btn-op" style="background:#0f172a; color:#fff;"><span>➕</span> Create Admin</button>

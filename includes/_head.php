@@ -9,6 +9,15 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// 获取当前访问的文件名，比如 'login.php' 或 'index.php'
+$current_script = basename($_SERVER['PHP_SELF']);
+
+// 修改点：如果当前已经在登录页面，绝对不要再执行任何 Location: login.php 的跳转
+if ($current_script !== 'login.php') {
+    // 这里放你对普通页面的保护逻辑
+    // 如果 index.php 是允许游客看的，这里甚至不需要写跳转
+}
+
 // ----------------------------------------------------------------
 // 1. 数据库连接 - 只尝试 ../includes/db.php (因为你说这个路径是对的)
 // ----------------------------------------------------------------

@@ -1,26 +1,17 @@
 <?php
 /**
  * =================================================================================
- * PXX MALL - ADMINISTRATIVE CONTROL PORTAL (V110.3 - TOYYIBPAY INTEGRATED)
- * =================================================================================
- * 核心逻辑：
- * 1. [新增] 在 View Database 上方加入了 ToyyibPay 快速链接。
- * 2. [链接] View Database 直连 phpMyAdmin。
- * 3. [移除] 彻底移除了顶部的 System Status 弹窗通知栏。
- * 4. [侧边栏] 补全白色图标，文字纯白，固定左侧。
+ * PXX MALL - ADMINISTRATIVE CONTROL PORTAL (V110.6 - BADGE POSITION FIXED)
  * =================================================================================
  */
 
-// --- [STAGE 1: 核心初始化] ---
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
-// --- [STAGE 2: 数据库连接] ---
 require_once '../includes/db.php'; 
 
-// --- [STAGE 3: 严格权限检查] ---
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     header("Location: ../admin/login.php"); exit();
 }
@@ -30,13 +21,11 @@ if (!in_array($user_role, ['Admin', 'S.Admin'])) {
     header("Location: ../admin/login.php"); exit();
 }
 
-// --- [STAGE 4: 路径定义与用户信息] ---
 $path_prefix = '../'; 
 $current_admin = htmlspecialchars($_SESSION['username']);
 $current_photo = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 'default.jpg';
 $portal_title = ($user_role === 'S.Admin') ? "Super Admin" : "Admin Portal";
 
-// 模拟通知数量
 $noti_count = 3;
 ?>
 <!DOCTYPE html>
@@ -51,16 +40,13 @@ $noti_count = 3;
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* ============================================================
-           [STYLE SYSTEM] 严格配色逻辑
-           ============================================================ */
         :root {
             --pxx-red: #e60012;
             --side-bg: #111111;
             --side-h: #1a1e25;
             --white: #ffffff;
             --bg-canvas: #f4f7f6;
-            --header-h: 85px;
+            --header-h: 90px;
             --side-w: 280px;
             --trans: all 0.3s ease;
             --toyyib-orange: #f39c12;
@@ -71,13 +57,10 @@ $noti_count = 3;
             font-family: 'Poppins', sans-serif; background-color: var(--bg-canvas);
             overflow: hidden; 
         }
-
         * { box-sizing: border-box; }
         a { text-decoration: none; color: inherit; }
 
-        /* ============================================================
-           顶部红色导航 (Header)
-           ============================================================ */
+        /* --- Header --- */
         .admin-master-header {
             background-color: var(--pxx-red);
             height: var(--header-h); width: 100%;
@@ -92,19 +75,58 @@ $noti_count = 3;
         .logo-r { font-size: 12px; vertical-align: super; font-weight: 600; }
         .logo-portal { font-family: 'Montserrat', sans-serif; font-size: 20px; font-weight: 700; opacity: 0.95; }
 
+        /* --- Notifications 按钮修正版 --- */
         .header-actions { display: flex; align-items: center; gap: 30px; }
 
-        /* Notification */
         .noti-wrapper { position: relative; }
         .noti-btn {
-            background: rgba(255,255,255,0.15); padding: 12px 18px; border-radius: 10px;
-            display: flex; align-items: center; gap: 8px; cursor: pointer; border: none; color: white;
-            position: relative; transition: var(--trans);
+            background: rgba(255,255,255,0.2); 
+            padding: 8px 20px; 
+            border-radius: 12px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            cursor: pointer; 
+            border: none; 
+            color: white;
+            transition: var(--trans);
+            min-width: 130px;
         }
+        .noti-btn:hover { background: rgba(255,255,255,0.3); }
+
+        /* 图标容器，用于精准定位数字 */
+        .icon-relative {
+            position: relative;
+            display: inline-block;
+            line-height: 1;
+        }
+        .noti-btn i { font-size: 28px; margin-top: 5px; } 
+
+        .noti-btn span { 
+            font-family: 'Montserrat', sans-serif; 
+            font-weight: 900; 
+            font-size: 14px; 
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        
+        /* 数字角标：现在相对于 .icon-relative 定位 */
         .noti-badge {
-            position: absolute; top: -5px; right: -5px; background: white; color: var(--pxx-red);
-            font-size: 11px; font-weight: 900; width: 20px; height: 20px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
+            position: absolute; 
+            top: -2px;      /* 相对铃铛顶部 */
+            right: -8px;    /* 相对铃铛右侧 */
+            background: white; 
+            color: var(--pxx-red);
+            font-size: 11px; 
+            font-weight: 900; 
+            width: 18px; 
+            height: 18px; 
+            border-radius: 50%;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
         .noti-preview {
@@ -116,69 +138,46 @@ $noti_count = 3;
         }
         .noti-wrapper:hover .noti-preview { visibility: visible; opacity: 1; transform: translateY(0); }
         .preview-h { padding: 15px 20px; font-weight: 800; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
-        .preview-item { padding: 15px 20px; border-bottom: 1px solid #f9f9f9; display: flex; gap: 12px; font-size: 12px; color: #666; }
-        .preview-item i { color: var(--pxx-red); }
+        .preview-item { padding: 12px 20px; border-bottom: 1px solid #f9f9f9; display: flex; gap: 12px; font-size: 12px; color: #666; }
 
+        /* --- Profile --- */
         .profile-wrap { display: flex; align-items: center; gap: 15px; padding-left: 25px; border-left: 1px solid rgba(255,255,255,0.2); }
-        .admin-avatar { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; }
-        .logout-icon { font-size: 20px; color: white; margin-left: 10px; cursor: pointer; }
+        .admin-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; }
+        .logout-icon { font-size: 22px; color: white; margin-left: 10px; cursor: pointer; }
 
-        /* ============================================================
-           黑色固定侧边栏 (Fixed Sidebar)
-           ============================================================ */
+        /* --- Sidebar (全部保留) --- */
         .sidebar-fixed {
             width: var(--side-w); background-color: var(--side-bg);
             position: fixed; top: var(--header-h); left: 0; bottom: 0;
             display: flex; flex-direction: column; padding-top: 15px; z-index: 9000;
             overflow-y: auto;
         }
-
         .s-item, .s-drop-h {
             display: flex; align-items: center; justify-content: space-between;
             padding: 18px 25px; font-size: 15px; font-weight: 600;
             color: var(--white); border-left: 6px solid transparent; cursor: pointer;
         }
         .s-item:hover, .s-drop-h:hover, .s-item.active { background-color: var(--side-h); border-left-color: var(--pxx-red); }
-
         .s-icon-box { display: flex; align-items: center; gap: 15px; }
         .s-icon-box i { width: 25px; text-align: center; color: var(--white); font-size: 18px; }
-
         .s-sub-box { max-height: 0; overflow: hidden; background-color: #080808; transition: max-height 0.4s ease; }
         .s-sub-box.open { max-height: 400px; }
         .sub-nav-link { display: block; padding: 12px 25px 12px 65px; font-size: 14px; color: #aaa; }
         .sub-nav-link:hover { color: white; background: #111; }
 
-        /* 左下角底部链接区域 */
         .sidebar-bottom { margin-top: auto; padding: 20px 25px; border-top: 1px solid #222; }
-        .sidebar-bottom a { 
-            display: flex; align-items: center; gap: 12px; 
-            color: white; font-size: 14px; font-weight: 700; 
-            opacity: 0.8; margin-bottom: 15px; 
-            transition: var(--trans);
-        }
-        .sidebar-bottom a:last-child { margin-bottom: 0; }
-        
-        /* 悬停颜色区分 */
+        .sidebar-bottom a { display: flex; align-items: center; gap: 12px; color: white; font-size: 14px; font-weight: 700; opacity: 0.8; margin-bottom: 15px; transition: var(--trans); }
         .sidebar-bottom a.tp-link:hover { color: var(--toyyib-orange); opacity: 1; }
         .sidebar-bottom a.db-link:hover { color: #3498db; opacity: 1; }
         .sidebar-bottom a.store-link:hover { color: #2ecc71; opacity: 1; }
 
-        /* ============================================================
-           主内容区域
-           ============================================================ */
+        /* Main View */
         .main-content-view {
-            margin-top: var(--header-h); 
-            margin-left: var(--side-w);
-            padding: 50px;
-            height: calc(100vh - var(--header-h));
-            overflow-y: auto;
-            display: flex; flex-direction: column;
+            margin-top: var(--header-h); margin-left: var(--side-w);
+            padding: 50px; height: calc(100vh - var(--header-h));
+            overflow-y: auto; display: flex; flex-direction: column;
         }
-
-        .empty-canvas {
-            flex: 1; display: flex; justify-content: center; align-items: center;
-            color: #ddd; text-align: center;
-        }
+        .empty-canvas { flex: 1; display: flex; justify-content: center; align-items: center; color: #ddd; text-align: center; }
         .empty-canvas i { font-size: 100px; opacity: 0.2; }
     </style>
 </head>
@@ -193,14 +192,16 @@ $noti_count = 3;
         <div class="header-actions">
             <div class="noti-wrapper">
                 <button class="noti-btn" onclick="location.href='../admin/notifications.php'">
-                    <i class="fa-solid fa-bell"></i>
-                    <span>Alerts</span>
-                    <div class="noti-badge"><?php echo $noti_count; ?></div>
+                    <div class="icon-relative">
+                        <i class="fa-solid fa-bell"></i>
+                        <div class="noti-badge"><?php echo $noti_count; ?></div>
+                    </div>
+                    <span>Notifications</span>
                 </button>
                 <div class="noti-preview">
-                    <div class="preview-h">Recent Updates</div>
-                    <div class="preview-item"><i class="fa-solid fa-circle-check"></i> System modules synchronized.</div>
-                    <div class="preview-item"><i class="fa-solid fa-user-shield"></i> Security tunnel verified.</div>
+                    <div class="preview-h">System Updates</div>
+                    <div class="preview-item"><i class="fa-solid fa-circle-check" style="color:var(--pxx-red)"></i> Database connected.</div>
+                    <div class="preview-item"><i class="fa-solid fa-bolt" style="color:var(--pxx-red)"></i> ToyyibPay status: OK.</div>
                 </div>
             </div>
 
@@ -229,7 +230,7 @@ $noti_count = 3;
                 <div class="s-drop-h" onclick="this.nextElementSibling.classList.toggle('open')">
                     <div class="s-icon-box">
                         <i class="fa-solid fa-user-shield"></i>
-                        <span>Admin Management</span>
+                        <span>My Admin</span>
                     </div>
                     <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
                 </div>
@@ -243,7 +244,7 @@ $noti_count = 3;
                 <div class="s-drop-h" onclick="this.nextElementSibling.classList.toggle('open')">
                     <div class="s-icon-box">
                         <i class="fa-solid fa-users"></i>
-                        <span>Member Management</span>
+                        <span>My Member</span>
                     </div>
                     <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
                 </div>
@@ -257,7 +258,7 @@ $noti_count = 3;
                 <div class="s-drop-h" onclick="this.nextElementSibling.classList.toggle('open')">
                     <div class="s-icon-box">
                         <i class="fa-solid fa-store"></i>
-                        <span>PXX Mall Details</span>
+                        <span>My PXX Mall</span>
                     </div>
                     <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
                 </div>
@@ -270,19 +271,17 @@ $noti_count = 3;
         </nav>
 
         <div class="sidebar-bottom">
-            <a href="https://toyyibpay.com/" target="_blank" class="tp-link">
+            <a href="https://dev.toyyibpay.com/dashboard" target="_blank" class="tp-link">
                 <i class="fa-solid fa-credit-card"></i>
-                <span>ToyyibPay Login</span>
+                <span>My ToyyibPay System</span>
             </a>
-
             <a href="http://localhost/phpmyadmin/index.php?route=/database/structure&db=html_sql" target="_blank" class="db-link">
                 <i class="fa-solid fa-database"></i>
-                <span>View Database</span>
+                <span>My Database</span>
             </a>
-            
             <a href="../index.php" target="_blank" class="store-link">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                <span>View Store</span>
+                <span>My Store</span>
             </a>
         </div>
     </aside>
@@ -291,20 +290,9 @@ $noti_count = 3;
         <div class="empty-canvas">
             <div>
                 <i class="fa-solid fa-briefcase"></i>
-                <p style="color:#aaa; font-weight:600; margin-top:20px;">Administrative Workspace Ready. Select a module to begin.</p>
+                <p style="color:#aaa; font-weight:600; margin-top:20px;">Workspace Ready.</p>
             </div>
         </div>
-
-    <?php
-    $path1 = __DIR__ . '/includes/_admin_foot.php';
-    $path2 = __DIR__ . '/../includes/_admin_foot.php';
-
-    if (file_exists($path1)) {
-         include_once $path1;
-    } elseif (file_exists($path2)) {
-         include_once $path2;
-    }
-    ?>
     </main>
 
     <script>
@@ -321,6 +309,5 @@ $noti_count = 3;
             });
         });
     </script>
-
 </body>
 </html>
