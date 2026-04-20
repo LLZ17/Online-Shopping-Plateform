@@ -342,7 +342,7 @@ include_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEP
         
         <p class="v-p-nowrap">To verify your email, please enter the 6-digits code</p>
         <p style="margin-top: -35px; margin-bottom: 50px; color: #888; font-size: 20px;">
-            sent to: <strong style="color:#000;"><?php echo htmlspecialchars($ui_data['email']); ?></strong>
+          Code sent to: <strong style="color:#000;"><?php echo htmlspecialchars($ui_data['email']); ?></strong>
         </p>
 
         <?php if($error_feedback): ?>

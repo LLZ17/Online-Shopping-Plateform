@@ -248,7 +248,7 @@ require_once __DIR__ . '/../includes/_head.php';
             </p>
         </form>
 
-        <a href="profile.php?page=security" class="btn-cancel">Cancel and return to Security</a>
+        <a href="profile.php?page=security" class="btn-cancel">Cancel</a>
     </div>
 </div>
 

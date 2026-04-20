@@ -1,6 +1,12 @@
 <?php
 /**
- * PXX MALL - SECURE RESET ENGINE (V5.9 - OTP 30秒有效期+手动重发)
+ * PXX MALL - SECURE RESET ENGINE (V6.0 - COMPLETE)
+ * 功能：
+ * 1. OTP 有效期 30 秒
+ * 2. 手动重发（用户点击按钮）
+ * 3. 密码至少 6 位
+ * 4. 两次密码必须一致
+ * 5. 新密码不能与旧密码相同
  */
 
 ob_start();
@@ -26,7 +32,7 @@ $debug_output = "";
 function sendNuclearOTP($pdo, $u, $e, $r, $c, &$debug_output) {
     try {
         $otp = sprintf("%06d", mt_rand(0, 999999));
-        // 修改：有效期改为 30 秒
+        // OTP 有效期 30 秒
         $exp = date("Y-m-d H:i:s", strtotime("+30 seconds"));
         
         $stmt = $pdo->prepare("UPDATE users SET email_code = ?, email_expiry = ? WHERE username = ? AND role = ?");
@@ -80,9 +86,11 @@ function sendNuclearOTP($pdo, $u, $e, $r, $c, &$debug_output) {
     }
 }
 
-// 后端处理
+// ==================== 后端逻辑处理 ====================
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
+    // STAGE 1: 发送 OTP
     if (isset($_POST['submit_identity'])) {
         $u = trim($_POST['u']);
         $e = trim($_POST['e']);
@@ -118,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    // STAGE 2: 验证 OTP
     if (isset($_POST['submit_otp'])) {
         $otp_input = trim($_POST['otp']);
         $stmt = $pdo->prepare("SELECT email_code, email_expiry FROM users WHERE username = ? AND role = ?");
@@ -133,23 +142,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // STAGE 3: 修改密码
     if (isset($_POST['submit_final'])) {
         $p1 = $_POST['p1'];
         $p2 = $_POST['p2'];
         
+        // 1. 检查长度至少 6 位
         if (strlen($p1) < 6) {
             $error_feedback = "Password must be at least 6 characters.";
-        } elseif ($p1 !== $p2) {
+        } 
+        // 2. 检查两次密码是否一致
+        elseif ($p1 !== $p2) {
             $error_feedback = "Passwords do not match.";
-        } else {
-            $new_hash = password_hash($p1, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("UPDATE users SET password_hashed = ?, email_code = NULL WHERE username = ? AND role = ?");
-            $stmt->execute([$new_hash, $_SESSION['reset_username'], $role]);
+        } 
+        else {
+            // 3. 检查新密码是否与旧密码相同（关键修复）
+            $stmt = $pdo->prepare("SELECT password_hashed FROM users WHERE username = ? AND role = ?");
+            $stmt->execute([$_SESSION['reset_username'], $role]);
+            $user = $stmt->fetch();
             
-            $target = ($role == 'Admin') ? 'admin/login.php' : 'member/login.php';
-            session_destroy();
-            echo "<script>alert('Password reset successful!'); window.location.href='$target';</script>";
-            exit();
+            if ($user && password_verify($p1, $user['password_hashed'])) {
+                // 新密码与旧密码相同，报错
+                $error_feedback = "New password cannot be the same as old password.";
+            } else {
+                // 4. 更新密码
+                $new_hash = password_hash($p1, PASSWORD_DEFAULT);
+                $stmt = $pdo->prepare("UPDATE users SET password_hashed = ?, email_code = NULL WHERE username = ? AND role = ?");
+                $stmt->execute([$new_hash, $_SESSION['reset_username'], $role]);
+                
+                $target = ($role == 'Admin') ? 'admin/login.php' : 'member/login.php';
+                session_destroy();
+                echo "<script>alert('Password reset successful!'); window.location.href='$target';</script>";
+                exit();
+            }
         }
     }
 }
@@ -180,6 +205,7 @@ if (isset($_GET['cancel'])) {
     exit();
 }
 
+// 脱敏显示邮箱
 function maskEmail($email) {
     if (empty($email)) return '';
     $parts = explode('@', $email);
@@ -187,7 +213,7 @@ function maskEmail($email) {
 }
 $display_email = maskEmail($_SESSION['reset_email'] ?? '');
 
-// 计算剩余时间
+// 计算 OTP 剩余时间
 $time_left = 30;
 if (isset($_SESSION['otp_sent_time'])) {
     $elapsed = time() - $_SESSION['otp_sent_time'];
@@ -278,6 +304,10 @@ if (isset($_SESSION['otp_sent_time'])) {
     color: #e11d48; font-size: 0.85rem; margin: 10px 0;
     font-weight: 600;
 }
+.hint-text {
+    color: #94a3b8; font-size: 0.8rem;
+    margin-top: -10px; margin-bottom: 15px;
+}
 </style>
 
 <div class="pxx-reset-bg"></div>
@@ -289,9 +319,9 @@ if (isset($_SESSION['otp_sent_time'])) {
         
         <p style="color:#64748b; font-size:0.95rem; margin-bottom: 10px;">
             <?php 
-                if($stage == 'identify') echo "Enter details to receive OTP";
-                elseif($stage == 'verify') echo "Code sent to";
-                else echo "Enter new password (min 6 chars)";
+                if($stage == 'identify') echo "Enter your details to verify your account!";
+                elseif($stage == 'verify') echo "Code sent to:";
+                else echo "Enter new password";
             ?>
         </p>
 
@@ -304,20 +334,23 @@ if (isset($_SESSION['otp_sent_time'])) {
         <?php endif; ?>
 
         <form method="POST" autocomplete="off" onsubmit="return validateForm()">
+            
             <?php if($stage == 'identify'): ?>
+                <!-- 第一阶段：输入用户名和邮箱 -->
                 <input type="text" name="u" class="f-input" placeholder="Username" required 
                        value="<?php echo htmlspecialchars($_POST['u'] ?? ''); ?>">
                 <input type="email" name="e" class="f-input" placeholder="Email Address" required
                        value="<?php echo htmlspecialchars($_POST['e'] ?? ''); ?>">
-                <button type="submit" name="submit_identity" class="btn-submit">Send Code →</button>
+                <button type="submit" name="submit_identity" class="btn-submit">Verify Email →</button>
                 <a href="login.php" class="btn-cancel">Back to Login</a>
 
             <?php elseif($stage == 'verify'): ?>
+                <!-- 第二阶段：输入 OTP -->
                 <input type="text" name="otp" class="f-input otp-input" placeholder="000000" 
                        maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,'');" required autofocus>
-                <button type="submit" name="submit_otp" class="btn-submit">Verify Code</button>
+                <button type="submit" name="submit_otp" class="btn-submit">Verify Email</button>
                 
-                <!-- 倒计时显示 -->
+                <!-- 30秒倒计时 -->
                 <div class="timer-box" id="timer-box">
                     ⏱️ Code expires in <span class="secs" id="secs"><?php echo $time_left; ?></span>s
                 </div>
@@ -333,24 +366,30 @@ if (isset($_SESSION['otp_sent_time'])) {
                 </button>
                 
                 <div style="margin-top:15px;">
-                    <a href="?cancel=1" class="btn-cancel">Cancel Reset</a>
+                    <a href="?cancel=1" class="btn-cancel">Cancel</a>
                 </div>
 
             <?php elseif($stage == 'reset'): ?>
+                <!-- 第三阶段：设置新密码 -->
                 <input type="password" name="p1" id="p1" class="f-input" 
                        placeholder="New Password" minlength="6" required>
+                <div class="hint-text">Minimum 6 characters • Cannot be same as old password</div>
+                
                 <input type="password" name="p2" id="p2" class="f-input" 
                        placeholder="Confirm Password" minlength="6" required>
+                
                 <button type="submit" name="submit_final" class="btn-submit">Update Password ✓</button>
                 <a href="login.php" class="btn-cancel">Cancel</a>
             <?php endif; ?>
+            
         </form>
     </div>
 </div>
 
 <script>
 <?php if($stage == 'verify'): ?>
-// 从 PHP 获取剩余时间
+// ==================== OTP 30秒倒计时 + 手动重发 ====================
+
 let count = <?php echo $time_left; ?>;
 const timerBox = document.getElementById('timer-box');
 const secsSpan = document.getElementById('secs');
@@ -363,7 +402,7 @@ function updateTimer() {
         count--;
         setTimeout(updateTimer, 1000);
     } else {
-        // 倒计时结束
+        // 倒计时结束，显示过期提示，启用重发按钮
         timerBox.style.display = 'none';
         expiredNotice.style.display = 'block';
         resendBtn.disabled = false;
@@ -381,7 +420,7 @@ if (count > 0) {
     resendBtn.disabled = false;
 }
 
-// 手动重发函数
+// 手动重发函数（用户点击后执行）
 function resendOTP() {
     resendBtn.disabled = true;
     resendBtn.innerText = 'Sending...';
@@ -390,7 +429,7 @@ function resendOTP() {
         .then(r => r.json())
         .then(data => {
             if (data.status) {
-                // 重发成功，重置倒计时
+                // 重发成功，重置倒计时为 30 秒
                 alert('New code sent! Valid for 30 seconds.');
                 count = 30;
                 timerBox.style.display = 'block';
@@ -413,6 +452,8 @@ function resendOTP() {
 <?php endif; ?>
 
 <?php if($stage == 'reset'): ?>
+// ==================== 密码验证 ====================
+
 function validateForm() {
     const p1 = document.getElementById('p1').value;
     const p2 = document.getElementById('p2').value;
@@ -427,6 +468,20 @@ function validateForm() {
     }
     return true;
 }
+
+// 实时检查两次密码是否一致
+document.getElementById('p2').addEventListener('input', function() {
+    const p1 = document.getElementById('p1').value;
+    const p2 = this.value;
+    
+    if (p2.length >= 6 && p1 !== p2) {
+        this.style.borderColor = '#e11d48'; // 红色：不一致
+    } else if (p1 === p2 && p2.length >= 6) {
+        this.style.borderColor = '#22c55e'; // 绿色：一致
+    } else {
+        this.style.borderColor = '#e2e8f0'; // 默认
+    }
+});
 <?php endif; ?>
 </script>
 

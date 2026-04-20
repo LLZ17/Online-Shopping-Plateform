@@ -150,7 +150,7 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
         </div>
 
         <div class="card-body">
-            <div class="welcome-text">Hi! Welcome Back.</div>
+            <div class="welcome-text">Welcome to PXX Mall!</div>
             
             <?php if(isset($_SESSION['error'])): ?>
                 <div style="background:#fff1f0; color:#cf1322; padding:15px; border-radius:10px; margin-bottom:25px; text-align:left; border: 1px solid #ffa39e; font-weight: 600;">
@@ -191,7 +191,7 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
 
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
                 <a href="../login_selection.php" class="back-btn">
-                    <i class="fas fa-arrow-left"></i> Back to selection
+                    <i class="fas fa-arrow-left"></i> Back to Login Selection
                 </a>
             </div>
         </div>

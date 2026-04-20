@@ -200,14 +200,18 @@ require_once '../includes/_head.php';
 
             <div style="max-height:350px; overflow-y:auto; margin-bottom:15px;">
                 <?php foreach($cart_items as $item): 
-                    // 图片匹配逻辑: 尝试根据颜色名称匹配，如 "10_brown.jpg"
-                    $color_part = !empty($item['colour']) ? "_" . strtolower(trim($item['colour'])) : "";
-                    $pid = $item['product_id'];
-                    $img_with_color = $pid . $color_part . ".jpg";
-                    
-                    // 如果你的文件命名就是原本的 product_image，那保持原样，
-                    // 但你可以尝试让程序寻找特定的颜色图片
-                    $display_img = $item['product_image']; 
+                    // 图片匹配逻辑
+                    $imgs = explode(',', $item['product_image']);
+                    $display_img = trim($imgs[0]); 
+                    $user_color = strtolower(trim($item['colour'])); 
+                    if ($user_color !== '') {
+                        foreach ($imgs as $img) {
+                            if (strpos(strtolower(trim($img)), $user_color) !== false) {
+                                $display_img = trim($img); 
+                                break;
+                            }
+                        }
+                    }
                 ?>
                     <div class="sum-item">
                         <img src="../images/<?php echo $display_img; ?>" onerror="this.src='../images/default.jpg'">
@@ -296,11 +300,11 @@ require_once '../includes/_head.php';
         let ship = (after >= 100) ? 0 : 8.00;
         let final = after + ship;
 
-        // 免邮差额提示
         if(after < 100) {
             let diff = 100 - after;
             $('#ship_promo').show();
             $('#ship_promo_text').html("Add <b>RM " + diff.toFixed(2) + "</b> for Free Shipping!");
+            $('.add-btn').show();
         } else {
             $('#ship_promo').show();
             $('#ship_promo_text').html("✅ Free Shipping Unlocked!");

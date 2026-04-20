@@ -123,7 +123,7 @@ include $pxx_root . '/includes/_admin_head.php';
 
 <div id="pxxMain">
     <div class="cat-header">
-        <h1>Category Workspace</h1>
+        <h1>MyCategory CRUD</h1>
         <div style="display: flex; gap: 12px; align-items: center;">
             <div class="stat-badge">Total: <span id="totalCount" style="color:#22c55e;">0</span></div>
             <button onclick="refreshData(true)" class="btn-i" style="background:#fff; border:1px solid #e2e8f0;">🔄 Refresh</button>

@@ -159,7 +159,7 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
         </div>
 
         <div class="card-body">
-            <div class="welcome-text">Admin Access Required</div>
+            <div class="welcome-text">Welcome to Admin Portal!</div>
             
             <?php if(isset($_SESSION['error'])): ?>
                 <div style="background:#fff5f5; color:#dc2626; padding:15px; border-radius:10px; margin-bottom:25px; text-align:left; border: 1px solid #fee2e2;">
@@ -172,13 +172,13 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
                 
                 <div class="form-group">
                     <label>Admin Username</label>
-                    <input type="text" name="username" value="<?php echo htmlspecialchars($saved_user); ?>" placeholder="Enter username" required>
+                    <input type="text" name="username" value="<?php echo htmlspecialchars($saved_user); ?>" placeholder="Enter your username" required>
                 </div>
 
                 <div class="form-group">
                     <label>Password</label>
                     <div class="input-container">
-                        <input type="password" name="password" id="pw_main" placeholder="Enter password" required>
+                        <input type="password" name="password" id="pw_main" placeholder="Enter your password" required>
                         <i class="fas fa-eye toggle-pw" onclick="togglePassword('pw_main', this)"></i>
                     </div>
                 </div>

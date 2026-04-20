@@ -127,7 +127,7 @@ if (file_exists('../includes/_head.php')) { include('../includes/_head.php'); }
 
 <div class="pxx-main-container">
     <div class="pxx-card">
-        <h2 style="margin-top:0; text-align:center; letter-spacing:-1.5px;">Member Registration</h2>
+        <h2 style="margin-top:0; text-align:center; letter-spacing:-1.5px;">Member Sign-up</h2>
 
         <form action="" method="POST" id="pxxRegForm">
             <div class="pxx-field">
@@ -144,7 +144,7 @@ if (file_exists('../includes/_head.php')) { include('../includes/_head.php'); }
 
             <div class="pxx-field">
                 <label>Confirm Password</label>
-                <input type="password" id="f_conf" class="pxx-input" placeholder="Repeat password" required oninput="validateSecurity()">
+                <input type="password" id="f_conf" class="pxx-input" placeholder="Confirm password" required oninput="validateSecurity()">
                 <div id="pass-match-msg" class="msg-hint err-text">Passwords do not match.</div>
             </div>
 

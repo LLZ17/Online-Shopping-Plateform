@@ -299,7 +299,7 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
             <div class="nav-section-header"><i class="fas fa-user-circle"></i> My Account</div>
             <a href="?page=my_profile" class="nav-link-item <?php echo $active_page=='my_profile'?'active':''; ?>">My Profile</a>
             <a href="?page=addresses" class="nav-link-item <?php echo $active_page=='addresses'?'active':''; ?>">My Shipping Addresses</a>
-            <a href="?page=bank" class="nav-link-item <?php echo $active_page=='bank'?'active':''; ?>">My Bank Accounts / Cards</a>
+            <a href="add_bank.php" class="nav-link-item <?php echo $active_page=='bank'?'active':''; ?>">My Bank Accounts / Cards</a>
             <a href="?page=security" class="nav-link-item <?php echo $active_page=='security'?'active':''; ?>">My Account Security</a>
             
             <div style="margin-top: 50px;">
@@ -486,61 +486,67 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
 </div>
 
 <script>
-    /** 马来西亚行政区划数据 (JSON) */
-    const malaysiaRegions = {
-        "Johor": ["Johor Bahru", "Batu Pahat", "Kluang", "Muar", "Kulai", "Segamat", "Pontian", "Kota Tinggi", "Mersing", "Tangak"],
-        "Kedah": ["Alor Setar", "Sungai Petani", "Kulim", "Jitra", "Baling", "Langkawi", "Sik", "Yan", "Pokok Sena"],
-        "Kelantan": ["Kota Bharu", "Pasir Mas", "Tumpat", "Bachok", "Tanah Merah", "Pasir Puteh", "Machang", "Gua Musang", "Jeli"],
-        "Melaka": ["Melaka City", "Alor Gajah", "Jasin", "Ayer Keroh", "Batu Berendam", "Masjid Tanah"],
-        "Negeri Sembilan": ["Seremban", "Port Dickson", "Nilai", "Bahau", "Kuala Pilah", "Tampin", "Jelebu", "Rembau"],
-        "Pahang": ["Kuantan", "Temerloh", "Bentong", "Mentakab", "Raub", "Pekan", "Cameron Highlands", "Jerantut", "Lipis", "Rompin"],
-        "Perak": ["Ipoh", "Taiping", "Sitiawan", "Teluk Intan", "Sungai Siput", "Batu Gajah", "Kuala Kangsar", "Kampar", "Tapah"],
-        "Perlis": ["Kangar", "Arau", "Padang Besar", "Kuala Perlis"],
-        "Pulau Pinang": ["George Town", "Butterworth", "Bayan Lepas", "Bukit Mertajam", "Seberang Jaya", "Kepala Batas", "Nibong Tebal"],
-        "Sabah": ["Kota Kinabalu", "Sandakan", "Tawau", "Lahad Datu", "Keningau", "Putatan", "Donggongon", "Semporna", "Kudat"],
-        "Sarawak": ["Kuching", "Miri", "Sibu", "Bintulu", "Samarahan", "Serian", "Sarikei", "Sri Aman", "Kapit", "Mukah"],
-        "Selangor": ["Shah Alam", "Klang", "Subang Jaya", "Petaling Jaya", "Cyberjaya", "Rawang", "Kajang", "Puchong", "Semenyih", "Banting"],
-        "Terengganu": ["Kuala Terengganu", "Chukai", "Dungun", "Kerteh", "Kuala Berang", "Marang", "Besut", "Setiu"],
-        "Wilayah Persekutuan": ["Kuala Lumpur", "Putrajaya", "Labuan"]
-    };
-
+    /** * 从外部文件读取马来西亚行政区划数据 (state.json)
+     */
     document.addEventListener('DOMContentLoaded', function() {
         const stateSelect = document.getElementById('m_state');
         const citySelect = document.getElementById('m_city');
 
         if (!stateSelect) return;
 
-        // 初始化州列表
-        Object.keys(malaysiaRegions).forEach(state => {
-            if (state !== "<?php echo $u['State']; ?>") {
-                let opt = new Option(state, state);
-                stateSelect.add(opt);
-            }
-        });
+        // 获取当前数据库中保存的值，用于初始化
+        const initialST = "<?php echo d($u['State']); ?>";
+        const initialCT = "<?php echo d($u['City']); ?>";
 
-        // 根据预选 State 初始化 City
-        function updateCities(selectedState, preselectedCity = "") {
+        // 1. 发起 Fetch 请求读取 JSON 文件
+        fetch('../includes/state.json') // 请确保 state.json 和 profile.php 在同一目录下，或填写正确路径
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                const malaysiaRegions = data;
+
+                // 2. 初始化州列表 (State)
+                // 强制清空一次，防止 PHP 渲染的和 JSON 重复
+                stateSelect.innerHTML = '<option value="">Select State</option>';
+                
+                Object.keys(malaysiaRegions).forEach(state => {
+                    let opt = new Option(state, state);
+                    if (state === initialST) opt.selected = true; // 匹配数据库已有的州
+                    stateSelect.add(opt);
+                });
+
+                // 3. 根据初始州加载城市列表 (City)
+                if (initialST) {
+                    updateCities(malaysiaRegions, initialST, initialCT);
+                }
+
+                // 4. 绑定联动事件
+                stateSelect.addEventListener('change', function() {
+                    updateCities(malaysiaRegions, this.value);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading state.json:', error);
+                stateSelect.innerHTML = '<option value="">Error loading data</option>';
+            });
+
+        /** 城市更新函数 */
+        function updateCities(dataSource, selectedState, preselectedCity = "") {
             citySelect.innerHTML = '<option value="">Select City</option>';
-            if (malaysiaRegions[selectedState]) {
-                malaysiaRegions[selectedState].forEach(city => {
+            
+            if (dataSource[selectedState]) {
+                dataSource[selectedState].forEach(city => {
                     let opt = new Option(city, city);
                     if (city === preselectedCity) opt.selected = true;
                     citySelect.add(opt);
                 });
             }
         }
-
-        const initialST = "<?php echo $u['State']; ?>";
-        const initialCT = "<?php echo $u['City']; ?>";
-        if (initialST) updateCities(initialST, initialCT);
-
-        // 联动事件
-        stateSelect.addEventListener('change', function() {
-            updateCities(this.value);
-        });
     });
 
-    /** 处理头像删除 */
+    /** 处理头像删除逻辑 */
     function triggerPhotoDelete() {
         if(confirm('Warning: Remove your current photo and use default?')) {
             document.getElementById('displayAvatarImg').src = '../images/default.jpg';

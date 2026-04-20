@@ -24,18 +24,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_email'])) {
 
     // A. 检查是否和旧 Email 一样
     if ($new_email === $old_email) {
-        $error_msg = "Error:The new email address cannot be the same as the current email address！";
+        $error_msg = "Error: The new email address cannot be the same as the current email address!";
     } 
-    // B. 检查域名限制 (允许 common domains 和 .edu)
+    // B. 检查域名限制
     else {
         $allowed_domains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'];
         $domain = substr(strrchr($new_email, "@"), 1);
         
-        // 逻辑：如果在允许名单里，或者是以 .edu 结尾的域名，则通过
         $is_edu = (substr($domain, -4) === '.edu' || str_contains($domain, '.edu.')); 
         
         if (!in_array($domain, $allowed_domains) && !$is_edu) {
-            $error_msg = "Error:This email domain is not currently supported. Please use Gmail, Outlook, or your school's (.edu) email address!";
+            $error_msg = "Error: This email domain is not currently supported. Please use Gmail, Outlook, or your school's (.edu) email address!";
         }
     }
 
@@ -47,11 +46,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_email'])) {
             $success = $email_update->execute([$new_email, $_SESSION['user_id']]);
 
             if ($success) {
-                header("Location: profile.php?page=security");
+                echo "<script>
+                        alert('✅ Email has been updated. Please verify your new email.');
+                        window.location.href = 'profile.php?page=security';
+                      </script>";
                 exit();
             }
         } catch (PDOException $e) {
-            $error_msg = "更新失败：" . $e->getMessage();
+            $error_msg = "Update failed: " . $e->getMessage();
         }
     }
 }
@@ -61,9 +63,9 @@ require_once __DIR__ . '/../includes/_head.php';
 ?>
 
 <style>
-    /* 1. 页面大框架 */
+    /* 1. 页面背景 */
     body {
-        /* 在这里修改你的背景图路径 */
+        /* 在这里替换你的背景图链接 */
         background-image: url('../images/bg.jpeg'); 
         background-size: cover;
         background-position: center;
@@ -71,41 +73,107 @@ require_once __DIR__ . '/../includes/_head.php';
         margin: 0;
     }
 
-    h1 {
-        margin-bottom: 25px;
-        padding-bottom: 15px;
-        color: #333;
-        border-bottom: 2px solid #e60012;
+    /* 2. 居中容器 */
+    .edit-email-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        padding: 20px;
     }
-    
+
+    /* 3. 透明卡片 */
+    .email-card {
+        max-width: 480px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.95); /* 半透明白色 */
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    h1 {
+        color: #1a1a1a;
+        font-size: 22px;
+        margin-bottom: 25px;
+        border-bottom: 2px solid #e60012;
+        padding-bottom: 12px;
+        display: inline-block;
+    }
+
+    .email-input {
+        width: 100%;
+        padding: 12px;
+        margin: 20px 0;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        box-sizing: border-box;
+    }
+
+    .btn-submit {
+        background: #e60012;
+        color: #fff;
+        padding: 14px;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        width: 100%;
+        font-size: 16px;
+        transition: 0.2s;
+    }
+
+    .btn-submit:hover {
+        background: #333;
+    }
+
+    .btn-cancel {
+        display: block;
+        margin-top: 20px;
+        color: #999;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    .btn-cancel:hover {
+        text-decoration: underline;
+        color: #e60012;
+    }
+
+    .error-alert {
+        padding: 12px;
+        background: #fff1f0;
+        color: #f5222d;
+        border: 1px solid #ffa39e;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
 </style>
 
-<head>
-    <link rel = "stylesheet" href = "../css/app.css">
-</head>
+<div class="edit-email-wrapper">
+    <div class="email-card">
+        <h1>📧 Changing Email</h1>
 
+        <?php if (!empty($error_msg)): ?>
+            <div class="error-alert"><?php echo $error_msg; ?></div>
+        <?php endif; ?>
 
-<div class="cart-container">
-    <h1>📧 Changing Email Address</h1>
-
-    <?php if (!empty($error_msg)): ?>
-        <div class="error-alert"><?php echo $error_msg; ?></div>
-    <?php endif; ?>
-
-    <form action="edit_email.php" method="POST">
-        <label for="email" class="card-flex">Enter Your New Email Address:</label>
-        
-        <div class="card-flex">
-            <input type="email" id="email" name="update_email" class="email-input" 
-                   placeholder="Example: user@example.com" 
+        <form action="edit_email.php" method="POST">
+            <p style="color: #666; font-size: 14px;">Enter your new email address:</p>
+            
+            <input type="email" name="update_email" class="email-input" 
+                   placeholder="Example: user@gmail.com" 
                    value="<?php echo isset($_POST['update_email']) ? htmlspecialchars($_POST['update_email']) : ''; ?>"
                    autofocus required>
-        </div>
-        <div>
-            <button type="button" class="btn-cancel"><a href="profile.php?page=security">Cancel</a></button>
-            <button type="submit" class="btn-submit">Update</button>
-        </div>
-    </form>
+
+            <button type="submit" class="btn-submit">Update Email</button>
+        </form>
+
+        <a href="profile.php?page=security" class="btn-cancel">Cancel and Go Back</a>
+    </div>
 </div>
 
 <?php require_once '../includes/_foot.php'; ?>

@@ -1,235 +1,355 @@
 <?php
+ob_start();
 session_start();
-require_once 'includes/db.php';
-require_once 'includes/_head.php';
+require_once '../includes/db.php';
 
-// --- 1. 获取所有参数 ---
-$search = isset($_GET['query']) ? trim($_GET['query']) : '';
-// 兼容 category 和 gender_type 两种参数，确保首页跳转和下拉菜单都有效
-$gender_filter = isset($_GET['gender_type']) ? $_GET['gender_type'] : (isset($_GET['category']) ? $_GET['category'] : '');
-$sort = isset($_GET['sort']) ? $_GET['sort'] : '';
+// --- 1. 逻辑处理层 (必须在最顶部) ---
 
-$sql = "SELECT * FROM products WHERE 1=1";
-$params = [];
-
-// --- 2. 核心逻辑：精准区分 Men 和 Women，防止混淆 ---
-if (!empty($gender_filter)) {
-    // 精准性别匹配
-    if (stripos($gender_filter, 'Women') !== false) {
-        $sql .= " AND product_id LIKE 'W%'";
-    } elseif (stripos($gender_filter, 'Men') !== false) {
-        $sql .= " AND product_id LIKE 'M%'";
+// 处理 AJAX Voucher 验证
+if (isset($_POST['ajax']) && $_POST['ajax'] === 'check_v') {
+    $code = $_POST['code'] ?? '';
+    $subtotal = $_POST['subtotal'] ?? 0;
+    $stmt = $pdo->prepare("SELECT * FROM vouchers WHERE code = ? AND min_spend <= ?");
+    $stmt->execute([$code, $subtotal]);
+    $v = $stmt->fetch();
+    if ($v) {
+        echo json_encode([
+            'success' => true, 
+            'id' => $v['voucher_id'], 
+            'method' => $v['discount_method'], 
+            'val' => $v['discount_value']
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Invalid code or min spend not met']);
     }
-
-    // 分类匹配
-    if (stripos($gender_filter, 'Shirt') !== false) {
-        $sql .= " AND (name LIKE ? OR keywords LIKE ?)";
-        $params[] = "%shirt%"; $params[] = "%shirt%";
-    } elseif (stripos($gender_filter, 'Pants') !== false) {
-        $sql .= " AND (name LIKE ? OR keywords LIKE ? OR name LIKE ?)";
-        $params[] = "%pants%"; $params[] = "%pants%"; $params[] = "%skirt%";
-    } elseif (stripos($gender_filter, 'Others') !== false) {
-        // Others 逻辑：排除常见的 Shirt, Pants, Skirt
-        $sql .= " AND (name NOT LIKE ? AND name NOT LIKE ? AND name NOT LIKE ?)";
-        $params[] = "%shirt%"; $params[] = "%pants%"; $params[] = "%skirt%";
-    }
+    exit;
 }
 
-// --- 3. 搜索框逻辑 ---
-if (!empty($search)) {
-    $sql .= " AND (name LIKE ? OR keywords LIKE ? OR description LIKE ?)";
-    $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%";
+// 登录检查
+if (!isset($_SESSION['user_id'])) { 
+    header('Location: ../login.php'); 
+    exit(); 
 }
+$user_id = $_SESSION['user_id'];
 
-// --- 4. 排序逻辑 ---
-if ($sort == 'price_low') { 
-    $sql .= " ORDER BY price ASC"; 
-} elseif ($sort == 'price_high') { 
-    $sql .= " ORDER BY price DESC"; 
-} else { 
-    $sql .= " ORDER BY product_id DESC"; 
+// 获取用户信息
+$u_stmt = $pdo->prepare("SELECT real_name, email, phone_num, address, postcode, city, state, points, bank_name FROM users WHERE user_id = ?");
+$u_stmt->execute([$user_id]);
+$user = $u_stmt->fetch();
+
+// 获取购物车选中的 IDs
+$ids_str = $_GET['ids'] ?? '';
+if (empty($ids_str)) {
+    echo "<script>alert('No items selected!'); window.location.href='../cart/unified_cart.php';</script>";
+    exit();
 }
+$ids_array = explode(',', $ids_str);
+$placeholders = implode(',', array_fill(0, count($ids_array), '?'));
 
+// 获取选中的商品详情
+$sql = "SELECT c.cart_id, c.product_id, c.quantity, c.selected_size, c.colour, p.name, p.price, p.product_image 
+        FROM cart c 
+        JOIN products p ON c.product_id = p.product_id 
+        WHERE c.cart_id IN ($placeholders) AND c.user_id = ?";
 $stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$products = $stmt->fetchAll();
+$stmt->execute(array_merge($ids_array, [$user_id]));
+$cart_items = $stmt->fetchAll();
+
+if (empty($cart_items)) { header('Location: ../cart/unified_cart.php'); exit(); }
+
+// 计算初始 Subtotal
+$subtotal_raw = 0;
+foreach ($cart_items as $item) {
+    $subtotal_raw += $item['price'] * $item['quantity'];
+}
+
+// 获取可用优惠券
+$v_stmt = $pdo->prepare("SELECT * FROM vouchers WHERE min_spend <= ?");
+$v_stmt->execute([$subtotal_raw]);
+$available_vouchers = $v_stmt->fetchAll();
+
+// 积分计算 (100积分 = RM 1.00)
+$user_points = $user['points'] ?? 0;
+$auto_points_used = min($user_points, floor($subtotal_raw * 100));
+$points_discount = $auto_points_used / 100;
+
+// 【关键：Reward Point 奖励计算】
+// 消费 RM 1 获得 1 积分奖励
+$points_earned = floor($subtotal_raw);
+
+// 处理订单提交
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
+    // 准备存入 Session 的数据供 ToyyibPay 使用
+    $_SESSION['pending_order_data'] = [
+        'user_id' => $user_id,
+        'cart_ids' => $ids_array,
+        'items' => $cart_items,
+        'total_price' => $_POST['final_amount'],
+        'bank_name' => $user['bank_name'],
+        'voucher_id' => $_POST['applied_v_id'],
+        'voucher_discount_amount' => $_POST['applied_v_amt'],
+        'points_used' => $auto_points_used,
+        'points_discount_amount' => $points_discount,
+        'points_earned' => $points_earned, // 存入奖励积分
+        'email' => $_POST['email']
+    ];
+    header('Location: toyyibpay_payment.php');
+    exit();
+}
+
+require_once '../includes/_head.php';
 ?>
 
 <style>
-    .products-container { max-width: 1200px; margin: 20px auto; padding: 0 15px; font-family: 'Arial', sans-serif; background: #fff; }
+    :root { --px-red: #e60012; --px-green: #2e7d32; }
+    .co-wrapper { max-width: 1200px; margin: 30px auto; display: flex; gap: 40px; padding: 0 20px; font-family: sans-serif; }
+    .co-left { flex: 2.6; } 
+    .co-right { flex: 1.4; } 
+    .co-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); margin-bottom: 25px; border: 1px solid #f0f0f0; }
+    .co-label { font-size: 11px; color: #aaa; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px; }
+    .co-data { background: #fbfbfb; padding: 15px; border-radius: 12px; border: 1px solid #eee; font-size: 16px; margin-bottom: 20px; color: #333; }
     
-    /* 筛选栏 */
-    .filter-section { display: flex; gap: 15px; margin-bottom: 30px; justify-content: center; flex-wrap: wrap; }
-    .filter-select { padding: 12px; border: 1px solid #ccc; border-radius: 6px; min-width: 250px; font-size: 16px; }
+    /* Voucher 样式 */
+    .v-tabs { display: flex; gap: 10px; margin-bottom: 12px; }
+    .v-btn { flex: 1; padding: 12px; border: 1px solid #ddd; background: #fff; cursor: pointer; border-radius: 10px; font-weight: 600; font-size: 13px; }
+    .v-btn.active { background: #000; color: #fff; border-color: #000; }
+    .v-pane { display: none; padding: 15px; background: #f8f8f8; border-radius: 12px; }
+    .v-pane.active { display: block; }
 
-    /* 网格 */
-    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 30px; }
+    /* 商品行 */
+    .sum-item { display: flex; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f5f5f5; align-items: center; }
+    .sum-item img { width: 85px; height: 110px; object-fit: cover; border-radius: 8px; background: #f0f0f0; }
     
-    /* 产品卡片 */
-    .product-card { background: #fff; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; border: 1px solid #f0f0f0; }
+    /* 积分与优惠提示 */
+    .pts-row { display: flex; justify-content: space-between; align-items: center; background: #fff9e6; padding: 15px; border-radius: 12px; border: 1px solid #ffeeba; margin-bottom: 12px; font-weight: bold; color: var(--px-green); }
+    .reward-box { background: #e8f5e9; border: 1px solid #c8e6c9; padding: 12px; border-radius: 12px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; color: var(--px-green); font-weight: bold; font-size: 14px; }
+    .ship-promo-box { background: #fff0f1; border: 1px dashed var(--px-red); padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .add-btn { background: var(--px-red); color: white; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 800; }
     
-    /* 图片区域 & Wishlist 悬停效果 */
-    .card-img-container { width: 100%; height: 320px; background: #f9f9f9; position: relative; overflow: hidden; }
-    .card-img-container img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
-    
-    .wishlist-overlay { 
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center;
-        opacity: 0; transition: 0.3s; z-index: 2;
-    }
-    .card-img-container:hover .wishlist-overlay { opacity: 1; }
-    .card-img-container:hover img { transform: scale(1.05); }
-
-    .wishlist-btn { 
-        background: #fff; color: #333; border: none; padding: 12px 24px; 
-        border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 16px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .wishlist-btn:hover { background: #e60012; color: #fff; }
-
-    /* 内容区域 */
-    .card-content { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-    
-    .product-title { font-size: 20px; font-weight: bold; color: #333; text-decoration: none; height: 48px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.2; }
-
-    .product-price { color: #e60012; font-size: 26px; font-weight: 900; }
-
-    .pts-badge { background: #fff8e1; color: #ffa000; font-size: 16px; padding: 5px 12px; border-radius: 6px; font-weight: bold; align-self: flex-start; }
-
-    /* 库存状态 */
-    .stock-status { font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 5px; }
-    .instock { color: #2e7d32; }
-    .lowstock { color: #d32f2f; }
-    .outstock { color: #9e9e9e; }
-
-    /* 评分和销量 */
-    .meta-row { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f5f5f5; padding-top: 10px; margin-top: 5px; }
-    .rating-box { color: #ffa000; font-size: 20px; font-weight: bold; display: flex; align-items: center; gap: 4px; }
-    .sold-box { color: #888; font-size: 18px; }
-
-    /* Add to Cart 按钮 */
-    .btn-add { width: 100%; background: #000; color: #fff; border: none; padding: 15px; border-radius: 8px; font-size: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
-    .btn-add:hover { background: #333; }
-    .btn-add:disabled { background: #ccc; cursor: not-allowed; }
+    .pay-btn { width: 100%; background: var(--px-red); color: white; padding: 18px; border: none; border-radius: 15px; font-size: 22px; font-weight: 900; cursor: pointer; margin-top: 15px; }
+    .info-note { font-size: 12px; color: var(--px-red); margin-top: -10px; margin-bottom: 20px; font-weight: 600; }
 </style>
 
-<div class="products-container">
-    <form method="GET" action="ViewAllProduct.php" class="filter-section">
-        <?php if($search): ?> <input type="hidden" name="query" value="<?php echo htmlspecialchars($search); ?>"> <?php endif; ?>
-        
-        <select name="gender_type" class="filter-select" onchange="this.form.submit()">
-            <option value="" disabled <?php echo empty($gender_filter) ? 'selected' : ''; ?>>Select Gender & Type...</option>
-            <option value="">All Categories</option>
-            <optgroup label="Men">
-                <option value="Men - Shirt" <?php echo $gender_filter == 'Men - Shirt' ? 'selected' : ''; ?>>Men's Shirt</option>
-                <option value="Men - Pants" <?php echo $gender_filter == 'Men - Pants' ? 'selected' : ''; ?>>Men's Pants</option>
-                <option value="Men - Others" <?php echo $gender_filter == 'Men - Others' ? 'selected' : ''; ?>>Men's Others</option>
-            </optgroup>
-            <optgroup label="Women">
-                <option value="Women - Shirt" <?php echo $gender_filter == 'Women - Shirt' ? 'selected' : ''; ?>>Women's Shirt</option>
-                <option value="Women - Pants and Skirt" <?php echo $gender_filter == 'Women - Pants and Skirt' ? 'selected' : ''; ?>>Women's Pants & Skirt</option>
-                <option value="Women - Others" <?php echo $gender_filter == 'Women - Others' ? 'selected' : ''; ?>>Women's Others</option>
-            </optgroup>
-        </select>
+<div class="co-wrapper">
+    <div class="co-left">
+        <div class="co-card">
+            <h2 style="margin-top:0; font-size: 26px;">Recipient Details</h2>
+            <hr style="border:0; border-top:1px solid #eee; margin-bottom:25px;">
 
-        <select name="sort" class="filter-select" onchange="this.form.submit()">
-            <option value="">Sort By Price</option>
-            <option value="price_low" <?php echo $sort == 'price_low' ? 'selected' : ''; ?>>Price: Low to High</option>
-            <option value="price_high" <?php echo $sort == 'price_high' ? 'selected' : ''; ?>>Price: High to Low</option>
-        </select>
-    </form>
-
-    <div class="products-grid">
-        <?php foreach($products as $product): 
-            // 1. 图片处理
-            $images = preg_split('/[\s,]+/', $product['product_image']);
-            $display_img = (!empty($images[0])) ? $images[0] : 'default.jpg';
-            foreach($images as $img) { if(stripos($img, 'main') !== false) { $display_img = $img; break; } }
-
-            // 2. 销量处理 (解决 5k 报错)
-            $sold_raw = $product['sales_count'] ?? 0;
-            $sold_display = is_numeric($sold_raw) ? number_format((float)$sold_raw) : $sold_raw;
-
-            // 3. 库存处理
-            $stk = (int)$product['stock'];
-            if($stk <= 0) { 
-                $stk_class = 'outstock'; $stk_txt = "✗ Out of Stock"; 
-            } elseif($stk <= 10) { 
-                $stk_class = 'lowstock'; $stk_txt = "⚠ Low Stock ($stk)"; 
-            } else { 
-                $stk_class = 'instock'; $stk_txt = "✓ In Stock ($stk)"; 
-            }
-        ?>
-        <div class="product-card">
-            <div class="card-img-container">
-                <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>">
-                    <img src="images/<?php echo htmlspecialchars($display_img); ?>" onerror="this.src='images/default.jpg'">
-                </a>
-                <div class="wishlist-overlay">
-                    <button class="wishlist-btn" onclick="addToWishlist('<?php echo $product['product_id']; ?>')">♡ Add to Wishlist</button>
+            <form id="orderForm" method="POST">
+                <div style="display:flex; gap:20px;">
+                    <div style="flex:1;">
+                        <span class="co-label">Full Name</span>
+                        <div class="co-data"><?php echo htmlspecialchars($user['real_name']); ?></div>
+                    </div>
+                    <div style="flex:1;">
+                        <span class="co-label">Phone</span>
+                        <div class="co-data"><?php echo htmlspecialchars($user['phone_num']); ?></div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="card-content">
-                <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>" class="product-title">
-                    <?php echo htmlspecialchars($product['name']); ?>
-                </a>
+                <span class="co-label">Shipping Address</span>
+                <div class="co-data" style="min-height:50px;"><?php echo htmlspecialchars($user['address'] . ', ' . $user['postcode'] . ' ' . $user['city'] . ', ' . $user['state']); ?></div>
                 
-                <div class="product-price">RM <?php echo number_format($product['price'], 2); ?></div>
-                <div class="pts-badge">🎁 +<?php echo floor($product['price']); ?> pts</div>
-                <div class="stock-status <?php echo $stk_class; ?>"><?php echo $stk_txt; ?></div>
+                <div class="info-note">⚠️ Wrong info? Please edit in <a href="../memberProfile/edit_profile.php" style="color:var(--px-red); text-decoration:underline;">Profile Settings</a>.</div>
 
-                <div class="meta-row">
-                    <div class="rating-box">⭐ <?php echo number_format((float)($product['rating'] ?? 5), 1); ?></div>
-                    <div class="sold-box">Sold <?php echo $sold_display; ?></div>
+                <span class="co-label">E-Receipt Email</span>
+                <input type="email" name="email" class="co-data" style="width:100%; box-sizing:border-box;" value="<?php echo htmlspecialchars($user['email']); ?>" required>
+
+                <span class="co-label">Preferred Bank</span>
+                <div class="co-data" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>🏦 <?php echo htmlspecialchars($user['bank_name'] ?: 'Not Set'); ?></span>
+                    <a href="../memberProfile/edit_profile.php" style="color:var(--px-red); font-size:12px; font-weight:bold; text-decoration:none;">EDIT</a>
                 </div>
 
-                <button class="btn-add add-to-cart" data-id="<?php echo $product['product_id']; ?>" <?php echo $stk <= 0 ? 'disabled' : ''; ?>>
-                    Add to Cart
-                </button>
-            </div>
+                <span class="co-label">Voucher Options</span>
+                <div class="v-tabs">
+                    <button type="button" class="v-btn active" id="btn_t0" onclick="switchTab(0)">Enter Code</button>
+                    <button type="button" class="v-btn" id="btn_t1" onclick="switchTab(1)">My Vouchers</button>
+                </div>
+
+                <div id="pane_0" class="v-pane active">
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="code_input" class="v-btn" style="flex:2; text-align:left; cursor:text;" placeholder="Enter Promo Code">
+                        <button type="button" class="v-btn active" style="flex:1;" onclick="ajaxApplyCode()">Apply</button>
+                    </div>
+                </div>
+
+                <div id="pane_1" class="v-pane">
+                    <select id="v_select" class="v-btn" style="width:100%; text-align:left;" onchange="applyVSelect()">
+                        <option value="0">-- Select from your list --</option>
+                        <?php foreach($available_vouchers as $v): ?>
+                            <option value="<?php echo $v['voucher_id']; ?>" data-val="<?php echo $v['discount_value']; ?>" data-method="<?php echo $v['discount_method']; ?>">
+                                <?php echo htmlspecialchars($v['code']); ?> (RM <?php echo $v['discount_value']; ?> <?php echo $v['discount_method'] == '*' ? '%' : 'Off'; ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div id="v_msg" style="margin-top:8px; font-size:12px; font-weight:bold;"></div>
+
+                <p style="font-size: 13px; color: #666; margin-top: 20px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid var(--px-red);">
+                    📧 E-Receipt will be sent to: <strong><?php echo htmlspecialchars($user['email']); ?></strong>
+                </p>
+
+                <input type="hidden" name="applied_v_id" id="h_v_id">
+                <input type="hidden" name="applied_v_amt" id="h_v_amt" value="0">
+                <input type="hidden" name="final_amount" id="h_final">
+                <input type="hidden" name="place_order" value="1">
+            </form>
         </div>
-        <?php endforeach; ?>
+    </div>
+
+    <div class="co-right">
+        <div class="co-card">
+            <h3 style="margin-top:0;">Order Summary</h3>
+            
+            <div id="ship_promo" class="ship-promo-box">
+                <span id="ship_promo_text" style="font-size:13px; color:var(--px-red); font-weight:600;"></span>
+                <a href="../cart/unified_cart.php" class="add-btn">ADD</a>
+            </div>
+
+            <div class="reward-box">
+                <span>✨ You will earn <span style="font-size:18px;"><?php echo $points_earned; ?></span> Reward Points!</span>
+            </div>
+
+            <div style="max-height:350px; overflow-y:auto; margin-bottom:15px;">
+                <?php foreach($cart_items as $item): 
+                    // 【关键：图片动态匹配逻辑】
+                    $imgs = explode(',', $item['product_image']);
+                    $display_img = trim($imgs[0]); 
+                    $user_color = strtolower(trim($item['colour'])); 
+                    if ($user_color !== '') {
+                        foreach ($imgs as $img) {
+                            if (strpos(strtolower(trim($img)), $user_color) !== false) {
+                                $display_img = trim($img); 
+                                break;
+                            }
+                        }
+                    }
+                ?>
+                    <div class="sum-item">
+                        <img src="../images/<?php echo $display_img; ?>" onerror="this.src='../images/default.jpg'">
+                        <div style="flex:1;">
+                            <div style="font-weight:700; font-size:14px;"><?php echo htmlspecialchars($item['name']); ?></div>
+                            <div style="font-size:12px; color:#888;">
+                                Size: <?php echo htmlspecialchars($item['selected_size']); ?> | Color: <?php echo htmlspecialchars($item['colour']); ?>
+                            </div>
+                            <div style="font-weight:bold; font-size:14px; margin-top:5px; display:flex; justify-content:space-between;">
+                                <span>RM <?php echo number_format($item['price'], 2); ?> x <?php echo $item['quantity']; ?></span>
+                                <span style="color:#000;">RM <?php echo number_format($item['price'] * $item['quantity'], 2); ?></span>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="pts-row">
+                <span>Points Discount</span>
+                <span>- RM <?php echo number_format($points_discount, 2); ?></span>
+            </div>
+
+            <div style="padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color:#666;">Subtotal</span>
+                    <span style="font-weight:600;">RM <?php echo number_format($subtotal_raw, 2); ?></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color:#666;">Voucher Discount</span>
+                    <span id="v_amt_ui" style="color:var(--px-red); font-weight:bold;">- RM 0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color:#666;">Shipping Fee</span>
+                    <span id="ship_ui" style="font-weight:600;">RM 8.00</span>
+                </div>
+            </div>
+            
+            <hr style="border:0; border-top:2px dashed #eee; margin:15px 0;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <span style="font-weight:bold; font-size:16px;">Total Amount:</span>
+                <span id="total_ui" style="font-size:28px; font-weight:900; color:var(--px-red);">RM 0.00</span>
+            </div>
+
+            <button type="submit" form="orderForm" class="pay-btn">Pay RM <span id="btn_amt">0.00</span></button>
+            <a href="../cart/unified_cart.php" style="display:block; text-align:center; margin-top:15px; color:#888; text-decoration:none; font-size:14px;">Cancel & Return to Cart</a>
+        </div>
     </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-// Wishlist 函数
-function addToWishlist(id) {
-    $.ajax({
-        url: 'wishlist_add.php', // 确保你有这个后台处理文件
-        method: 'POST',
-        data: { product_id: id },
-        success: function() {
-            alert('Added to wishlist successfully!');
-        }
-    });
-}
+    const subtotal = <?php echo $subtotal_raw; ?>;
+    const ptDisc = <?php echo $points_discount; ?>;
+    let vDisc = 0;
 
-$(document).ready(function() {
-    // Add to Cart 函数
-    $('.add-to-cart').on('click', function() {
-        var pid = $(this).data('id');
-        var $btn = $(this);
-        $btn.text('Adding...');
-        
-        $.ajax({
-            url: 'memberProducts/add.php',
-            method: 'POST',
-            data: { product_id: pid, quantity: 1 },
-            dataType: 'json',
-            success: function(res) {
-                alert('Added to cart!');
-                $btn.text('Add to Cart');
-            },
-            error: function() {
-                alert('Added to cart!'); // 即使后端没返回 JSON 只要逻辑执行了也算成功
-                $btn.text('Add to Cart');
+    function switchTab(t) {
+        $('.v-btn').removeClass('active'); $('#btn_t' + t).addClass('active');
+        $('.v-pane').removeClass('active'); $('#pane_' + t).addClass('active');
+        // 切换标签重置 Voucher
+        vDisc = 0; $('#h_v_id').val(''); $('#h_v_amt').val(0); $('#v_msg').text('');
+        calc();
+    }
+
+    function ajaxApplyCode() {
+        let code = $('#code_input').val();
+        if(!code) return;
+        $.post('checkout.php', { ajax: 'check_v', code: code, subtotal: subtotal }, function(response) {
+            let res = JSON.parse(response);
+            if(res.success) {
+                vDisc = (res.method === '-') ? parseFloat(res.val) : subtotal * (parseFloat(res.val)/100);
+                $('#h_v_id').val(res.id); $('#h_v_amt').val(vDisc.toFixed(2));
+                $('#v_msg').css('color','green').text('Success: Voucher applied!');
+                calc();
+            } else {
+                $('#v_msg').css('color','red').text(res.message);
+                vDisc = 0; calc();
             }
         });
+    }
+
+    function applyVSelect() {
+        let opt = $('#v_select option:selected');
+        if(opt.val() == "0") {
+            vDisc = 0; $('#h_v_id').val('');
+        } else {
+            let val = parseFloat(opt.data('val'));
+            let method = opt.data('method');
+            vDisc = (method === '-') ? val : subtotal * (val/100);
+            $('#h_v_id').val(opt.val());
+        }
+        $('#h_v_amt').val(vDisc.toFixed(2));
+        calc();
+    }
+
+    function calc() {
+        let after = subtotal - ptDisc - vDisc;
+        if(after < 0) after = 0;
+        
+        let ship = (after >= 100) ? 0 : 8.00;
+        let final = after + ship;
+
+        // 更新免邮提示
+        if(after < 100) {
+            let diff = 100 - after;
+            $('#ship_promo').show();
+            $('#ship_promo_text').html("Add <b>RM " + diff.toFixed(2) + "</b> for Free Shipping!");
+            $('.add-btn').show();
+        } else {
+            $('#ship_promo').show();
+            $('#ship_promo_text').html("✅ Free Shipping Unlocked!");
+            $('.add-btn').hide();
+        }
+
+        // 更新 UI
+        $('#v_amt_ui').text('- RM ' + vDisc.toFixed(2));
+        $('#ship_ui').text(ship === 0 ? 'FREE' : 'RM ' + ship.toFixed(2));
+        $('#total_ui').text('RM ' + final.toFixed(2));
+        $('#btn_amt').text(final.toFixed(2));
+        $('#h_final').val(final.toFixed(2));
+    }
+
+    $(document).ready(function(){
+        calc();
     });
-});
 </script>
 
-<?php require_once 'includes/_foot.php'; ?>
+<?php require_once '../includes/_foot.php'; ob_end_flush(); ?>
