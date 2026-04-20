@@ -127,22 +127,22 @@ require_once '../includes/_head.php';
 <div class="co-wrapper">
     <div class="co-left">
         <div class="co-card">
-            <h2>Shipping & Recipient</h2>
+            <h2>Shipping Details</h2>
             <hr style="border:0; border-top:1px solid #eee; margin-bottom:30px;">
 
-            <span class="co-label">Full Name</span>
+            <span class="co-label">Full Name:</span>
             <div class="co-data"><?php echo htmlspecialchars($user['real_name']); ?></div>
 
-            <span class="co-label">Contact Number</span>
+            <span class="co-label">Contact Number:</span>
             <div class="co-data"><?php echo htmlspecialchars($user['phone_num']); ?></div>
 
-            <span class="co-label">Shipping Address</span>
+            <span class="co-label">Shipping Address:</span>
             <div class="co-data">
                 <?php 
                     $addr = trim($user['address'] ?? '');
-                    $post = trim($user['postcode'] ?? '');
-                    $city = trim($user['city'] ?? '');
-                    $stat = trim($user['state'] ?? '');
+                    $post = trim($user['Postcode'] ?? '');
+                    $city = trim($user['City'] ?? '');
+                    $stat = trim($user['State'] ?? '');
                     
                     $full = $addr;
                     if($post) $full .= ", " . $post;
@@ -153,20 +153,20 @@ require_once '../includes/_head.php';
             </div>
 
             <div class="wrong-info-box">
-                <span>⚠️ Wrong info? Please edit in <a href="../memberProfile/edit_profile.php">Profile Settings</a>.</span>
+                <span>⚠️ Wrong shipping detail? Please change in <a href="../member/profile.php">My Account</a>.</span>
             </div>
 
             <form id="orderForm" method="POST" action="">
-                <span class="co-label">E-Receipt Destination</span>
+                <span class="co-label">Email Address:</span>
                 <input type="email" name="email" id="email_input" class="co-data" style="width:100%; box-sizing:border-box;" value="<?php echo htmlspecialchars($user['email']); ?>" required>
 
                 <div class="receipt-info-box">
-                    <span>📧 E-Receipt will be sent to: <strong id="email_display"><?php echo htmlspecialchars($user['email']); ?></strong></span>
+                    <span>📧 E-Receipt will be sent automatically to: <strong id="email_display"><?php echo htmlspecialchars($user['email']); ?></strong></span>
                 </div>
 
-                <h3 style="margin-top:40px;">Discounts & Vouchers</h3>
+                <h3 style="margin-top:40px;">Vouchers</h3>
                 <div class="v-tabs">
-                    <button type="button" class="v-tab-btn active" onclick="switchTab(0)">Manual Code</button>
+                    <button type="button" class="v-tab-btn active" onclick="switchTab(0)">My Code</button>
                     <button type="button" class="v-tab-btn" onclick="switchTab(1)">My Vouchers</button>
                 </div>
 
@@ -202,7 +202,7 @@ require_once '../includes/_head.php';
             <div class="ship-prog-container">
                 <div class="ship-prog-header">
                     <span id="shipping_msg" style="font-size:13px; font-weight:700;"></span>
-                    <a href="../product/product_list.php" style="color:var(--px-red); font-size:12px; font-weight:800; text-decoration:none;">Continue Shopping ></a>
+                    <a href="../ViewAllProduct.php" style="color:var(--px-red); font-size:12px; font-weight:800; text-decoration:none;">Continue Shopping ></a>
                 </div>
                 <div class="ship-prog-bar"><div id="shipping_bar" class="ship-prog-fill"></div></div>
             </div>
@@ -228,28 +228,28 @@ require_once '../includes/_head.php';
             </div>
 
             <div class="reward-banner" style="margin-top:25px;">
-                <span>🎁 Earn <b style="color:#e65100;"><?php echo $points_earned; ?></b> reward points</span>
+                <span>🎁 This order will earn <b style="color:#e65100;"><?php echo $points_earned; ?></b> reward points!</span>
             </div>
 
             <div class="pts-discount-bar">
-                <span>Points Discount</span><span>- RM <?php echo number_format($points_discount, 2); ?></span>
+                <span>Points Discount:</span><span>- RM <?php echo number_format($points_discount, 2); ?></span>
             </div>
 
             <div style="line-height:2.2; font-size:15px;">
-                <div style="display:flex; justify-content:space-between;"><span>Subtotal</span><b>RM <?php echo number_format($subtotal_raw, 2); ?></b></div>
-                <div style="display:flex; justify-content:space-between; color:var(--px-red);"><span>Voucher Discount</span><span id="v_amt_ui">- RM 0.00</span></div>
-                <div style="display:flex; justify-content:space-between;"><span>Shipping Fee</span><span id="ship_ui">RM 8.00</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>Subtotal:</span><b>RM <?php echo number_format($subtotal_raw, 2); ?></b></div>
+                <div style="display:flex; justify-content:space-between; color:var(--px-red);"><span>Voucher Discount:</span><span id="v_amt_ui">- RM 0.00</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>Shipping Fee:</span><span id="ship_ui">RM 8.00</span></div>
             </div>
 
             <hr style="border:0; border-top:2px dashed #eee; margin:20px 0;">
             <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <span style="font-weight:800;">Total Payable</span>
+                <span style="font-weight:800;">Total Payable:</span>
                 <span id="total_ui" style="font-size:32px; font-weight:900; color:var(--px-red);">RM 0.00</span>
             </div>
 
             <div style="display:flex; gap:15px; margin-top:25px;">
-                <a href="../cart/unified_cart.php" class="cancel-btn">Cancel</a>
-                <button type="submit" form="orderForm" class="pay-btn">Confirm & Pay</button>
+                <a href="unified_cart.php" class="cancel-btn">Cancel</a>
+                <button type="submit" form="orderForm" class="pay-btn">Pay Now</button>
             </div>
         </div>
     </div>
@@ -271,7 +271,7 @@ require_once '../includes/_head.php';
             $('#shipping_msg').html('🎉 Free shipping unlocked!');
             $('#shipping_bar').css('width', '100%');
         } else {
-            $('#shipping_msg').html('Add <b>RM '+(threshold-subtotal).toFixed(2)+'</b> for Free Shipping');
+            $('#shipping_msg').html('Add <b>RM '+(threshold-subtotal).toFixed(2)+'</b> more for Free Shipping!');
             $('#shipping_bar').css('width', prog + '%');
         }
 

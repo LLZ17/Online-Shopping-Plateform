@@ -39,6 +39,9 @@ require_once __DIR__ . '/../includes/_head.php';
     body { background-color: var(--bg-gray); font-family: -apple-system, sans-serif; }
     .main-wrap { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
 
+    /* 操作提示条 */
+    .msg-alert { background: #e6fffa; color: #2c7a7b; padding: 12px; border-radius: 4px; margin-bottom: 20px; text-align: center; border: 1px solid #b2f5ea; }
+
     /* 产品展示卡片 */
     .product-card { display: flex; gap: 40px; background: white; padding: 25px; border-radius: 4px; box-shadow: 0 1px 1px rgba(0,0,0,0.05); }
     .viewer-side { width: 450px; position: relative; }
@@ -54,7 +57,7 @@ require_once __DIR__ . '/../includes/_head.php';
     .thumb-item.active { border-color: var(--shopee-red); }
     .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
 
-    /* 右侧表单区 */
+    /* 右侧信息区 */
     .info-side { flex: 1; }
     .p-title { font-size: 22px; font-weight: 500; margin-bottom: 12px; }
     .stats-row { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; font-size: 14px; }
@@ -65,26 +68,25 @@ require_once __DIR__ . '/../includes/_head.php';
     .spec-btn { border: 1px solid rgba(0,0,0,0.09); background: #fff; padding: 8px 15px; cursor: pointer; min-width: 60px; }
     .spec-btn.active { border-color: var(--shopee-red); color: var(--shopee-red); }
 
-    /* 按钮组 */
+    /* 按钮组样式 */
     .action-group { display: flex; gap: 15px; margin-top: 30px; }
     .btn-cart { flex: 1; height: 48px; background: rgba(208,1,27,0.08); color: var(--shopee-red); border: 1px solid var(--shopee-red); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn-buy { flex: 1; height: 48px; background: var(--shopee-red); color: white; border: none; cursor: pointer; font-size: 16px; }
-    
-    /* 新增：Wishlist 和 禁用按钮样式 */
-    .btn-wishlist { flex: 1; height: 48px; background: #fff; color: #555; border: 1px solid #ddd; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-wishlist:hover { background: #f8f8f8; color: var(--shopee-red); border-color: var(--shopee-red); }
+    .btn-wishlist { flex: 1; height: 48px; background: #fff; color: #555; border: 1px solid #ddd; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+    .btn-wishlist:hover { border-color: var(--shopee-red); color: var(--shopee-red); }
     .btn-disabled { flex: 1; height: 48px; background: #eee; color: #bbb; border: 1px solid #ddd; cursor: not-allowed; font-size: 16px; }
 
-    /* 详情与评价 */
     .content-section { background: white; margin-top: 20px; padding: 25px; }
     .sect-title { background: #fafafa; padding: 12px 15px; font-size: 18px; margin-bottom: 20px; }
-
-    .rating-header { display: flex; align-items: center; background: var(--orange-tint); border: 1px solid #f9ede5; padding: 30px; margin-bottom: 20px; }
-    .score-big { color: var(--shopee-red); font-size: 30px; margin-right: 40px; font-weight: 600; }
-    .rev-row { padding: 20px 0; border-bottom: 1px solid #eee; }
 </style>
 
 <div class="main-wrap">
+    <?php if (isset($_GET['wishlist'])): ?>
+        <div class="msg-alert">
+            <?php echo ($_GET['wishlist'] == 'added') ? "❤️ Added to Wishlist!" : "💔 Removed from Wishlist!"; ?>
+        </div>
+    <?php endif; ?>
+
     <div class="product-card">
         <div class="viewer-side">
             <button class="nav-arrow arrow-l" onclick="changeSlide(-1)">&#10094;</button>
@@ -116,7 +118,7 @@ require_once __DIR__ . '/../includes/_head.php';
                 <span>Earn <strong><?php echo $reward_points; ?></strong> reward points</span>
             </div>
 
-            <form action="wishlist_toggle.php" method="POST" id="mainForm">
+            <form method="POST" id="mainForm">
                 <input type="hidden" name="p_id" value="<?php echo $product_id; ?>">
                 
                 <?php if(!empty($colours)): ?>
@@ -157,15 +159,21 @@ require_once __DIR__ . '/../includes/_head.php';
 
                 <div class="action-group">
                     <?php if($is_out_of_stock): ?>
-                        <button type="submit" name="btn_action" value="wishlist" class="btn-wishlist">
+                        <button type="submit" name="btn_action" value="wishlist" 
+                                onclick="this.form.action='wishlist_toggle.php';" 
+                                class="btn-wishlist">
                             <i class="fas fa-heart"></i> Add To Wishlist
                         </button>
                         <button type="button" class="btn-disabled" disabled>Sold Out</button>
                     <?php else: ?>
-                        <button type="submit" name="btn_action" value="add" class="btn-cart">
+                        <button type="submit" name="btn_action" value="add" 
+                                onclick="this.form.action='add.php';" 
+                                class="btn-cart">
                             <i class="fas fa-cart-plus"></i> Add To Cart
                         </button>
-                        <button type="submit" name="btn_action" value="buy" class="btn-buy">Buy Now</button>
+                        <button type="submit" name="btn_action" value="buy" 
+                                onclick="this.form.action='add.php';" 
+                                class="btn-buy">Buy Now</button>
                     <?php endif; ?>
                 </div>
             </form>
@@ -189,6 +197,7 @@ require_once __DIR__ . '/../includes/_head.php';
             box.classList.toggle('active', index === currentIdx);
         });
     }
+
     function changeSlide(n) {
         currentIdx = (currentIdx + n + images.length) % images.length;
         setSlide(currentIdx);
@@ -213,15 +222,13 @@ require_once __DIR__ . '/../includes/_head.php';
         if(val >= 1 && val <= <?php echo $stock; ?>) input.value = val;
     }
 
-    // 提交校验修正
-    document.getElementById('mainForm').onsubmit = function(e) {
-        // 获取当前点击的按钮
+    document.getElementById('mainForm').onsubmit = function() {
         const action = document.activeElement.value;
 
-        // 如果是加入愿望单，直接允许提交，不需要检查颜色和尺寸
+        // 如果点击的是 wishlist 按钮，不需要校验规格
         if (action === 'wishlist') return true;
 
-        // 购买/加入购物车才检查规格
+        // 校验逻辑
         if(<?php echo count($colours); ?> > 0 && !document.getElementById('inputColor').value) {
             alert("Please select a Color!"); return false;
         }

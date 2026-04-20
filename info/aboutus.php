@@ -8,9 +8,10 @@ include('../includes/_info_head.php');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About PXX Mall</title>
     <style>
         .about-container {
-            max-width: 1000px;
+            max-width: 1200px; /* 稍微调宽了容器，适应更大的图片 */
             margin: 40px auto;
             padding: 20px;
             line-height: 1.8;
@@ -26,7 +27,7 @@ include('../includes/_info_head.php');
 
         .about-header h1 {
             color: #FF0000;
-            font-size: 3rem;
+            font-size: 3.5rem; /* 稍微加大了标题 */
             margin: 0;
             font-family: 'Arial Black', sans-serif;
             text-transform: uppercase;
@@ -39,21 +40,21 @@ include('../includes/_info_head.php');
         }
 
         .content-section {
-            margin-bottom: 50px;
+            margin-bottom: 60px;
         }
 
         .content-section h2 {
             color: #FF0000;
-            font-size: 1.8rem;
-            border-bottom: 3px solid #FF0000;
+            font-size: 2rem;
+            border-bottom: 4px solid #FF0000;
             padding-bottom: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             display: inline-block;
             text-transform: uppercase;
         }
 
         .content-text {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             text-align: justify;
         }
 
@@ -61,55 +62,52 @@ include('../includes/_info_head.php');
             color: #FF0000;
         }
         
-        /* Highlight Box for Journey */
+        /* Highlight Box */
         .highlight-box {
             background: #fff5f5;
-            border-right: 4px solid #FF0000;
-            padding: 25px;
-            margin: 20px 0;
+            border-right: 5px solid #FF0000;
+            padding: 30px;
+            margin: 30px 0;
             font-style: italic;
+            font-size: 1.2rem;
         }
 
-        /* Retail Store Gallery - 3 Images */
+        /* 商店展示区域 - 重点修改部分 */
         .store-gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
+            /* 设定每列最小 350px，自动填充 */
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px; 
+            margin-top: 40px;
         }
 
         .store-photo {
             width: 100%;
-            height: 250px;
-            background-color: #f0f0f0; /* Gray placeholder */
-            border: 2px solid #FF0000;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #666;
+            height: 500px; /* 这里大幅增加了高度，让图片更大 */
+            background-color: #f9f9f9; 
+            border: 3px solid #FF0000; /* 加粗了边框 */
+            border-radius: 8px;
             overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
         }
 
-        /* Placeholder image text */
-        .store-photo::after {
-            content: "STORE PHOTO";
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-
-        /* Once you have real images, use this structure:
+        /* 确保图片完美填充且不拉伸 */
         .store-photo img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: cover; /* 核心：裁剪并填满，图片不会压扁 */
+            display: block;
         }
-        */
 
         .store-photo:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 20px rgba(255, 0, 0, 0.2);
+            transform: translateY(-10px); /* 悬浮时往上跳一点 */
+            box-shadow: 0 15px 30px rgba(255, 0, 0, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .store-photo {
+                height: 350px; /* 在手机上高度稍微调小一点 */
+            }
         }
     </style>
 </head>
@@ -149,7 +147,18 @@ include('../includes/_info_head.php');
         </div>
 
         <div class="store-gallery">
-            <div class="store-photo"></div> <div class="store-photo"></div> <div class="store-photo"></div> </div>
+            <div class="store-photo">
+                <img src="../images/pxx.jpeg" alt="PXX Mall Store Front">
+            </div> 
+            
+            <div class="store-photo">
+                <img src="store_02.jpg" alt="PXX Mall Design Concept">
+            </div> 
+            
+            <div class="store-photo">
+                <img src="store_03.jpg" alt="PXX Mall Interior">
+            </div> 
+        </div>
     </div>
 </div>
 
@@ -158,7 +167,7 @@ include('../includes/_info_head.php');
 if(file_exists('../includes/_foot.php')) {
     include('../includes/_foot.php');
 } else {
-    echo '<footer style="text-align:center; padding:30px; color:#FF0000; border-top:2px solid #FF0000; font-weight:bold;">© 2026 PXX Mall (Student Project). All Rights Reserved.</footer>';
+    echo '<footer style="text-align:center; padding:50px 30px; color:#FF0000; border-top:2px solid #FF0000; font-weight:bold;">© 2026 PXX Mall (Student Project). All Rights Reserved.</footer>';
 }
 ?>
 

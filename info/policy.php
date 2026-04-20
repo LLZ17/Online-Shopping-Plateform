@@ -104,7 +104,6 @@ include('../includes/_info_head.php');
         <ul>
             <li>Items must be returned within <strong>7 days</strong> of receiving your parcel.</li>
             <li>Clothes must be <strong>unworn, unwashed</strong>, and have all original tags attached.</li>
-            <li>For hygiene reasons, innerwear and socks are non-returnable.</li>
             <li>Original shipping fees are non-refundable unless the item is defective.</li>
         </ul>
     </div>
