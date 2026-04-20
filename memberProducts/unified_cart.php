@@ -9,6 +9,23 @@ if (!isset($_SESSION['user_id'])) {
 }
 $user_id = $_SESSION['user_id'];
 
+/**
+ * 新增逻辑：处理支付后的自动清理
+ * 假设 checkout 或支付成功后跳回：unified_cart.php?payment=success&ids=1,2,3
+ */
+if (isset($_GET['payment']) && $_GET['payment'] == 'success' && isset($_GET['ids'])) {
+    $clean_ids = explode(',', $_GET['ids']);
+    $placeholders = implode(',', array_fill(0, count($clean_ids), '?'));
+    $params = array_merge($clean_ids, [$user_id]);
+    
+    $stmt = $pdo->prepare("DELETE FROM cart WHERE cart_id IN ($placeholders) AND user_id = ?");
+    $stmt->execute($params);
+    
+    // 清理完后刷新页面，去掉 URL 里的参数，防止重复刷新导致误删
+    echo "<script>alert('Payment Successful! Cart updated.'); window.location.href='unified_cart.php';</script>";
+    exit();
+}
+
 // 处理单品删除
 if (isset($_GET['action']) && $_GET['action'] == 'remove' && isset($_GET['id'])) {
     $stmt = $pdo->prepare("DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
@@ -88,7 +105,7 @@ $cart_items = $stmt->fetchAll();
     .qty-btn:disabled { color: #ccc; cursor: not-allowed; }
     .qty-input { width: 45px; text-align: center; border: none; border-left: 1px solid #ddd; border-right: 1px solid #ddd; outline: none; background: #fff; font-weight: bold; pointer-events: none; }
 
-    /* 底部结算栏 - 修复走位问题 */
+    /* 底部结算栏 */
     .footer-bar { position: fixed; bottom: 0; width: 1100px; left: 50%; transform: translateX(-50%); background: white; display: flex; justify-content: space-between; align-items: center; padding: 12px 30px; box-shadow: 0 -4px 12px rgba(0,0,0,0.1); z-index: 1000; }
     
     .footer-left { display: flex; align-items: center; }
@@ -125,47 +142,53 @@ $cart_items = $stmt->fetchAll();
             <span style="text-align: center;">Action</span>
         </div>
 
-        <?php foreach ($cart_items as $item): 
-            $imgs = explode(',', $item['product_image']);
-            $display_img = trim($imgs[0]); 
-            $user_color = strtolower(trim($item['colour'])); 
-            foreach ($imgs as $img) {
-                if ($user_color !== '' && strpos(strtolower(trim($img)), $user_color) !== false) {
-                    $display_img = trim($img); break;
-                }
-            }
-        ?>
-            <div class="cart-item" data-price="<?php echo $item['price']; ?>" data-id="<?php echo $item['cart_id']; ?>" data-stock="<?php echo $item['stock']; ?>">
-                <input type="checkbox" name="items[]" value="<?php echo $item['cart_id']; ?>" class="item-checkbox">
-                
-                <img src="../images/<?php echo $display_img; ?>" class="product-img" onerror="this.src='../images/default.jpg'">
-                
-                <div class="product-info">
-                    <a href="detail.php?id=<?php echo $item['product_id']; ?>" class="product-name"><?php echo htmlspecialchars($item['name']); ?></a>
-                    <div class="variant-btn" onclick='openVariantModal(<?php echo json_encode($item); ?>)'>
-                        Variation: <?php echo $item['colour'] ?: 'Default'; ?>, <?php echo $item['selected_size'] ?: 'N/A'; ?> ▼
-                    </div>
-                </div>
-
-                <div style="text-align: center;">RM <?php echo number_format($item['price'], 2); ?></div>
-
-                <div style="display: flex; justify-content: center;">
-                    <div class="qty-control">
-                        <button type="button" class="qty-btn" onclick="updateQty(this, -1)">-</button>
-                        <input type="text" value="<?php echo $item['quantity']; ?>" class="qty-input" readonly>
-                        <button type="button" class="qty-btn" onclick="updateQty(this, 1)" <?php echo ($item['quantity'] >= $item['stock']) ? 'disabled' : ''; ?>>+</button>
-                    </div>
-                </div>
-
-                <div style="text-align: center; color: var(--shopee-red); font-weight: bold;">
-                    RM <span class="row-total"><?php echo number_format($item['price'] * $item['quantity'], 2); ?></span>
-                </div>
-
-                <div style="text-align: center;">
-                    <a href="?action=remove&id=<?php echo $item['cart_id']; ?>" onclick="return confirm('Delete?')" style="color: #666; text-decoration: none; font-size: 14px;">Delete</a>
-                </div>
+        <?php if (empty($cart_items)): ?>
+            <div style="background: white; padding: 50px; text-align: center; color: #888;">
+                Your cart is empty. <a href="index.php" style="color: var(--shopee-red);">Go Shopping</a>
             </div>
-        <?php endforeach; ?>
+        <?php else: ?>
+            <?php foreach ($cart_items as $item): 
+                $imgs = explode(',', $item['product_image']);
+                $display_img = trim($imgs[0]); 
+                $user_color = strtolower(trim($item['colour'])); 
+                foreach ($imgs as $img) {
+                    if ($user_color !== '' && strpos(strtolower(trim($img)), $user_color) !== false) {
+                        $display_img = trim($img); break;
+                    }
+                }
+            ?>
+                <div class="cart-item" data-price="<?php echo $item['price']; ?>" data-id="<?php echo $item['cart_id']; ?>" data-stock="<?php echo $item['stock']; ?>">
+                    <input type="checkbox" name="items[]" value="<?php echo $item['cart_id']; ?>" class="item-checkbox">
+                    
+                    <img src="../images/<?php echo $display_img; ?>" class="product-img" onerror="this.src='../images/default.jpg'">
+                    
+                    <div class="product-info">
+                        <a href="detail.php?id=<?php echo $item['product_id']; ?>" class="product-name"><?php echo htmlspecialchars($item['name']); ?></a>
+                        <div class="variant-btn" onclick='openVariantModal(<?php echo json_encode($item); ?>)'>
+                            Variation: <?php echo $item['colour'] ?: 'Default'; ?>, <?php echo $item['selected_size'] ?: 'N/A'; ?> ▼
+                        </div>
+                    </div>
+
+                    <div style="text-align: center;">RM <?php echo number_format($item['price'], 2); ?></div>
+
+                    <div style="display: flex; justify-content: center;">
+                        <div class="qty-control">
+                            <button type="button" class="qty-btn" onclick="updateQty(this, -1)">-</button>
+                            <input type="text" value="<?php echo $item['quantity']; ?>" class="qty-input" readonly>
+                            <button type="button" class="qty-btn" onclick="updateQty(this, 1)" <?php echo ($item['quantity'] >= $item['stock']) ? 'disabled' : ''; ?>>+</button>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; color: var(--shopee-red); font-weight: bold;">
+                        RM <span class="row-total"><?php echo number_format($item['price'] * $item['quantity'], 2); ?></span>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <a href="?action=remove&id=<?php echo $item['cart_id']; ?>" onclick="return confirm('Delete?')" style="color: #666; text-decoration: none; font-size: 14px;">Delete</a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
 
         <div class="footer-bar">
             <div class="footer-left">
@@ -219,7 +242,7 @@ $(document).ready(function() {
     $('.item-checkbox').on('change', function() {
         let allCount = $('.item-checkbox').length;
         let checkedCount = $('.item-checkbox:checked').length;
-        $('#checkAllTop, #checkAllBottom').prop('checked', allCount === checkedCount);
+        $('#checkAllTop, #checkAllBottom').prop('checked', (allCount === checkedCount && allCount > 0));
         updateTotals();
     });
 
@@ -236,7 +259,7 @@ $(document).ready(function() {
         $('#checkoutBtn').prop('disabled', count === 0);
     }
 
-    // 3. 数量加减 + 库存限制
+    // 3. 数量加减
     window.updateQty = function(btn, change) {
         let row = $(btn).closest('.cart-item');
         let input = row.find('.qty-input');
@@ -274,7 +297,7 @@ $(document).ready(function() {
         $.post('unified_cart.php', data, function() { location.reload(); });
     };
 
-    // 5. 核心：只提交勾选的 ID 到 Checkout
+    // 5. 提交到 Checkout
     window.submitToCheckout = function() {
         let selectedIds = [];
         $('.item-checkbox:checked').each(function() {
@@ -285,8 +308,6 @@ $(document).ready(function() {
             alert("Please select items to check out.");
             return;
         }
-
-        // 通过 URL 传参跳转
         window.location.href = 'checkout.php?ids=' + selectedIds.join(',');
     };
 });

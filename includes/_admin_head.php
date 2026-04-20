@@ -1,7 +1,7 @@
 <?php
 /**
  * =================================================================================
- * PXX MALL - ADMINISTRATIVE CONTROL PORTAL (V110.6 - BADGE POSITION FIXED)
+ * PXX MALL - ADMINISTRATIVE CONTROL PORTAL (V110.10 - PDO FULL INTEGRATION)
  * =================================================================================
  */
 
@@ -10,8 +10,18 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 date_default_timezone_set('Asia/Kuala_Lumpur');
 
+// 引入数据库连接
 require_once '../includes/db.php'; 
 
+/**
+ * 核心修复：自动适配变量名
+ * 你的 db.php 使用的是 $pdo，这里我们将它赋值给 $conn 确保后续逻辑一致
+ */
+if (isset($pdo) && !isset($conn)) {
+    $conn = $pdo;
+}
+
+// 安全验证
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     header("Location: ../admin/login.php"); exit();
 }
@@ -26,7 +36,25 @@ $current_admin = htmlspecialchars($_SESSION['username']);
 $current_photo = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 'default.jpg';
 $portal_title = ($user_role === 'S.Admin') ? "Super Admin" : "Admin Portal";
 
-$noti_count = 3;
+/**
+ * 动态获取通知数据 (PDO 语法)
+ */
+$noti_count = 0;
+$notifications = [];
+
+if (isset($conn)) {
+    try {
+        // 1. 获取未读总数 (status=0)
+        $count_stmt = $conn->query("SELECT COUNT(*) FROM notifications WHERE status = 0");
+        $noti_count = $count_stmt->fetchColumn();
+
+        // 2. 获取最近 3 条通知用于预览窗口
+        $noti_stmt = $conn->query("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 3");
+        $notifications = $noti_stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        // 如果表不存在或查询失败，静默处理不中断页面
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -75,7 +103,7 @@ $noti_count = 3;
         .logo-r { font-size: 12px; vertical-align: super; font-weight: 600; }
         .logo-portal { font-family: 'Montserrat', sans-serif; font-size: 20px; font-weight: 700; opacity: 0.95; }
 
-        /* --- Notifications 按钮修正版 --- */
+        /* --- Notifications --- */
         .header-actions { display: flex; align-items: center; gap: 30px; }
 
         .noti-wrapper { position: relative; }
@@ -95,14 +123,8 @@ $noti_count = 3;
         }
         .noti-btn:hover { background: rgba(255,255,255,0.3); }
 
-        /* 图标容器，用于精准定位数字 */
-        .icon-relative {
-            position: relative;
-            display: inline-block;
-            line-height: 1;
-        }
+        .icon-relative { position: relative; display: inline-block; line-height: 1; }
         .noti-btn i { font-size: 28px; margin-top: 5px; } 
-
         .noti-btn span { 
             font-family: 'Montserrat', sans-serif; 
             font-weight: 900; 
@@ -111,41 +133,49 @@ $noti_count = 3;
             margin-top: 2px;
         }
         
-        /* 数字角标：现在相对于 .icon-relative 定位 */
         .noti-badge {
-            position: absolute; 
-            top: -2px;      /* 相对铃铛顶部 */
-            right: -8px;    /* 相对铃铛右侧 */
-            background: white; 
-            color: var(--pxx-red);
-            font-size: 11px; 
-            font-weight: 900; 
-            width: 18px; 
-            height: 18px; 
-            border-radius: 50%;
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
+            position: absolute; top: -2px; right: -8px; 
+            background: white; color: var(--pxx-red);
+            font-size: 11px; font-weight: 900; 
+            width: 18px; height: 18px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
         .noti-preview {
             position: absolute; top: calc(100% + 15px); right: 0;
-            width: 300px; background: white; border-radius: 12px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.1); border: 1px solid #eee;
+            width: 320px; background: white; border-radius: 12px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15); border: 1px solid #eee;
             visibility: hidden; opacity: 0; transform: translateY(10px);
             transition: var(--trans); z-index: 10001; overflow: hidden; color: #333;
         }
         .noti-wrapper:hover .noti-preview { visibility: visible; opacity: 1; transform: translateY(0); }
-        .preview-h { padding: 15px 20px; font-weight: 800; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
-        .preview-item { padding: 12px 20px; border-bottom: 1px solid #f9f9f9; display: flex; gap: 12px; font-size: 12px; color: #666; }
+        .preview-h { padding: 15px 20px; font-weight: 800; border-bottom: 1px solid #f5f5f5; font-size: 13px; text-transform: uppercase; color: #999; }
+        
+        .preview-item { 
+            padding: 15px 20px; border-bottom: 1px solid #f9f9f9; 
+            display: flex; gap: 12px; align-items: flex-start;
+            transition: background 0.2s;
+        }
+        .preview-item:hover { background: #fff8f8; }
+        .preview-item i { font-size: 14px; margin-top: 3px; }
+        .preview-content { display: flex; flex-direction: column; gap: 2px; }
+        .preview-title { font-weight: 700; font-size: 13px; color: #222; text-align: left; }
+        .preview-msg { font-size: 12px; color: #666; line-height: 1.4; text-align: left; }
+        .preview-time { font-size: 10px; color: #aaa; margin-top: 4px; text-align: left; }
+
+        .preview-footer {
+            display: block; text-align: center; padding: 12px;
+            background: #fcfcfc; font-size: 11px; font-weight: 800;
+            color: var(--pxx-red); border-top: 1px solid #eee;
+        }
 
         /* --- Profile --- */
         .profile-wrap { display: flex; align-items: center; gap: 15px; padding-left: 25px; border-left: 1px solid rgba(255,255,255,0.2); }
         .admin-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; }
         .logout-icon { font-size: 22px; color: white; margin-left: 10px; cursor: pointer; }
 
-        /* --- Sidebar (全部保留) --- */
+        /* --- Sidebar --- */
         .sidebar-fixed {
             width: var(--side-w); background-color: var(--side-bg);
             position: fixed; top: var(--header-h); left: 0; bottom: 0;
@@ -194,14 +224,40 @@ $noti_count = 3;
                 <button class="noti-btn" onclick="location.href='../admin/notifications.php'">
                     <div class="icon-relative">
                         <i class="fa-solid fa-bell"></i>
-                        <div class="noti-badge"><?php echo $noti_count; ?></div>
+                        <?php if($noti_count > 0): ?>
+                            <div class="noti-badge"><?php echo $noti_count; ?></div>
+                        <?php endif; ?>
                     </div>
                     <span>Notifications</span>
                 </button>
+                
                 <div class="noti-preview">
                     <div class="preview-h">System Updates</div>
-                    <div class="preview-item"><i class="fa-solid fa-circle-check" style="color:var(--pxx-red)"></i> Database connected.</div>
-                    <div class="preview-item"><i class="fa-solid fa-bolt" style="color:var(--pxx-red)"></i> ToyyibPay status: OK.</div>
+                    
+                    <?php if (!empty($notifications)): ?>
+                        <?php foreach ($notifications as $noti): 
+                            // 动态判断图标
+                            $icon = "fa-bell";
+                            $t = strtolower($noti['title']);
+                            if(strpos($t, 'order') !== false) $icon = "fa-cart-shopping";
+                            elseif(strpos($t, 'stock') !== false) $icon = "fa-triangle-exclamation";
+                        ?>
+                            <div class="preview-item">
+                                <i class="fa-solid <?php echo $icon; ?>" style="color:var(--pxx-red)"></i>
+                                <div class="preview-content">
+                                    <span class="preview-title"><?php echo htmlspecialchars($noti['title']); ?></span>
+                                    <span class="preview-msg"><?php echo htmlspecialchars(mb_strimwidth($noti['message'], 0, 40, "...")); ?></span>
+                                    <span class="preview-time"><?php echo date('D, d M | h:i A', strtotime($noti['created_at'])); ?></span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="preview-item" style="justify-content:center; color:#bbb; font-style:italic;">
+                            No new notifications.
+                        </div>
+                    <?php endif; ?>
+
+                    <a href="../admin/notifications.php" class="preview-footer">VIEW ALL</a>
                 </div>
             </div>
 

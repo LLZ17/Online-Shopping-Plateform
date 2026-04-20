@@ -8,33 +8,33 @@ include('../includes/_info_head.php');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About PXX Mall</title>
+    <title>Store Design | PXX Mall Flagship</title>
     <style>
         .about-container {
-            max-width: 1200px; /* 稍微调宽了容器，适应更大的图片 */
+            max-width: 1000px;
             margin: 40px auto;
             padding: 20px;
             line-height: 1.8;
             color: #333;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
         }
 
         .about-header {
-            border-left: 8px solid #FF0000; /* Vivid Red Border */
+            border-left: 8px solid #FF0000;
             padding-left: 20px;
             margin-bottom: 40px;
         }
 
         .about-header h1 {
             color: #FF0000;
-            font-size: 3.5rem; /* 稍微加大了标题 */
+            font-size: 3.5rem;
             margin: 0;
             font-family: 'Arial Black', sans-serif;
             text-transform: uppercase;
         }
 
         .about-header p {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             color: #666;
             margin-top: 5px;
         }
@@ -48,7 +48,7 @@ include('../includes/_info_head.php');
             font-size: 2rem;
             border-bottom: 4px solid #FF0000;
             padding-bottom: 8px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
             display: inline-block;
             text-transform: uppercase;
         }
@@ -62,7 +62,6 @@ include('../includes/_info_head.php');
             color: #FF0000;
         }
         
-        /* Highlight Box */
         .highlight-box {
             background: #fff5f5;
             border-right: 5px solid #FF0000;
@@ -72,42 +71,57 @@ include('../includes/_info_head.php');
             font-size: 1.2rem;
         }
 
-        /* 商店展示区域 - 重点修改部分 */
-        .store-gallery {
-            display: grid;
-            /* 设定每列最小 350px，自动填充 */
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 30px; 
+        /* --- Vertical Stacked Layout --- */
+        .store-list {
+            display: flex;
+            flex-direction: column; 
+            gap: 60px; /* Space between each image section */
             margin-top: 40px;
         }
 
-        .store-photo {
+        .store-item {
             width: 100%;
-            height: 500px; /* 这里大幅增加了高度，让图片更大 */
-            background-color: #f9f9f9; 
-            border: 3px solid #FF0000; /* 加粗了边框 */
-            border-radius: 8px;
-            overflow: hidden;
-            transition: transform 0.4s ease, box-shadow 0.4s ease;
         }
 
-        /* 确保图片完美填充且不拉伸 */
+        /* High-Impact Landscape Photo */
+        .store-photo {
+            width: 100%;
+            height: 500px; 
+            background-color: #f0f0f0; 
+            border: 3px solid #FF0000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
         .store-photo img {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* 核心：裁剪并填满，图片不会压扁 */
+            object-fit: cover;
             display: block;
         }
 
-        .store-photo:hover {
-            transform: translateY(-10px); /* 悬浮时往上跳一点 */
-            box-shadow: 0 15px 30px rgba(255, 0, 0, 0.3);
+        /* Centered Section Titles and Descriptions */
+        .store-info {
+            text-align: center;
+            padding: 0 20px;
         }
 
-        @media (max-width: 768px) {
-            .store-photo {
-                height: 350px; /* 在手机上高度稍微调小一点 */
-            }
+        .store-info h3 {
+            color: #FF0000;
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            font-family: 'Arial Black', sans-serif;
+        }
+
+        .store-info p {
+            font-size: 1.1rem;
+            color: #555;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.7;
         }
     </style>
 </head>
@@ -116,7 +130,7 @@ include('../includes/_info_head.php');
 <div class="about-container">
     <div class="about-header">
         <h1>ABOUT PXX Mall</h1>
-        <p>Your Ultimate Fashion Destination Since 2020.</p>
+        <p>The best online clothing platform provider Since 2020.</p>
     </div>
 
     <div class="content-section">
@@ -137,27 +151,46 @@ include('../includes/_info_head.php');
     </div>
 
     <div class="content-section">
-        <h2>From Digital to Physical</h2>
+        <h2>Store Design & Aesthetics</h2>
         <div class="content-text">
             <p>
-                Today, we are thrilled to welcome you not just through our screens, but through our doors. 
-                Our journey has brought us full circle with the opening of our first <strong>Retail Flagship Store</strong> in Kuala Lumpur. 
-                This physical space allows you to experience the quality and fit of our fashion lines firsthand.
+                Our <strong>Retail Flagship Store</strong> in Kuala Lumpur is not just a shop; it is an architectural embodiment of our brand values. 
+                Below is a detailed look at the design elements that define our physical presence.
             </p>
         </div>
 
-        <div class="store-gallery">
-            <div class="store-photo">
-                <img src="../images/pxx.jpeg" alt="PXX Mall Store Front">
-            </div> 
+        <div class="store-list">
             
-            <div class="store-photo">
-                <img src="store_02.jpg" alt="PXX Mall Design Concept">
-            </div> 
-            
-            <div class="store-photo">
-                <img src="store_03.jpg" alt="PXX Mall Interior">
-            </div> 
+            <div class="store-item">
+                <div class="store-photo">
+                    <img src="../images/pxx.jpeg" alt="Front View">
+                </div>
+                <div class="store-info">
+                    <h3>Front Facade</h3>
+                    <p>The entrance features a bold industrial-minimalist aesthetic. By utilizing wide-span glass and vivid red structural accents, we create a high-contrast visual identity that invites natural light and showcases our collections to the vibrant streets of Kuala Lumpur.</p>
+                </div>
+            </div>
+
+            <div class="store-item">
+                <div class="store-photo">
+                    <img src="../images/pxx2.jpeg" alt="Interior View">
+                </div>
+                <div class="store-info">
+                    <h3>Spatial Interior</h3>
+                    <p>Our interior layout follows a "Gallery Flow" concept, designed to eliminate retail clutter. The open-plan space uses neutral tones and professional studio lighting to ensure that the texture and color of every garment are the true stars of the customer experience.</p>
+                </div>
+            </div>
+
+            <div class="store-item">
+                <div class="store-photo">
+                    <img src="../images/bg.jpeg" alt="Design Details">
+                </div>
+                <div class="store-info">
+                    <h3>Materiality & Detail</h3>
+                    <p>Every corner of PXX Mall reflects premium craftsmanship. From the custom-built display modules to the acoustic damping in our fitting suites, we blend raw industrial materials with warm wood textures to provide a comfortable yet sophisticated shopping atmosphere.</p>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
@@ -167,7 +200,7 @@ include('../includes/_info_head.php');
 if(file_exists('../includes/_foot.php')) {
     include('../includes/_foot.php');
 } else {
-    echo '<footer style="text-align:center; padding:50px 30px; color:#FF0000; border-top:2px solid #FF0000; font-weight:bold;">© 2026 PXX Mall (Student Project). All Rights Reserved.</footer>';
+    echo '<footer style="text-align:center; padding:50px; color:#FF0000; border-top:2px solid #FF0000; font-weight:bold;">© 2026 PXX Mall (Student Project). All Rights Reserved.</footer>';
 }
 ?>
 

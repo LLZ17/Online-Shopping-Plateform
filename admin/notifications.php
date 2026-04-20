@@ -1,216 +1,144 @@
 <?php
-require_once '../includes/db.php'; 
+// PXX Mall - Notification Center (Universal Admin Edition)
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+$pxx_root = dirname(__DIR__);
+require_once $pxx_root . '/includes/db.php'; 
+
+if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+
+// 权限检查
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    header("Location: login.php"); exit;
 }
 
-// 1. 权限检查：同时允许 Admin 和 S.Admin 进入
-if (!isset($_SESSION['user_id']) || !in_array(trim($_SESSION['role']), ['Admin', 'S.Admin'])) {
-    header("Location: login.php");
-    exit;
-}
+// 这里的变量直接跟着 Session 走，确保 100% 匹配
+$aid = $_SESSION['user_id']; 
+$current_role = $_SESSION['role']; 
 
-$aid = $_SESSION['user_id'];
-$is_super = (trim($_SESSION['role']) === 'S.Admin'); // 判断是否为超级管理员
-$current_role = 'admin'; 
-
-// 2. 处理操作逻辑
-if (isset($_POST['action'])) {
+// --- 后端处理逻辑 ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
     try {
-        $notif_id = $_POST['notif_id'] ?? null;
-        if ($_POST['action'] == 'mark_all_read') {
+        if ($action === 'mark_all_read') {
             $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND role = ?")->execute([$aid, $current_role]);
-        } elseif ($_POST['action'] == 'delete_all') {
-            $pdo->prepare("DELETE FROM notifications WHERE user_id = ? AND role = ?")->execute([$aid, $current_role]);
-        } elseif ($_POST['action'] == 'toggle_read') {
-            $new_status = ($_POST['current_status'] == 1) ? 0 : 1;
-            $pdo->prepare("UPDATE notifications SET is_read = ? WHERE id = ? AND user_id = ?")->execute([$new_status, $notif_id, $aid]);
+        } 
+        elseif ($action === 'mark_all_unread') {
+            $pdo->prepare("UPDATE notifications SET is_read = 0 WHERE user_id = ? AND role = ?")->execute([$aid, $current_role]);
         }
-        header("Location: " . $_SERVER['PHP_SELF']); 
-        exit;
-    } catch (PDOException $e) { die($e->getMessage()); }
+        elseif ($action === 'delete_all') {
+            $pdo->prepare("DELETE FROM notifications WHERE user_id = ? AND role = ?")->execute([$aid, $current_role]);
+        }
+        elseif ($action === 'toggle_read') {
+            $new_status = ($_POST['current_status'] == 1) ? 0 : 1;
+            $pdo->prepare("UPDATE notifications SET is_read = ? WHERE id = ?")->execute([$new_status, $_POST['notif_id']]);
+        }
+        header("Location: notifications.php"); exit;
+    } catch (PDOException $e) { $errorMsg = $e->getMessage(); }
 }
 
-// 3. 获取数据
-$stmt = $pdo->prepare("SELECT * FROM notifications WHERE user_id = ? AND role = ? ORDER BY created_at DESC");
-$stmt->execute([$aid, $current_role]);
-$notifications = $stmt->fetchAll();
+// --- 抓取列表 (修正了 WHERE 条件) ---
+try {
+    $stmt = $pdo->prepare("SELECT * FROM notifications WHERE user_id = ? AND role = ? ORDER BY created_at DESC");
+    $stmt->execute([$aid, $current_role]);
+    $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) { $notifications = []; }
 
-// 引入你的后台头部 (包含 Sidebar 和 Topbar)
-include '../includes/_admin_head.php'; 
+$admin_head = $pxx_root . '/includes/_admin_head.php';
+if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
 <style>
-    /* 适配你的后台内容区域背景色 */
-    .admin-content-inner {
-        padding: 25px;
-        background-color: #f4f7f6; 
-        min-height: 100vh;
-    }
-
-    /* 顶部标题栏：参考 Product CRUD 风格 */
-    .content-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-
-    .content-header h2 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1a1a1a;
-        margin: 0;
-    }
-
-    /* 按钮样式：参考你截图中的蓝白按钮风格 */
-    .btn-group-tools { display: flex; gap: 10px; }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
     
-    .btn-tool {
-        padding: 8px 18px;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        transition: 0.2s;
-    }
+    .notif-container { width: 100%; box-sizing: border-box; padding: 20px; font-family: 'Plus Jakarta Sans', sans-serif; }
+    .page-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+    .page-header h1 { font-size: 28px; font-weight: 900; color: #0f172a; margin: 0; }
 
-    .btn-white { background: #fff; border: 1px solid #dce1e7; color: #444; }
-    .btn-white:hover { background: #f8f9fa; border-color: #c3cad1; }
-    
-    .btn-red-outline { background: #fff; border: 1px solid #ff0000; color: #ff0000; }
-    .btn-red-outline:hover { background: #ff0000; color: #fff; }
+    .notif-card { background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; padding: 20px; margin-bottom: 15px; display: flex; gap: 18px; position: relative; }
+    .unread-indicator { position: absolute; left: 0; top: 20px; bottom: 20px; width: 4px; background: #ef4444; border-radius: 0 4px 4px 0; }
+    .is-read { opacity: 0.5; filter: grayscale(0.5); }
 
-    /* 通知列表容器 */
-    .notif-card-list {
-        background: #fff;
-        border-radius: 12px;
-        border: 1px solid #eef1f5;
-        overflow: hidden;
-    }
+    .icon-box { width: 50px; height: 50px; border-radius: 14px; background: #f8fafc; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .notif-info { flex-grow: 1; }
+    .notif-info h5 { margin: 0 0 6px 0; font-size: 17px; font-weight: 800; color: #1e293b; }
+    .notif-info p { margin: 0; color: #64748b; font-size: 14px; line-height: 1.6; }
+    .notif-time { display: block; margin-top: 12px; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
 
-    .notif-row {
-        padding: 20px;
-        border-bottom: 1px solid #f0f3f7;
-        display: flex;
-        align-items: flex-start;
-        gap: 15px;
-        position: relative;
-        transition: 0.2s;
-    }
-    .notif-row:last-child { border-bottom: none; }
-    .notif-row:hover { background-color: #fafbfc; }
-
-    /* 未读状态指示器 */
-    .status-indicator {
-        width: 4px;
-        height: 100%;
-        position: absolute;
-        left: 0;
-        top: 0;
-        background: #ff0000;
-        display: none;
-    }
-    .unread .status-indicator { display: block; }
-    .is-read { opacity: 0.55; }
-
-    /* 图标框 */
-    .icon-wrapper {
-        width: 42px; height: 42px;
-        border-radius: 8px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 18px; flex-shrink: 0;
-        background: #f8f9fa; color: #555;
-    }
-
-    .notif-main-text { flex-grow: 1; }
-    .notif-main-text h5 { margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #333; }
-    .notif-main-text p { margin: 0; font-size: 14px; color: #666; line-height: 1.5; }
-    .notif-meta { margin-top: 8px; font-size: 12px; color: #999; font-weight: 500; }
-
-    /* 角色标签 */
-    .role-badge {
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 10px;
-        text-transform: uppercase;
-        margin-left: 8px;
-        background: #eee;
-    }
-    .badge-sadmin { background: #ffebeb; color: #ff0000; border: 1px solid #ffcccc; }
+    .btn-op { padding: 8px 16px; border-radius: 10px; font-weight: 800; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2; border: none; }
+    .btn-white { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
+    .btn-danger { background: #fee2e2; color: #b91c1c; }
 </style>
 
-<div class="admin-content-inner">
-    <div class="content-header">
-        <h2>Notifications 
-            <?php if($is_super): ?><span class="role-badge badge-sadmin">S.Admin Access</span><?php endif; ?>
-        </h2>
-        
-        <div class="btn-group-tools">
+<div class="notif-container" id="notif-content-area">
+    <div class="page-header">
+        <h1>Notifications Center</h1>
+        <div style="display: flex; gap: 12px;">
             <form method="POST">
                 <input type="hidden" name="action" value="mark_all_read">
-                <button type="submit" class="btn-tool btn-white">
-                    <i class="fas fa-check-double"></i> Mark All Read
-                </button>
+                <button type="submit" class="btn-op btn-white"><span>✅</span> Mark Read</button>
             </form>
-            <form method="POST" onsubmit="return confirm('Clear all notifications?');">
+            <form method="POST">
+                <input type="hidden" name="action" value="mark_all_unread">
+                <button type="submit" class="btn-op btn-white"><span>📩</span> Mark Unread</button>
+            </form>
+            <form method="POST" onsubmit="return confirm('Clear all?')">
                 <input type="hidden" name="action" value="delete_all">
-                <button type="submit" class="btn-tool btn-red-outline">
-                    <i class="fas fa-trash-alt"></i> Clear All
-                </button>
+                <button type="submit" class="btn-op btn-danger"><span>🗑️</span> Clear All</button>
             </form>
         </div>
     </div>
 
-    <div class="notif-card-list">
-        <?php if (count($notifications) > 0): ?>
-            <?php foreach ($notifications as $row): 
-                $is_unread = !$row['is_read'];
-                $type = $row['type'];
-                // 图标逻辑
-                $icon = 'bell';
-                if($type == 'order') $icon = 'shopping-cart';
-                elseif($type == 'stock') $icon = 'exclamation-triangle';
-                elseif($type == 'system') $icon = 'cog';
+    <div class="notif-list">
+        <?php if (!empty($notifications)): ?>
+            <?php foreach ($notifications as $n): 
+                $unread = !$n['is_read'];
+                $icon = (stripos($n['type'], 'order') !== false) ? '📦' : ((stripos($n['type'], 'stock') !== false) ? '⚠️' : '🔔');
             ?>
-                <div class="notif-row <?php echo $is_unread ? 'unread' : 'is-read'; ?>">
-                    <div class="status-indicator"></div>
-                    
-                    <div class="icon-wrapper">
-                        <i class="fas fa-<?php echo $icon; ?>"></i>
+                <div class="notif-card <?= $unread ? '' : 'is-read' ?>">
+                    <?php if ($unread): ?><div class="unread-indicator"></div><?php endif; ?>
+                    <div class="icon-box"><?= $icon ?></div>
+                    <div class="notif-info">
+                        <h5><?= htmlspecialchars($n['title']) ?></h5>
+                        <p><?= htmlspecialchars($n['message']) ?></p>
+                        <span class="notif-time"><?= date('D, d M Y | h:i A', strtotime($n['created_at'])) ?></span>
                     </div>
-
-                    <div class="notif-main-text">
-                        <h5><?php echo htmlspecialchars($row['title']); ?></h5>
-                        <p><?php echo htmlspecialchars($row['message']); ?></p>
-                        <div class="notif-meta">
-                            <i class="far fa-clock"></i> <?php echo date('d M Y, g:i A', strtotime($row['created_at'])); ?>
-                        </div>
-                    </div>
-
-                    <div class="row-actions">
+                    <div class="actions" style="display:flex; align-items:center;">
                         <form method="POST">
                             <input type="hidden" name="action" value="toggle_read">
-                            <input type="hidden" name="notif_id" value="<?php echo $row['id']; ?>">
-                            <input type="hidden" name="current_status" value="<?php echo $row['is_read']; ?>">
-                            <button type="submit" style="background:none; border:none; color:#ccc; cursor:pointer;">
-                                <i class="fas <?php echo $is_unread ? 'fa-envelope' : 'fa-envelope-open'; ?>"></i>
+                            <input type="hidden" name="notif_id" value="<?= $n['id'] ?>">
+                            <input type="hidden" name="current_status" value="<?= $n['is_read'] ?>">
+                            <button type="submit" style="background:none; border:none; cursor:pointer; font-size:18px; color:#cbd5e1;">
+                                <i class="fas <?= $unread ? 'fa-envelope' : 'fa-envelope-open' ?>"></i>
                             </button>
                         </form>
                     </div>
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <div style="padding: 60px; text-align: center; color: #999;">
-                <img src="../images/no-data.png" style="width: 80px; opacity: 0.3; margin-bottom: 15px;" onerror="this.style.display='none'">
-                <p>Workspace Ready. No new notifications.</p>
+            <div style="text-align: center; padding: 60px; background: #fff; border-radius: 20px; border: 2px dashed #e2e8f0;">
+                <h3 style="color: #1e293b;">No Data Found</h3>
+                <p style="color: #64748b;">Current Filter: ID <b><?= $aid ?></b> | Role <b><?= $current_role ?></b></p>
+                <p style="font-size: 12px; color: #94a3b8; margin-top: 10px;">Check if your SQL data matches exactly.</p>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
-<?php include '../includes/_admin_foot.php'; ?>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main, #content-page');
+    let container = document.getElementById('notif-content-area');
+    if (viewport && container) {
+        viewport.innerHTML = ''; 
+        viewport.appendChild(container);
+    }
+});
+</script>
+
+<?php 
+$foot = $pxx_root . '/includes/_admin_foot.php'; 
+if (file_exists($foot)) { include $foot; } 
+?>
