@@ -5,12 +5,12 @@ error_reporting(E_ALL);
 
 require_once __DIR__ . '/../includes/db.php'; 
 
-$id = $_GET['id'] ?? ''; // 接收如 MP013 的字符串 ID
+$id = $_GET['id'] ?? ''; 
 if (!$id) {
     die("<script>alert('⚠️ No product ID provided!'); window.location.href='product_crud.php';</script>");
 }
 
-// 跟着你的数据库查询
+// 查询数据
 $stmt = $pdo->prepare("SELECT * FROM products WHERE product_id = ?"); 
 $stmt->execute([$id]);
 $product = $stmt->fetch();
@@ -19,6 +19,16 @@ if (!$product) {
     die("<div style='padding:50px; text-align:center;'><h2>⚠️ Entry not found!</h2><a href='product_crud.php'>Go Back</a></div>");
 }
 
+// ✨ 新增逻辑：根据 category_id (例如 CAT-MS-04) 自动提取类型前缀 (MS)
+$current_prefix = '';
+if (!empty($product['category_id'])) {
+    $parts = explode('-', $product['category_id']);
+    if (count($parts) >= 2) {
+        $current_prefix = $parts[1]; // 拿到 MS, MP, WP 等
+    }
+}
+
+// 表单提交处理
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = $_POST['name'] ?? '';
     $price = $_POST['price'] ?? 0;
@@ -31,22 +41,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stock = $_POST['stock'] ?? 0;
     $sales_count = $_POST['sales_count'] ?? 0;
     $status = $_POST['status'] ?? 'In stock';
-    $product_type = $_POST['product_type'] ?? '';
 
-    // 跟着你的数据库：图片字段是 product_image
     $final_image_path = $product['product_image'] ?? ''; 
 
     try {
         $pdo->beginTransaction();
 
         if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = __DIR__ . '/../uploads/products/';
+            $upload_dir = __DIR__ . '/../images/' . $id . '/';
             if (!is_dir($upload_dir)) { mkdir($upload_dir, 0777, true); }
 
             $tmp_name = $_FILES['photo']['tmp_name'];
             $file_extension = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
-            
-            // 保持你数据库中的格式: ID/文件名
             $new_filename = $id . '_' . time() . '.' . $file_extension;
             $target_file = $upload_dir . $new_filename;
 
@@ -55,9 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // 严格跟着你的数据库字段进行更新
-        $updateStmt = $pdo->prepare("UPDATE products SET name = ?, price = ?, description = ?, product_image = ?, category_id = ?, keywords = ?, size = ?, colour = ?, rating = ?, stock = ?, sales_count = ?, status = ?, product_type = ? WHERE product_id = ?");
-        $updateStmt->execute([$name, $price, $description, $final_image_path, $category_id, $keywords, $size, $colour, $rating, $stock, $sales_count, $status, $product_type, $id]);
+        $updateStmt = $pdo->prepare("UPDATE products SET name = ?, price = ?, description = ?, product_image = ?, category_id = ?, keywords = ?, size = ?, colour = ?, rating = ?, stock = ?, sales_count = ?, status = ? WHERE product_id = ?");
+        $updateStmt->execute([$name, $price, $description, $final_image_path, $category_id, $keywords, $size, $colour, $rating, $stock, $sales_count, $status, $id]);
 
         $pdo->commit();
         echo "<script>alert('✨ Product [$id] updated successfully!'); window.location.href='product_crud.php';</script>";
@@ -94,17 +99,18 @@ if (file_exists($admin_head)) { include $admin_head; }
                         <div class="custom-options">
                             <div class="options-inner">
                                 <div class="option-group-title">Men's Section</div>
-                                <div class="custom-option" data-value="MS">Men - Shirt (MS)</div>
-                                <div class="custom-option" data-value="MP">Men - Pants (MP)</div>
-                                <div class="custom-option" data-value="MO">Men - Others (MO)</div>
+                                <div class="custom-option <?= $current_prefix === 'MS' ? 'active' : '' ?>" data-value="MS">Men - Shirt (MS)</div>
+                                <div class="custom-option <?= $current_prefix === 'MP' ? 'active' : '' ?>" data-value="MP">Men - Pants (MP)</div>
+                                <div class="custom-option <?= $current_prefix === 'MO' ? 'active' : '' ?>" data-value="MO">Men - Others (MO)</div>
+                                
                                 <div class="option-group-title">Women's Section</div>
-                                <div class="custom-option" data-value="WS">Women - Shirt (WS)</div>
-                                <div class="custom-option" data-value="WP">Women - Pants and Skirt (WP)</div>
-                                <div class="custom-option" data-value="WO">Women - Others (WO)</div>
+                                <div class="custom-option <?= $current_prefix === 'WS' ? 'active' : '' ?>" data-value="WS">Women - Shirt (WS)</div>
+                                <div class="custom-option <?= $current_prefix === 'WP' ? 'active' : '' ?>" data-value="WP">Women - Pants and Skirt (WP)</div>
+                                <div class="custom-option <?= $current_prefix === 'WO' ? 'active' : '' ?>" data-value="WO">Women - Others (WO)</div>
                             </div>
                         </div>
                     </div>
-                    <input type="hidden" name="product_type" id="hidden-product-type" value="<?= htmlspecialchars($product['product_type'] ?? '') ?>">
+                    <input type="hidden" name="category_id_prefix" id="hidden-product-type" value="<?= htmlspecialchars($current_prefix) ?>">
                 </div>
 
                 <div class="grid-row-large">
@@ -164,7 +170,7 @@ if (file_exists($admin_head)) { include $admin_head; }
                 <div class="form-group">
                     <label>Product Photo</label>
                     <div class="file-upload-box" onclick="document.getElementById('photo-input').click();">
-                        <img id="image-preview" class="current-photo" src="<?= !empty($product['product_image']) ? '../' . htmlspecialchars($product['product_image']) : '' ?>" style="<?= empty($product['product_image']) ? 'display:none;' : '' ?>">
+                        <img id="image-preview" class="current-photo" src="<?= !empty($product['product_image']) ? '../images/' . htmlspecialchars($product['product_image']) : '' ?>" style="<?= empty($product['product_image']) ? 'display:none;' : '' ?>">
                         <div id="no-photo-placeholder" <?= !empty($product['product_image']) ? 'style="display:none;"' : '' ?>>📷 Upload Photo</div>
                         <input type="file" name="photo" id="photo-input" accept="image/*" style="display: none;">
                     </div>
@@ -178,6 +184,18 @@ if (file_exists($admin_head)) { include $admin_head; }
         </div>
     </div>
 </div>
+
+<script>
+// ✨ 在页面加载时，自动同步下拉框显示的文本
+document.addEventListener('DOMContentLoaded', function() {
+    const activeOption = document.querySelector('.custom-option.active');
+    const triggerText = document.querySelector('.trigger-text');
+    
+    if (activeOption && triggerText) {
+        triggerText.innerText = activeOption.innerText;
+    }
+});
+</script>
 
 <script src="../js/app.js?v=1.5"></script>
 
