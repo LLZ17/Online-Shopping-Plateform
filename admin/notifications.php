@@ -1,5 +1,5 @@
 <?php
-// PXX Mall - Notification Center (Universal Admin Edition)
+// PXX Mall - Notification Center (Dynamic Admin Edition)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -9,12 +9,12 @@ require_once $pxx_root . '/includes/db.php';
 if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-// 权限检查
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
-    header("Location: login.php"); exit;
+// --- 💡 动态获取当前登录者的 ID 和角色 ---
+// 只要登录了，不论 ID 是 001 还是 999，不论是 Admin 还是 S.Admin 都能看到自己的
+if (!isset($_SESSION['user_id'])) {
+    die("Error: Please login first.");
 }
 
-// 这里的变量直接跟着 Session 走，确保 100% 匹配
 $aid = $_SESSION['user_id']; 
 $current_role = $_SESSION['role']; 
 
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } catch (PDOException $e) { $errorMsg = $e->getMessage(); }
 }
 
-// --- 抓取列表 (修正了 WHERE 条件) ---
+// --- 抓取列表：根据当前登录的人动态过滤 ---
 try {
     $stmt = $pdo->prepare("SELECT * FROM notifications WHERE user_id = ? AND role = ? ORDER BY created_at DESC");
     $stmt->execute([$aid, $current_role]);
@@ -57,9 +57,9 @@ if (file_exists($admin_head)) { include $admin_head; }
     .page-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
     .page-header h1 { font-size: 28px; font-weight: 900; color: #0f172a; margin: 0; }
 
-    .notif-card { background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; padding: 20px; margin-bottom: 15px; display: flex; gap: 18px; position: relative; }
-    .unread-indicator { position: absolute; left: 0; top: 20px; bottom: 20px; width: 4px; background: #ef4444; border-radius: 0 4px 4px 0; }
-    .is-read { opacity: 0.5; filter: grayscale(0.5); }
+    .notif-card { background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; padding: 20px; margin-bottom: 15px; display: flex; gap: 18px; position: relative; transition: 0.3s; }
+    .unread-indicator { position: absolute; left: 0; top: 20px; bottom: 20px; width: 4px; background: #e60012; border-radius: 0 4px 4px 0; }
+    .is-read { opacity: 0.5; filter: grayscale(0.8); }
 
     .icon-box { width: 50px; height: 50px; border-radius: 14px; background: #f8fafc; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
     .notif-info { flex-grow: 1; }
@@ -67,7 +67,7 @@ if (file_exists($admin_head)) { include $admin_head; }
     .notif-info p { margin: 0; color: #64748b; font-size: 14px; line-height: 1.6; }
     .notif-time { display: block; margin-top: 12px; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
 
-    .btn-op { padding: 8px 16px; border-radius: 10px; font-weight: 800; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2; border: none; }
+    .btn-op { padding: 8px 16px; border-radius: 10px; font-weight: 800; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s; border: none; }
     .btn-white { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
     .btn-danger { background: #fee2e2; color: #b91c1c; }
 </style>
@@ -105,7 +105,7 @@ if (file_exists($admin_head)) { include $admin_head; }
                         <p><?= htmlspecialchars($n['message']) ?></p>
                         <span class="notif-time"><?= date('D, d M Y | h:i A', strtotime($n['created_at'])) ?></span>
                     </div>
-                    <div class="actions" style="display:flex; align-items:center;">
+                    <div class="actions">
                         <form method="POST">
                             <input type="hidden" name="action" value="toggle_read">
                             <input type="hidden" name="notif_id" value="<?= $n['id'] ?>">
@@ -118,22 +118,22 @@ if (file_exists($admin_head)) { include $admin_head; }
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <div style="text-align: center; padding: 60px; background: #fff; border-radius: 20px; border: 2px dashed #e2e8f0;">
-                <h3 style="color: #1e293b;">No Data Found</h3>
-                <p style="color: #64748b;">Current Filter: ID <b><?= $aid ?></b> | Role <b><?= $current_role ?></b></p>
-                <p style="font-size: 12px; color: #94a3b8; margin-top: 10px;">Check if your SQL data matches exactly.</p>
+            <div style="text-align: center; padding: 100px; background: #fff; border-radius: 24px;">
+                <h3 style="color: #94a3b8; font-weight: 800;">No notifications for <?= htmlspecialchars($current_role) ?> (ID: <?= htmlspecialchars($aid) ?>)</h3>
+                <p style="color: #cbd5e1;">Workspace is currently synced and clear.</p>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
 <script>
+// 模仿 Admin CRUD 的挂载逻辑
 document.addEventListener("DOMContentLoaded", function() {
-    let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main, #content-page');
-    let container = document.getElementById('notif-content-area');
-    if (viewport && container) {
-        viewport.innerHTML = ''; 
-        viewport.appendChild(container);
+    let vp = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main, #content-page');
+    let con = document.getElementById('notif-content-area');
+    if (vp && con) {
+        vp.innerHTML = '';
+        vp.appendChild(con);
     }
 });
 </script>

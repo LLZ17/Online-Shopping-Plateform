@@ -70,9 +70,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $full_address = $_POST['current_full_address'] ?? '';
     }
     
-    $postcode  = trim($_POST['postcode'] ?? '');
-    $city      = trim($_POST['city'] ?? '');
-    $state     = trim($_POST['state'] ?? '');
+    $postcode  = trim($_POST['Postcode'] ?? '');
+    $city      = trim($_POST['City'] ?? '');
+    $state     = trim($_POST['State'] ?? '');
     
     // 头像处理逻辑 (保留原图或处理删除/上传)
     $stmt_photo_check = $pdo->prepare("SELECT profile_photo FROM users WHERE user_id = ?");
@@ -511,8 +511,8 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
     /** * 从外部文件读取马来西亚行政区划数据 (state.json)
      */
     document.addEventListener('DOMContentLoaded', function() {
-        const stateSelect = document.getElementById('m_state');
-        const citySelect = document.getElementById('m_city');
+        const stateSelect = document.getElementById('State');
+        const citySelect = document.getElementById('City');
 
         if (!stateSelect) return;
 
