@@ -1,7 +1,7 @@
 <?php
 /**
  * =================================================================================
- * PXX MALL - ENTERPRISE GLOBAL HEADER (VERSION 8.4)
+ * PXX MALL - ENTERPRISE GLOBAL HEADER (VERSION 8.8)
  * =================================================================================
  */
 
@@ -70,7 +70,7 @@ if (!$isLoggedIn && isset($_COOKIE['remember_me']) && isset($pdo)) {
 $final_avatar_path = $path_prefix . 'images/' . $avatar_file;
 
 // =================================================================================
-// 5. 动态搜索关键词
+// 5. 动态搜索关键词 - 从 products 表实时获取
 // =================================================================================
 $current_category = isset($_GET['category']) ? $_GET['category'] : '';
 $dynamic_keywords = [];
@@ -78,26 +78,39 @@ $dynamic_keywords = [];
 if (isset($pdo)) {
     try {
         if (!empty($current_category) && $current_category !== 'All') {
+            // 有分类时：从该分类的产品中获取关键词
             $kw_stmt = $pdo->prepare("
                 SELECT DISTINCT p.keywords 
                 FROM products p
                 JOIN categories c ON p.category_id = c.category_id
-                WHERE c.category_gender = :cat AND p.keywords IS NOT NULL AND p.keywords != ''
-                LIMIT 4
+                WHERE c.category_gender = :cat 
+                AND p.keywords IS NOT NULL 
+                AND p.keywords != ''
+                ORDER BY RAND()
+                LIMIT 10
             ");
             $kw_stmt->execute(['cat' => $current_category]);
         } else {
-            $kw_stmt = $pdo->prepare("SELECT DISTINCT keywords FROM products WHERE keywords IS NOT NULL AND keywords != '' LIMIT 4");
+            // 无分类时：从所有产品中随机获取关键词
+            $kw_stmt = $pdo->prepare("
+                SELECT DISTINCT keywords 
+                FROM products 
+                WHERE keywords IS NOT NULL 
+                AND keywords != ''
+                ORDER BY RAND()
+                LIMIT 10
+            ");
             $kw_stmt->execute();
         }
         
         $fetched_keywords = $kw_stmt->fetchAll(PDO::FETCH_COLUMN);
         
+        // 拆分逗号分隔的关键词
         foreach ($fetched_keywords as $kw_string) {
             $parts = explode(',', $kw_string);
             foreach ($parts as $p) {
                 $p = trim($p);
-                if (!empty($p) && !in_array($p, $dynamic_keywords)) {
+                if (!empty($p) && strlen($p) > 1 && !in_array($p, $dynamic_keywords)) {
                     $dynamic_keywords[] = $p;
                 }
                 if (count($dynamic_keywords) >= 4) break 2;
@@ -106,10 +119,11 @@ if (isset($pdo)) {
     } catch(PDOException $e) {}
 }
 
+// 如果数据库没有关键词，使用默认（确保有显示）
 if (empty($dynamic_keywords)) {
-    if ($current_category == 'Women') $dynamic_keywords = ['Korean', 'Dress', 'Heels', 'Handbag'];
-    elseif ($current_category == 'Men') $dynamic_keywords = ['Streetwear', 'Sneakers', 'Suit', 'T-Shirt'];
-    else $dynamic_keywords = ['Korean', 'Streetwear', 'New Arrival', 'Sale'];
+    if ($current_category == 'Women') $dynamic_keywords = ['Dress', 'Skirt', 'Blouse', 'Heels'];
+    elseif ($current_category == 'Men') $dynamic_keywords = ['Shirt', 'Trousers', 'Sneakers', 'Jacket'];
+    else $dynamic_keywords = ['T-Shirt', 'Jeans', 'Sneakers', 'Dress'];
 }
 
 // =================================================================================
@@ -122,7 +136,7 @@ $recent_wishlist = [];
 $cart_count = 0; 
 $recent_cart = [];
 
-// 🌟 关键：正确获取 user_id（支持 varchar 类型）
+// 获取 user_id
 $uid = '';
 if ($isLoggedIn) {
     if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
@@ -137,8 +151,6 @@ if ($isLoggedIn) {
     }
 }
 
-// 🌟 调试：临时显示 user_id（确认获取正确）
-echo "<div style='position:fixed;top:120px;left:10px;background:#fff;color:red;z-index:99999;padding:10px;'>UID: " . htmlspecialchars($uid) . "</div>";
 if (!empty($uid) && isset($pdo)) {
     
     // --- 购物车 ---
@@ -160,19 +172,19 @@ if (!empty($uid) && isset($pdo)) {
         }
     } catch(PDOException $e) {}
 
-    // --- 愿望清单 ---
+    // --- 愿望清单 (favourites 表) ---
     try {
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM wishlist WHERE user_id = ?");
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM favourites WHERE user_id = ?");
         $stmt->execute([$uid]);
         $wishlist_count = (int)$stmt->fetchColumn();
 
         if ($wishlist_count > 0) {
             $stmt = $pdo->prepare("
                 SELECT p.name, p.price, p.product_image 
-                FROM wishlist w 
-                JOIN products p ON w.product_id = p.product_id 
-                WHERE w.user_id = ? 
-                ORDER BY w.wishlist_id DESC LIMIT 3
+                FROM favourites f 
+                JOIN products p ON f.product_id = p.product_id 
+                WHERE f.user_id = ? 
+                ORDER BY f.created_at DESC LIMIT 3
             ");
             $stmt->execute([$uid]);
             $recent_wishlist = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -189,6 +201,11 @@ if (!empty($uid) && isset($pdo)) {
         $stmt->execute([$uid]);
         $recent_notifs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch(PDOException $e) {}
+}
+
+// 辅助函数：数字超过99显示99+
+function badge_number($num) {
+    return $num > 99 ? '99+' : $num;
 }
 ?>
 <!DOCTYPE html>
@@ -208,7 +225,12 @@ if (!empty($uid) && isset($pdo)) {
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        body { margin: 0; font-family: 'Poppins', sans-serif; background-color: var(--gray-100); }
+        body { 
+            margin: 0; 
+            font-family: 'Poppins', sans-serif; 
+            background-color: var(--gray-100);
+            padding-top: 100px;  /* 🌟 加大到 100px，确保 Welcome 图片完整显示 */
+        }
         * { box-sizing: border-box; }
         a { text-decoration: none; color: inherit; transition: var(--transition); }
 
@@ -236,13 +258,15 @@ if (!empty($uid) && isset($pdo)) {
         }
         .logo-link sup { font-size: 16px; font-weight: 700; margin-left: 2px; }
 
-        /* 🌟 修复：搜索框变窄 */
+        /* 搜索框 */
         .search-section { 
-            flex: 0 0 auto;      /* 不伸缩，固定宽度 */
-            width: 450px;        /* 原来 600px，改窄 */
+            flex: 1;
+            max-width: 700px;
+            min-width: 400px;
             display: flex; 
             flex-direction: column; 
             justify-content: center;
+            margin: 0 20px;
         }
         
         .search-container { 
@@ -253,11 +277,11 @@ if (!empty($uid) && isset($pdo)) {
             width: 100%; 
         }
         .search-input { 
-            flex: 1;             /* 输入框占据剩余空间 */
+            flex: 1;
             border: none; 
-            padding: 10px 15px;  /* 稍微减小 padding */
+            padding: 12px 20px;
             outline: none; 
-            font-size: 14px;     /* 字体稍小 */
+            font-size: 15px;
             color: #333; 
         }
         .search-btn { 
@@ -265,32 +289,31 @@ if (!empty($uid) && isset($pdo)) {
             border: none; 
             color: var(--pxx-red); 
             cursor: pointer; 
-            padding: 0 15px;     /* 减小 padding */
-            font-size: 16px;     /* 图标稍小 */
+            padding: 0 20px;
+            font-size: 18px;
         }
 
-        /* 🌟 修复：Trending 强制单行，不换行 */
+        /* Trending */
         .search-keywords {
             margin-top: 6px;
             font-size: 12px;
             display: flex;
-            gap: 12px;           /* 减小间距 */
+            gap: 15px;
             color: rgba(255, 255, 255, 0.8);
             margin-left: 5px;
-            white-space: nowrap; /* 强制不换行 */
-            overflow: hidden;    /* 超出隐藏 */
-            text-overflow: ellipsis; /* 超出显示省略号 */
+            white-space: nowrap;
+            overflow: visible;
         }
         .search-keywords span { 
             font-weight: 700; 
             color: #ffffff; 
-            flex-shrink: 0;    /* "Trending:" 不收缩 */
+            flex-shrink: 0;
         }
         .search-keywords a { 
             color: rgba(255, 255, 255, 0.9); 
             text-decoration: none; 
             transition: 0.2s; 
-            flex-shrink: 0;    /* 关键词不收缩 */
+            flex-shrink: 0;
         }
         .search-keywords a:hover { 
             color: #ffffff; 
@@ -303,26 +326,39 @@ if (!empty($uid) && isset($pdo)) {
         .nav-trigger-link:hover { opacity: 0.85; transform: translateY(-2px); }
 
         .profile-item { margin-left: 10px; } 
-        .icon-wrap { position: relative; height: 32px; display: flex; align-items: center; justify-content: center; }
+        .icon-wrap { 
+            position: relative; 
+            width: 32px;        /* 🌟 固定宽度 */
+            height: 32px;       /* 🌟 固定高度 */
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
         .icon-wrap i { font-size: 24px; color: white; }
         .icon-text { font-size: 13px; font-weight: 700; color: white; margin-top: 4px; }
 
-        /* 🌟 数字徽章 */
+        /* 🌟 数字徽章 - 固定大小，不随页面缩放 */
         .badge { 
             position: absolute; 
             top: -6px; 
-            right: -12px; 
+            right: -10px; 
             background: white; 
             color: var(--pxx-red); 
-            font-size: 11px; 
+            font-size: 10px; 
             font-weight: 900; 
-            width: 18px; 
-            height: 18px; 
+            width: 20px;          /* 🌟 固定宽度 */
+            height: 20px;         /* 🌟 固定高度 */
             border-radius: 50%; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            line-height: 1;
+        }
+        /* 🌟 99+ 时稍微宽一点 */
+        .badge.wide {
+            width: 28px;
+            border-radius: 10px;
         }
 
         .user-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid white; }
@@ -470,8 +506,6 @@ if (!empty($uid) && isset($pdo)) {
             border-top: 1px solid #eee; 
         }
         .preview-footer:hover { background: #fafafa; }
-
-        .header-spacer { height: 110px; width: 100%; display: block; }
     </style>
 </head>
 <body>
@@ -492,7 +526,6 @@ if (!empty($uid) && isset($pdo)) {
                 <button type="submit" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
             
-            <!-- 🌟 修复：Trending 强制单行 -->
             <div class="search-keywords">
                 <span>Trending:</span>
                 <?php foreach($dynamic_keywords as $kw): ?>
@@ -511,7 +544,7 @@ if (!empty($uid) && isset($pdo)) {
                     <div class="icon-wrap">
                         <i class="fa-solid fa-bell"></i>
                         <?php if ($isLoggedIn && $notif_count > 0): ?>
-                            <span class="badge"><?php echo $notif_count; ?></span>
+                            <span class="badge <?php echo $notif_count > 99 ? 'wide' : ''; ?>"><?php echo badge_number($notif_count); ?></span>
                         <?php endif; ?>
                     </div>
                     <span class="icon-text">Notifications</span>
@@ -534,13 +567,13 @@ if (!empty($uid) && isset($pdo)) {
                 <?php endif; ?>
             </div>
 
-            <!-- ❤️ Wishlist -->
+            <!-- ❤️ Wishlist (Favourites) -->
             <div class="nav-item <?php echo $isLoggedIn ? 'hover-trigger' : ''; ?>">
                 <a href="<?php echo $isLoggedIn ? $path_prefix.'member/wishlist.php' : $path_prefix.'login_selection.php'; ?>" class="nav-trigger-link">
                     <div class="icon-wrap">
                         <i class="fa-solid fa-heart"></i>
                         <?php if ($isLoggedIn && $wishlist_count > 0): ?>
-                            <span class="badge"><?php echo $wishlist_count; ?></span>
+                            <span class="badge <?php echo $wishlist_count > 99 ? 'wide' : ''; ?>"><?php echo badge_number($wishlist_count); ?></span>
                         <?php endif; ?>
                     </div>
                     <span class="icon-text">Wishlist</span>
@@ -572,7 +605,7 @@ if (!empty($uid) && isset($pdo)) {
                     <div class="icon-wrap">
                         <i class="fa-solid fa-cart-shopping"></i>
                         <?php if ($isLoggedIn && $cart_count > 0): ?>
-                            <span class="badge"><?php echo $cart_count; ?></span>
+                            <span class="badge <?php echo $cart_count > 99 ? 'wide' : ''; ?>"><?php echo badge_number($cart_count); ?></span>
                         <?php endif; ?>
                     </div>
                     <span class="icon-text">Cart</span>
@@ -645,8 +678,6 @@ if (!empty($uid) && isset($pdo)) {
         </div>
     </div>
 </header>
-
-<div class="header-spacer"></div>
 
 </body>
 </html>

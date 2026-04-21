@@ -1,5 +1,5 @@
 <?php
-// PXX Mall - Notification Center (Dynamic Admin Edition)
+// PXX Mall - Notification Center (Session-Based Edition)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -9,40 +9,39 @@ require_once $pxx_root . '/includes/db.php';
 if (!isset($pdo) && isset($conn)) { $pdo = $conn; }
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-// --- 💡 动态获取当前登录者的 ID 和角色 ---
-// 只要登录了，不论 ID 是 001 还是 999，不论是 Admin 还是 S.Admin 都能看到自己的
-if (!isset($_SESSION['user_id'])) {
-    die("Error: Please login first.");
+// --- 💡 核心逻辑：从 Session 动态获取 ---
+// 只要你登录的是谁，这里就会自动变成谁，不用再手动改代码
+$aid = $_SESSION['user_id'] ?? null; 
+$current_role = $_SESSION['role'] ?? null; 
+
+// 如果没登录，直接跳回登录页
+if (!$aid) {
+    header("Location: login.php");
+    exit;
 }
 
-$aid = $_SESSION['user_id']; 
-$current_role = $_SESSION['role']; 
-
-// --- 后端处理逻辑 ---
+// --- 处理 Action ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     try {
         if ($action === 'mark_all_read') {
-            $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND role = ?")->execute([$aid, $current_role]);
+            $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ?")->execute([$aid]);
         } 
         elseif ($action === 'mark_all_unread') {
-            $pdo->prepare("UPDATE notifications SET is_read = 0 WHERE user_id = ? AND role = ?")->execute([$aid, $current_role]);
+            $pdo->prepare("UPDATE notifications SET is_read = 0 WHERE user_id = ?")->execute([$aid]);
         }
         elseif ($action === 'delete_all') {
-            $pdo->prepare("DELETE FROM notifications WHERE user_id = ? AND role = ?")->execute([$aid, $current_role]);
-        }
-        elseif ($action === 'toggle_read') {
-            $new_status = ($_POST['current_status'] == 1) ? 0 : 1;
-            $pdo->prepare("UPDATE notifications SET is_read = ? WHERE id = ?")->execute([$new_status, $_POST['notif_id']]);
+            $pdo->prepare("DELETE FROM notifications WHERE user_id = ?")->execute([$aid]);
         }
         header("Location: notifications.php"); exit;
-    } catch (PDOException $e) { $errorMsg = $e->getMessage(); }
+    } catch (PDOException $e) { $error = $e->getMessage(); }
 }
 
-// --- 抓取列表：根据当前登录的人动态过滤 ---
+// --- 抓取列表：精准匹配当前登录的用户 ---
 try {
-    $stmt = $pdo->prepare("SELECT * FROM notifications WHERE user_id = ? AND role = ? ORDER BY created_at DESC");
-    $stmt->execute([$aid, $current_role]);
+    // 根据当前登录的 user_id 来查询，确保每个人看自己的
+    $stmt = $pdo->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC");
+    $stmt->execute([$aid]);
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { $notifications = []; }
 
@@ -51,89 +50,57 @@ if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
-    
-    .notif-container { width: 100%; box-sizing: border-box; padding: 20px; font-family: 'Plus Jakarta Sans', sans-serif; }
-    .page-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
-    .page-header h1 { font-size: 28px; font-weight: 900; color: #0f172a; margin: 0; }
-
-    .notif-card { background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; padding: 20px; margin-bottom: 15px; display: flex; gap: 18px; position: relative; transition: 0.3s; }
-    .unread-indicator { position: absolute; left: 0; top: 20px; bottom: 20px; width: 4px; background: #e60012; border-radius: 0 4px 4px 0; }
-    .is-read { opacity: 0.5; filter: grayscale(0.8); }
-
-    .icon-box { width: 50px; height: 50px; border-radius: 14px; background: #f8fafc; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
-    .notif-info { flex-grow: 1; }
-    .notif-info h5 { margin: 0 0 6px 0; font-size: 17px; font-weight: 800; color: #1e293b; }
-    .notif-info p { margin: 0; color: #64748b; font-size: 14px; line-height: 1.6; }
-    .notif-time { display: block; margin-top: 12px; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
-
-    .btn-op { padding: 8px 16px; border-radius: 10px; font-weight: 800; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s; border: none; }
-    .btn-white { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
-    .btn-danger { background: #fee2e2; color: #b91c1c; }
+    .notif-container { width: 100%; padding: 25px; box-sizing: border-box; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+    .notif-card { background: #fff; border-radius: 18px; padding: 20px; margin-bottom: 15px; border: 1px solid #f1f5f9; display: flex; gap: 15px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: 0.2s; }
+    .notif-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+    .unread-bar { position: absolute; left: 0; top: 20px; bottom: 20px; width: 4px; background: #ff4d4d; border-radius: 0 4px 4px 0; }
+    .is-read { opacity: 0.6; filter: grayscale(0.8); }
+    .btn-notif { padding: 8px 16px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; font-weight: 800; cursor: pointer; font-size: 13px; }
 </style>
 
-<div class="notif-container" id="notif-content-area">
+<div id="notif-content-area" class="notif-container">
     <div class="page-header">
-        <h1>Notifications Center</h1>
-        <div style="display: flex; gap: 12px;">
-            <form method="POST">
-                <input type="hidden" name="action" value="mark_all_read">
-                <button type="submit" class="btn-op btn-white"><span>✅</span> Mark Read</button>
-            </form>
-            <form method="POST">
-                <input type="hidden" name="action" value="mark_all_unread">
-                <button type="submit" class="btn-op btn-white"><span>📩</span> Mark Unread</button>
-            </form>
-            <form method="POST" onsubmit="return confirm('Clear all?')">
-                <input type="hidden" name="action" value="delete_all">
-                <button type="submit" class="btn-op btn-danger"><span>🗑️</span> Clear All</button>
-            </form>
+        <h1 style="margin:0; font-weight:900;">Notification Center</h1>
+        <div style="display: flex; gap: 10px;">
+            <form method="POST"><input type="hidden" name="action" value="mark_all_read"><button class="btn-notif">✅ Mark Read</button></form>
+            <form method="POST"><input type="hidden" name="action" value="mark_all_unread"><button class="btn-notif">📩 Mark Unread</button></form>
+            <form method="POST"><input type="hidden" name="action" value="delete_all"><button class="btn-notif" style="color:#ef4444; border-color:#fee2e2;">🗑️ Clear All</button></form>
         </div>
     </div>
 
     <div class="notif-list">
         <?php if (!empty($notifications)): ?>
-            <?php foreach ($notifications as $n): 
-                $unread = !$n['is_read'];
-                $icon = (stripos($n['type'], 'order') !== false) ? '📦' : ((stripos($n['type'], 'stock') !== false) ? '⚠️' : '🔔');
-            ?>
-                <div class="notif-card <?= $unread ? '' : 'is-read' ?>">
-                    <?php if ($unread): ?><div class="unread-indicator"></div><?php endif; ?>
-                    <div class="icon-box"><?= $icon ?></div>
-                    <div class="notif-info">
-                        <h5><?= htmlspecialchars($n['title']) ?></h5>
-                        <p><?= htmlspecialchars($n['message']) ?></p>
-                        <span class="notif-time"><?= date('D, d M Y | h:i A', strtotime($n['created_at'])) ?></span>
+            <?php foreach ($notifications as $n): ?>
+                <div class="notif-card <?= $n['is_read'] ? 'is-read' : '' ?>">
+                    <?php if (!$n['is_read']): ?><div class="unread-bar"></div><?php endif; ?>
+                    <div style="font-size:24px; background:#f8fafc; padding:10px; border-radius:12px;">
+                        <?= strpos($n['type'], 'order') !== false ? '📦' : (strpos($n['type'], 'stock') !== false ? '⚠️' : '🔔') ?>
                     </div>
-                    <div class="actions">
-                        <form method="POST">
-                            <input type="hidden" name="action" value="toggle_read">
-                            <input type="hidden" name="notif_id" value="<?= $n['id'] ?>">
-                            <input type="hidden" name="current_status" value="<?= $n['is_read'] ?>">
-                            <button type="submit" style="background:none; border:none; cursor:pointer; font-size:18px; color:#cbd5e1;">
-                                <i class="fas <?= $unread ? 'fa-envelope' : 'fa-envelope-open' ?>"></i>
-                            </button>
-                        </form>
+                    <div style="flex-grow:1;">
+                        <h4 style="margin:0; font-size:17px; font-weight:800; color:#1e293b;"><?= htmlspecialchars($n['title']) ?></h4>
+                        <p style="margin:5px 0; color:#64748b; font-size:14px;"><?= htmlspecialchars($n['message']) ?></p>
+                        <small style="color:#94a3b8; font-weight:700;"><?= date('d M, h:i A', strtotime($n['created_at'])) ?></small>
                     </div>
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <div style="text-align: center; padding: 100px; background: #fff; border-radius: 24px;">
-                <h3 style="color: #94a3b8; font-weight: 800;">No notifications for <?= htmlspecialchars($current_role) ?> (ID: <?= htmlspecialchars($aid) ?>)</h3>
-                <p style="color: #cbd5e1;">Workspace is currently synced and clear.</p>
+            <div style="text-align:center; padding:100px; background:white; border-radius:24px; border:2px dashed #e2e8f0;">
+                <h3 style="color:#94a3b8;">No notifications for ID: <?= htmlspecialchars($aid) ?></h3>
+                <p style="color:#cbd5e1;">Your workspace is currently synced and clear.</p>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
 <script>
-// 模仿 Admin CRUD 的挂载逻辑
 document.addEventListener("DOMContentLoaded", function() {
-    let vp = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main, #content-page');
-    let con = document.getElementById('notif-content-area');
-    if (vp && con) {
+    // 强制清除 "Workspace Ready" 占位符
+    let vp = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
+    let content = document.getElementById('notif-content-area');
+    if (vp && content) {
         vp.innerHTML = '';
-        vp.appendChild(con);
+        vp.appendChild(content);
     }
 });
 </script>
