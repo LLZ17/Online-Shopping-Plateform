@@ -60,10 +60,10 @@ function sendNuclearOTP($pdo, $u, $e, $r, $c, &$debug_output) {
         $mail->CharSet = 'UTF-8';
         $mail->Timeout = 15;
 
-        $mail->setFrom('pxxmallmalaysia@gmail.com', "PXX Mall ($r)");
+        $mail->setFrom('pxxmallmalaysia@gmail.com', "noreply@PXX Mall Security System ($r)");
         $mail->addAddress($e, $u);
         $mail->isHTML(true);
-        $mail->Subject = "Your Security Verification Code: [$otp]";
+        $mail->Subject = "Your Verification Code: [$otp]";
         $mail->Body = "
             <div style='font-family:Arial,sans-serif; padding:20px; border:3px solid $c; border-radius:15px;'>
                 <h2 style='color:$c;'>Identity Verification</h2>

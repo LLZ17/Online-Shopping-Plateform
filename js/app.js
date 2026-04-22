@@ -1,52 +1,234 @@
 /* 1. admin/admin_crud.php js LIM LI ZHE part*/
+// 等待DOM完全加载
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('页面加载完成，初始化事件监听...');
+    
+    // 绑定刷新按钮
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', handleRefresh);
+        console.log('刷新按钮已绑定');
+    }
+    
+    // 绑定创建按钮
+    const createBtn = document.getElementById('createAdminBtn');
+    if (createBtn) {
+        createBtn.addEventListener('click', function() {
+            openModal('add');
+        });
+        console.log('创建按钮已绑定');
+    }
+    
+    // 使用事件委托绑定所有操作按钮（推荐方式）
+    const container = document.querySelector('.admin-container');
+    if (container) {
+        container.addEventListener('click', function(event) {
+            // 查找被点击的按钮
+            const button = event.target.closest('.btn-op');
+            if (!button) return;
+            
+            // 阻止事件冒泡
+            event.stopPropagation();
+            
+            console.log('按钮被点击:', button.className);
+            
+            // 判断按钮类型
+            if (button.id === 'refreshBtn') {
+                handleRefresh();
+                return;
+            }
+            
+            if (button.id === 'createAdminBtn') {
+                openModal('add');
+                return;
+            }
+            
+            // 处理 Detail, Edit, Delete 按钮
+            const action = button.getAttribute('data-action');
+            
+            if (action === 'detail') {
+                const userData = button.getAttribute('data-user');
+                const addr = button.getAttribute('data-addr') || '';
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        openModal('detail', user, addr);
+                    } catch(e) {
+                        console.error('解析用户数据失败:', e);
+                    }
+                }
+            } 
+            else if (action === 'edit') {
+                const userData = button.getAttribute('data-user');
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        openModal('edit', user);
+                    } catch(e) {
+                        console.error('解析用户数据失败:', e);
+                    }
+                }
+            }
+            else if (action === 'delete') {
+                const userId = button.getAttribute('data-user-id');
+                if (userId) {
+                    handleDelete(userId);
+                }
+            }
+        });
+        console.log('事件委托已绑定到容器');
+    } else {
+        console.error('找不到 .admin-container 容器');
+    }
+    
+    // 绑定模态框关闭按钮
+    const modalClose = document.querySelector('.modal-close');
+    if (modalClose) {
+        modalClose.addEventListener('click', closeModal);
+    }
+    
+    // 点击模态框背景关闭
+    const modalOverlay = document.getElementById('adminModal');
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', function(event) {
+            if (event.target === modalOverlay) {
+                closeModal();
+            }
+        });
+    }
+});
+
+// 刷新功能
 function handleRefresh() {
-    alert("✅ Admin records synchronized and refreshed!");
-    window.location.reload();
+    console.log('执行刷新');
+    const btn = document.getElementById('refreshBtn');
+    if (btn) {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = "<span>⏳</span> Syncing...";
+        btn.disabled = true;
+        
+        setTimeout(() => {
+            const toast = document.getElementById('toastBox');
+            if (toast) {
+                toast.style.display = 'flex';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 800);
+            } else {
+                window.location.reload();
+            }
+        }, 400);
+    }
 }
 
+// 删除功能
 function handleDelete(id) {
-    if(confirm("🚨 CRITICAL WARNING: Are you sure you want to permanently delete Admin #" + id + "?\nThis action cannot be undone!")) {
+    console.log('删除用户:', id);
+    if (confirm("🚨 Are you sure you want to delete this account?")) {
         window.location.href = "admin_crud.php?delete=" + id;
     }
 }
 
-function openModal(mode, data, fullAddr = "") {
+// 打开模态框
+function openModal(mode, data = null, addr = "") {
+    console.log('打开模态框:', mode, data);
+    
     const modal = document.getElementById('adminModal');
     const footer = document.getElementById('modalFooter');
+    const modalTitle = document.getElementById('modalTitle');
+    const formAction = document.getElementById('form_action');
+    const passGroup = document.getElementById('pass_group');
+    const infoOnlys = document.querySelectorAll('.info-only');
+    
+    if (!modal) {
+        console.error('找不到模态框元素');
+        return;
+    }
+    
     modal.style.display = 'flex';
     
-    document.getElementById('field_id').value = data.user_id;
-    document.getElementById('field_user').value = data.username;
-    document.getElementById('field_real').value = data.real_name || '';
-    document.getElementById('field_role').value = data.role;
-    document.getElementById('field_status').value = data.status;
-    document.getElementById('field_created').value = data.created_at || 'N/A';
-    document.getElementById('field_login').value = data.last_login || 'No Session Found';
-    document.getElementById('field_addr').value = fullAddr;
-
-    const inputs = document.querySelectorAll('#modalForm input, #modalForm select');
+    // 重置表单
+    const modalForm = document.getElementById('modalForm');
+    if (modalForm) modalForm.reset();
     
-    if(mode === 'detail') {
-        document.getElementById('modalTitle').innerText = "Admin Detail Profile";
-        inputs.forEach(i => i.disabled = true);
-        footer.innerHTML = '<button type="button" class="btn-save" style="background:#64748b;" onclick="closeModal()">Close Window</button>';
-    } else {
-        document.getElementById('modalTitle').innerText = "Modify Administrator Data";
-        inputs.forEach(i => { if(i.id !== 'field_created' && i.id !== 'field_login') i.disabled = false; });
-        footer.innerHTML = '<button type="submit" class="btn-save">Commit Changes</button><button type="button" onclick="closeModal()" style="background:none; color:#94a3b8; border:none; cursor:pointer; font-weight:700;">Discard Changes</button>';
+    if (mode === 'add') {
+        modalTitle.innerText = "Create Admin";
+        formAction.value = "add_admin";
+        if (passGroup) passGroup.style.display = 'block';
+        infoOnlys.forEach(e => e.style.display = 'none');
+        
+        // 启用所有输入框
+        document.querySelectorAll('#modalForm input, #modalForm select').forEach(e => {
+            if (e.id !== 'field_id') e.disabled = false;
+        });
+        
+        if (footer) {
+            footer.innerHTML = '<button type="submit" class="btn-op" style="width:100%; justify-content:center; background:#0f172a; color:#fff;">Create Now</button>';
+        }
+    } 
+    else {
+        formAction.value = "edit_admin";
+        if (passGroup) passGroup.style.display = 'none';
+        infoOnlys.forEach(e => e.style.display = 'block');
+        
+        // 填充数据
+        if (data) {
+            document.getElementById('field_id').value = data.user_id || '';
+            document.getElementById('field_user').value = data.username || '';
+            document.getElementById('field_real').value = data.real_name || '';
+            document.getElementById('field_role').value = data.role || 'Admin';
+            document.getElementById('field_status').value = data.status || 'Active';
+            document.getElementById('field_created').value = data.created_at || '';
+        }
+        
+        const isDetail = mode === 'detail';
+        modalTitle.innerText = isDetail ? "Admin Detail" : "Edit Admin";
+        
+        // 禁用/启用输入框
+        document.querySelectorAll('#modalForm input, #modalForm select').forEach(e => {
+            if (e.id !== 'field_id') e.disabled = isDetail;
+        });
+        
+        if (footer) {
+            if (isDetail) {
+                footer.innerHTML = '<button type="button" onclick="closeModal()" class="btn-op btn-detail" style="width:100%; justify-content:center;">Close</button>';
+            } else {
+                footer.innerHTML = '<button type="submit" class="btn-op" style="width:100%; justify-content:center; background:#10b981; color:#fff;">Update Profile</button>';
+            }
+        }
     }
 }
 
-function closeModal() { document.getElementById('adminModal').style.display = 'none'; }
-
-document.addEventListener("DOMContentLoaded", function() {
-    let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
-    let container = document.querySelector('.admin-container');
-    if (viewport && container && viewport !== container.parentNode) {
-        viewport.innerHTML = '';
-        viewport.appendChild(container);
+// 关闭模态框
+function closeModal() {
+    console.log('关闭模态框');
+    const modal = document.getElementById('adminModal');
+    if (modal) {
+        modal.style.display = 'none';
     }
-});
+}
+
+// 显示Toast消息
+function showToast(message) {
+    const toast = document.getElementById('toastBox');
+    if (toast) {
+        const toastSpan = toast.querySelector('span:last-child');
+        if (toastSpan) toastSpan.innerText = message;
+        toast.style.display = 'flex';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+}
+
+// 导出函数供全局使用（如果需要）
+window.handleRefresh = handleRefresh;
+window.handleDelete = handleDelete;
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.showToast = showToast;
+
+console.log('admin_crud.js 加载完成');
 /* ------------------------------------------------*/
 
 /* 2. admin/category_crud.php js LIM LI ZHE part*/

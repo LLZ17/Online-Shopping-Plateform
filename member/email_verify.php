@@ -106,7 +106,7 @@ function sendSecurityVerificationOTP($pdo, $user_id) {
         $mail->setFrom('pxxmallmalaysia@gmail.com', 'noreply@PXX Mall Security System');
         $mail->addAddress($target_email, $target_name);
         $mail->isHTML(true);
-        $mail->Subject = "Verification Code: [ $generated_otp ] for $target_name";
+        $mail->Subject = "Your Verification Code: [ $generated_otp ] for $target_name";
         
         /**
          * 🔥 邮件正文：满足换行要求

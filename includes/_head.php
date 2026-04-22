@@ -113,7 +113,7 @@ if (isset($pdo)) {
                 if (!empty($p) && strlen($p) > 1 && !in_array($p, $dynamic_keywords)) {
                     $dynamic_keywords[] = $p;
                 }
-                if (count($dynamic_keywords) >= 4) break 2;
+                if (count($dynamic_keywords) >= 5) break 2;
             }
         }
     } catch(PDOException $e) {}
@@ -260,14 +260,28 @@ function badge_number($num) {
 
         /* 搜索框 */
         .search-section { 
-            flex: 1;
-            max-width: 700px;
-            min-width: 400px;
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center;
-            margin: 0 20px;
-        }
+        flex: 1;
+    max-width: 700px;
+    min-width: 400px;
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center;
+    margin: 0 20px;
+    overflow: hidden;  /* 新增 */
+}
+
+/* Trending 关键词限制在区域内 */
+.search-keywords {
+    margin-top: 6px;
+    font-size: 11px;
+    display: flex;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-left: 5px;
+    white-space: nowrap;
+    overflow: hidden;       /* 新增：防止溢出到右边 */
+    max-width: 100%;        /* 新增：限制在父容器宽度内 */
+}
         
         .search-container { 
             display: flex; 
@@ -651,8 +665,7 @@ function badge_number($num) {
                     </a>
                     <div class="user-dropdown">
                         <a href="<?php echo $path_prefix; ?>member/profile.php"><i class="fa-solid fa-user-circle"></i> My Account</a>
-                        <a href="<?php echo $path_prefix; ?>member/orders_history.php"><i class="fa-solid fa-box"></i> My Orders</a>
-                        <a href="<?php echo $path_prefix; ?>member/settings.php"><i class="fa-solid fa-gear"></i> My Settings</a>
+                        <a href="<?php echo $path_prefix; ?>memberOrders/history.php"><i class="fa-solid fa-box"></i> My Orders</a>
                         <div style="height:1px; background:#eee; margin:5px 0;"></div>
                         <a href="<?php echo $path_prefix; ?>member/logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
                     </div>

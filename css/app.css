@@ -5,46 +5,301 @@
 /*---------------------------------------------*/
 
 /* 1. admin/admin_crud.php css LIM LI ZHE part */
-/*---------------------------------------------*/
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
 
-.admin-container { width: 100%; box-sizing: border-box; padding: 20px; font-family: 'Plus Jakarta Sans', sans-serif; }
-.page-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
-.page-header h1 { font-size: 28px; font-weight: 900; color: #0f172a; margin: 0; }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-/* 表格样式 */
-.table-card { background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; overflow: hidden; }
-table { width: 100%; border-collapse: collapse; text-align: left; }
-th { background: #f8fafc; padding: 18px 20px; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase; }
-td { padding: 18px 20px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: #f8fafc;
+}
 
-.profile-info { display: flex; align-items: center; gap: 12px; }
-.profile-img { width: 45px; height: 45px; border-radius: 12px; object-fit: cover; border: 2px solid #f1f5f9; }
-.u-realname { font-size: 15px; font-weight: 800; color: #0f172a; display: block; }
+.admin-container {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 20px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
 
-/* Badge 样式 */
-.badge { padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-.bg-active { background: #dcfce7; color: #15803d; }
-.bg-blocked { background: #fee2e2; color: #b91c1c; }
-.bg-role { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+.page-header {
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
 
-/* 操作按钮 */
-.action-group { display: flex; gap: 8px; }
-.btn-op { padding: 8px 14px; border-radius: 10px; text-decoration: none; font-weight: 800; font-size: 12px; display: flex; align-items: center; gap: 6px; border: 1px solid transparent; cursor: pointer; transition: 0.2s; }
-.btn-detail { background: #f1f5f9; color: #475569; }
-.btn-edit { background: #dcfce7; color: #15803d; }
-.btn-delete { background: #fee2e2; color: #b91c1c; }
-.btn-op:hover { transform: translateY(-2px); filter: brightness(0.95); }
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0;
+}
 
-/* Modal 弹窗 */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(4px); }
-.modal-content { background: #fff; width: 550px; border-radius: 24px; padding: 35px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; }
-.modal-close { position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; color: #94a3b8; }
-.f-group { margin-bottom: 20px; }
-.f-group label { display: block; font-size: 12px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
-.f-group input, .f-group select { width: 100%; padding: 12px 15px; border-radius: 12px; border: 1px solid #e2e8f0; font-family: inherit; font-weight: 600; }
-.modal-footer { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
-.btn-save { background: #10b981; color: #fff; border: none; padding: 14px; border-radius: 12px; font-weight: 800; cursor: pointer; width: 100%; }
+.table-card {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    border: 1px solid #f1f5f9;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    min-width: 600px;
+}
+
+th {
+    background: #f8fafc;
+    padding: 18px 20px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+td {
+    padding: 18px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+/* 角色标签通用样式 */
+.badge {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+/* 普通 Admin */
+.bg-role-admin {
+    background: #e0e7ff;
+    color: #4338ca;
+    border: 1px solid #c7d2fe;
+}
+
+/* S.Admin 红色风格 */
+.bg-role-sadmin {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.bg-active {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.bg-blocked {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* Actions 并排显示 */
+.action-group {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.btn-op {
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-family: inherit;
+}
+
+.btn-op:hover {
+    transform: translateY(-2px);
+    filter: brightness(0.95);
+}
+
+.btn-op:active {
+    transform: translateY(0);
+}
+
+.btn-detail {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.btn-edit {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.btn-delete {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.btn-refresh {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+}
+
+.btn-create {
+    background: #0f172a;
+    color: #fff;
+}
+
+/* Toast 通知 */
+#toastBox {
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    z-index: 99999;
+    background: #1a1a1a;
+    color: #d4af37;
+    padding: 16px 24px;
+    border-radius: 16px;
+    border: 1px solid #d4af37;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    gap: 12px;
+    font-weight: 800;
+    animation: slideIn 0.4s ease forwards;
+}
+
+.toast-icon {
+    background: #d4af37;
+    color: #000;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: #fff;
+    width: 550px;
+    max-width: 90%;
+    border-radius: 24px;
+    padding: 35px;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #94a3b8;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: #475569;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    color: #64748b;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    font-family: inherit;
+    font-weight: 600;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #0f172a;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .admin-container {
+        padding: 15px;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .action-group {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .btn-op {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .modal-content {
+        padding: 25px;
+    }
+}
 /*--------------------------------------- */
 
 /* 2. admin/category_crud.php css LIM LI ZHE part*/

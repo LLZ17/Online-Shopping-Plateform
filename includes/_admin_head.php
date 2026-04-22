@@ -36,25 +36,7 @@ $current_admin = htmlspecialchars($_SESSION['username']);
 $current_photo = !empty($_SESSION['profile_photo']) ? $_SESSION['profile_photo'] : 'default.jpg';
 $portal_title = ($user_role === 'S.Admin') ? "Super Admin" : "Admin Portal";
 
-/**
- * 动态获取通知数据 (PDO 语法)
- */
-$noti_count = 0;
-$notifications = [];
 
-if (isset($conn)) {
-    try {
-        // 1. 获取未读总数 (status=0)
-        $count_stmt = $conn->query("SELECT COUNT(*) FROM notifications WHERE status = 0");
-        $noti_count = $count_stmt->fetchColumn();
-
-        // 2. 获取最近 3 条通知用于预览窗口
-        $noti_stmt = $conn->query("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 3");
-        $notifications = $noti_stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        // 如果表不存在或查询失败，静默处理不中断页面
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -218,48 +200,7 @@ if (isset($conn)) {
             <div class="logo-main">PXX Mall<span class="logo-r">&reg;</span></div>
             <div class="logo-portal">| Admin Portal</div>
         </div>
-
-        <div class="header-actions">
-            <div class="noti-wrapper">
-                <button class="noti-btn" onclick="location.href='../admin/notifications.php'">
-                    <div class="icon-relative">
-                        <i class="fa-solid fa-bell"></i>
-                        <?php if($noti_count > 0): ?>
-                            <div class="noti-badge"><?php echo $noti_count; ?></div>
-                        <?php endif; ?>
-                    </div>
-                    <span>Notifications</span>
-                </button>
                 
-                <div class="noti-preview">
-                    <div class="preview-h">System Updates</div>
-                    
-                    <?php if (!empty($notifications)): ?>
-                        <?php foreach ($notifications as $noti): 
-                            // 动态判断图标
-                            $icon = "fa-bell";
-                            $t = strtolower($noti['title']);
-                            if(strpos($t, 'order') !== false) $icon = "fa-cart-shopping";
-                            elseif(strpos($t, 'stock') !== false) $icon = "fa-triangle-exclamation";
-                        ?>
-                            <div class="preview-item">
-                                <i class="fa-solid <?php echo $icon; ?>" style="color:var(--pxx-red)"></i>
-                                <div class="preview-content">
-                                    <span class="preview-title"><?php echo htmlspecialchars($noti['title']); ?></span>
-                                    <span class="preview-msg"><?php echo htmlspecialchars(mb_strimwidth($noti['message'], 0, 40, "...")); ?></span>
-                                    <span class="preview-time"><?php echo date('D, d M | h:i A', strtotime($noti['created_at'])); ?></span>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="preview-item" style="justify-content:center; color:#bbb; font-style:italic;">
-                            No new notifications.
-                        </div>
-                    <?php endif; ?>
-
-                    <a href="../admin/notifications.php" class="preview-footer">VIEW ALL</a>
-                </div>
-            </div>
 
             <div class="profile-wrap">
                 <img src="<?php echo $path_prefix.'images/'.$current_photo; ?>" onerror="this.src='../images/default.jpg'" class="admin-avatar">

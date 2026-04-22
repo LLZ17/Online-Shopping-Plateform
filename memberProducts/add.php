@@ -1,9 +1,8 @@
 <?php
 session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
-// 如果是通过 Form 提交而非 AJAX，我们可能不需要强制返回 JSON，
-// 但为了保持你原来的逻辑，这里保留 JSON 返回。
+// 强制返回 JSON，防止页面跳转到白屏
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) {
@@ -11,21 +10,20 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// 接收前端对应的变量名
-$product_id = isset($_POST['product_id']) ? trim($_POST['product_id']) : '';
-$quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
-$selected_size = isset($_POST['selected_size']) ? trim($_POST['selected_size']) : '';
-$colour = isset($_POST['colour']) ? trim($_POST['colour']) : '';
+$user_id = $_SESSION['user_id'];
+// 兼容 detail.php (p_id) 和 index.php (product_id)
+$product_id = $_POST['p_id'] ?? $_POST['product_id'] ?? '';
+$quantity = (int)($_POST['qty'] ?? $_POST['quantity'] ?? 1);
+$selected_size = $_POST['sel_size'] ?? '';
+$colour = $_POST['sel_color'] ?? '';
 
 if (empty($product_id)) {
     echo json_encode(['success' => false, 'error' => 'Invalid product ID']);
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
-
 try {
-    // 1. 验证产品是否存在及库存
+    // 1. 验证库存
     $stmt = $pdo->prepare("SELECT stock FROM products WHERE product_id = ?");
     $stmt->execute([$product_id]);
     $product = $stmt->fetch();
@@ -39,27 +37,28 @@ try {
         echo json_encode(['success' => false, 'error' => 'Insufficient stock']);
         exit();
     }
-    
-    // 2. 检查购物车是否已有【相同规格】的商品
-    // 注意：必须同时匹配颜色和尺寸
-    $stmt = $pdo->prepare("SELECT cart_id, quantity FROM cart WHERE user_id = ? AND product_id = ? AND selected_size = ? AND colour = ?");
+
+    // 2. 检查购物车是否有相同规格商品
+    $check_sql = "SELECT cart_id, quantity FROM cart 
+                  WHERE user_id = ? AND product_id = ? AND selected_size = ? AND colour = ?";
+    $stmt = $pdo->prepare($check_sql);
     $stmt->execute([$user_id, $product_id, $selected_size, $colour]);
     $existing = $stmt->fetch();
-    
+
     if ($existing) {
-        // 更新已有项的数量
-        $new_qty = $existing['quantity'] + $quantity;
-        $stmt = $pdo->prepare("UPDATE cart SET quantity = ? WHERE cart_id = ?");
-        $stmt->execute([$new_qty, $existing['cart_id']]);
-        echo json_encode(['success' => true, 'message' => 'Cart updated']);
+        // 更新数量
+        $stmt = $pdo->prepare("UPDATE cart SET quantity = quantity + ? WHERE cart_id = ?");
+        $stmt->execute([$quantity, $existing['cart_id']]);
     } else {
-        // 插入新项：cart_id 是 AUTO_INCREMENT，所以不需要手动插入
-        $stmt = $pdo->prepare("INSERT INTO cart (user_id, product_id, quantity, selected_size, colour) VALUES (?, ?, ?, ?, ?)");
+        // 插入新记录
+        $insert_sql = "INSERT INTO cart (user_id, product_id, quantity, selected_size, colour) 
+                       VALUES (?, ?, ?, ?, ?)";
+        $stmt = $pdo->prepare($insert_sql);
         $stmt->execute([$user_id, $product_id, $quantity, $selected_size, $colour]);
-        echo json_encode(['success' => true, 'message' => 'Added to cart']);
     }
-    
+
+    echo json_encode(['success' => true, 'message' => 'Success! Item updated in cart.']);
+
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'error' => 'DB Error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => 'Database Error: ' . $e->getMessage()]);
 }
-?>

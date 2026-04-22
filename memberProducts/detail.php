@@ -172,7 +172,7 @@ require_once __DIR__ . '/../includes/_head.php';
                             <i class="fas fa-cart-plus"></i> Add To Cart
                         </button>
                         <button type="submit" name="btn_action" value="buy" 
-                                onclick="this.form.action='add.php';" 
+                                onclick="this.form.action=../member/checkout.php';" 
                                 class="btn-buy">Buy Now</button>
                     <?php endif; ?>
                 </div>
@@ -186,13 +186,18 @@ require_once __DIR__ . '/../includes/_head.php';
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <script>
     const images = <?php echo json_encode($all_images); ?>;
     let currentIdx = 0;
 
+    // --- 1. 图片切换逻辑 (保持不变) ---
     function setSlide(i) {
         currentIdx = i;
-        document.getElementById('targetDisplay').src = "../images/" + images[currentIdx];
+        const target = document.getElementById('targetDisplay');
+        if(target) target.src = "../images/" + images[currentIdx];
         document.querySelectorAll('.thumb-item').forEach((box, index) => {
             box.classList.toggle('active', index === currentIdx);
         });
@@ -203,6 +208,7 @@ require_once __DIR__ . '/../includes/_head.php';
         setSlide(currentIdx);
     }
 
+    // --- 2. 规格选择逻辑 (保持不变) ---
     function pickColor(btn, i, name) {
         document.querySelectorAll('.col-opt').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -222,19 +228,65 @@ require_once __DIR__ . '/../includes/_head.php';
         if(val >= 1 && val <= <?php echo $stock; ?>) input.value = val;
     }
 
-    document.getElementById('mainForm').onsubmit = function() {
-        const action = document.activeElement.value;
+    // --- 3. 核心修改：AJAX 提交逻辑 ---
+    $(document).ready(function() {
+        let currentAction = "";
 
-        // 如果点击的是 wishlist 按钮，不需要校验规格
-        if (action === 'wishlist') return true;
+        // 获取点击的是哪个按钮 (add 或 buy)
+        $('#mainForm button[type="submit"]').click(function() {
+            currentAction = $(this).val();
+        });
 
-        // 校验逻辑
-        if(<?php echo count($colours); ?> > 0 && !document.getElementById('inputColor').value) {
-            alert("Please select a Color!"); return false;
-        }
-        if(<?php echo count($sizes); ?> > 0 && !document.getElementById('inputSize').value) {
-            alert("Please select a Size!"); return false;
-        }
-        return true;
-    };
+        $('#mainForm').on('submit', function(e) {
+            e.preventDefault(); // 关键：阻止跳转到白色的 add.php 页面
+
+            // A. 校验逻辑 (仅针对购买和加购)
+            if (currentAction !== 'wishlist') {
+                if(<?php echo count($colours); ?> > 0 && !$('#inputColor').val()) {
+                    Swal.fire('Reminder', 'Please select a Color!', 'warning');
+                    return false;
+                }
+                if(<?php echo count($sizes); ?> > 0 && !$('#inputSize').val()) {
+                    Swal.fire('Reminder', 'Please select a Size!', 'warning');
+                    return false;
+                }
+            }
+
+            // B. 异步提交数据
+            const targetUrl = (currentAction === 'wishlist') ? 'wishlist_toggle.php' : 'add.php';
+
+            $.ajax({
+                url: targetUrl,
+                type: 'POST',
+                data: $(this).serialize() + '&btn_action=' + currentAction,
+                dataType: 'json',
+                success: function(res) {
+                    if(res.success) {
+                        if (currentAction === 'buy') {
+                            // 如果是 Buy Now，成功后立刻跳去给钱
+                            window.location.href = '../checkout.php';
+                        } else {
+                            // 如果是 Add to Cart，显示绿色勾号弹窗
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: res.message,
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+                        }
+                    } else {
+                        // 报错提示
+                        Swal.fire('Error', res.error, 'error');
+                        if(res.error.includes('login')) {
+                            setTimeout(() => window.location.href = '../login.php', 1500);
+                        }
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'Connection failed, please try again.', 'error');
+                }
+            });
+        });
+    });
 </script>

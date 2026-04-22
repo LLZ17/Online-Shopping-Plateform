@@ -9,23 +9,6 @@ if (!isset($_SESSION['user_id'])) {
 }
 $user_id = $_SESSION['user_id'];
 
-/**
- * 新增逻辑：处理支付后的自动清理
- * 假设 checkout 或支付成功后跳回：unified_cart.php?payment=success&ids=1,2,3
- */
-if (isset($_GET['payment']) && $_GET['payment'] == 'success' && isset($_GET['ids'])) {
-    $clean_ids = explode(',', $_GET['ids']);
-    $placeholders = implode(',', array_fill(0, count($clean_ids), '?'));
-    $params = array_merge($clean_ids, [$user_id]);
-    
-    $stmt = $pdo->prepare("DELETE FROM cart WHERE cart_id IN ($placeholders) AND user_id = ?");
-    $stmt->execute($params);
-    
-    // 清理完后刷新页面，去掉 URL 里的参数，防止重复刷新导致误删
-    echo "<script>alert('Payment Successful! Cart updated.'); window.location.href='unified_cart.php';</script>";
-    exit();
-}
-
 // 处理单品删除
 if (isset($_GET['action']) && $_GET['action'] == 'remove' && isset($_GET['id'])) {
     $stmt = $pdo->prepare("DELETE FROM cart WHERE cart_id = ? AND user_id = ?");

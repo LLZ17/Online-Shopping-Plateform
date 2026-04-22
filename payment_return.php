@@ -461,7 +461,7 @@ function displayFailPage() {
             </div>
             <h1>Payment Failed</h1>
             <p>We couldn't process your payment. Please try again.</p>
-            <a href="member_cart/unified_cart.php" class="btn">← Back to Cart</a>
+            <a href="memberProduct/unified_cart.php" class="btn">← Back to Cart</a>
             <a href="index.php" class="btn btn-gray">🏠 Back to Home</a>
         </div>
     </body>
@@ -490,7 +490,7 @@ function displayNoOrderPage() {
             <div class="success">✓</div>
             <h1>Payment Successful!</h1>
             <p>Your order has been placed successfully.</p>
-            <a href="member/orders_history.php" class="btn">View My Orders</a>
+            <a href="memberOrders/history.php" class="btn">View My Orders</a>
             <a href="ViewAllProduct.php" class="btn btn-gray">Continue Shopping</a>
         </div>
     </body>
