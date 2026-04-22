@@ -95,6 +95,9 @@ $products = $stmt->fetchAll();
     .stock-badge { font-weight: 600; }
     .stock-in { color: #2ecc71; }
     .stock-out { color: #95a5a6; }
+    /* 低库存警报样式 */
+    .stock-low { color: #f39c12; animation: blink 1.5s infinite; }
+    @keyframes blink { 50% { opacity: 0.6; } }
 
     .add-btn { width: 100%; padding: 12px; background: #000; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: auto; transition: 0.2s; }
     .add-btn:hover:not(:disabled) { background: #333; }
@@ -186,9 +189,14 @@ $products = $stmt->fetchAll();
 
                     <div class="stats-row">
                         <span class="sales-badge"><?php echo $product['sales_count'] ?? 0; ?> Sold</span>
-                        <span class="stock-badge <?php echo ($stock > 0) ? 'stock-in' : 'stock-out'; ?>">
-                            <?php echo ($stock > 0) ? $stock . " In Stock" : "Out of Stock"; ?>
-                        </span>
+                        
+                        <?php if ($stock <= 0): ?>
+                            <span class="stock-badge stock-out">Out of Stock</span>
+                        <?php elseif ($stock < 10): ?>
+                            <span class="stock-badge stock-low">⚠️ Low Stock! (<?php echo $stock; ?> left)</span>
+                        <?php else: ?>
+                            <span class="stock-badge stock-in"><?php echo $stock; ?> In Stock</span>
+                        <?php endif; ?>
                     </div>
                     
                     <button type="button" class="add-btn" 
