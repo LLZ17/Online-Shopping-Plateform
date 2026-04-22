@@ -477,28 +477,720 @@ td {
 /*---------------------------------------------*/
 
 /* 3. admin/login.php css LIM LI ZHE part*/
+/* 🔥 全局背景图逻辑：确保图片 100% 清晰 */
+body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    /* 🌟 确保路径正确：从 assets/css 文件夹跳回根目录找 images */
+    background-image: url('/images/bg.jpeg') !important;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-color: #ffffff;
+}
 
+/* 隐藏浏览器原生图标 */
+input::-ms-reveal, input::-ms-clear { display: none; }
+
+/* 🌟 核心修正 1：去掉所有背景遮罩，并为底部 Coming Soon 留出空间 */
+.login-wrapper { 
+    display: flex; justify-content: center; align-items: center; 
+    min-height: 100vh; 
+    background: transparent; /* 完全透明，露出背景图 */
+    padding-bottom: 80px; /* 向上推，防止压到图片底部的文字 */
+    box-sizing: border-box;
+}
+
+/* 🔥 核心修正 2：卡片保持纯白不透明，去掉模糊效果 */
+.login-card { 
+    background: #ffffff; /* 🌟 纯白，确保文字清晰 */
+    width: 100%; max-width: 500px; 
+    border-radius: 20px; 
+    border: 1.5px solid #eeeeee; 
+    /* 使用轻微阴影增加层次感，但不遮挡背景细节 */
+    box-shadow: 0 15px 40px rgba(0,0,0,0.1) !important; 
+    text-align: center; overflow: hidden; 
+}
+
+/* 顶部红色 Banner */
+.portal-banner {
+    padding: 45px 20px;
+    color: #ffffff;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 1.5px solid #eeeeee;
+}
+
+.card-body { padding: 50px 60px; }
+
+.welcome-text { 
+    font-size: 30px; font-weight: 500; 
+    margin-bottom: 40px; color: #ff0000; 
+}
+
+.form-group { margin-bottom: 25px; text-align: left; }
+.form-group label { 
+    display: block; margin-bottom: 12px; 
+    font-weight: 700; font-size: 24px; color: #333; 
+}
+
+.form-group input { 
+    width: 100%; padding: 18px; 
+    border: 2px solid #f0f0f0; 
+    border-radius: 12px; font-size: 20px; 
+    outline: none; box-sizing: border-box; 
+    background-color: #ffffff;
+    box-shadow: none !important;
+    transition: 0.3s; 
+}
+
+.input-container { position: relative; width: 100%; display: flex; align-items: center; }
+.input-container input { padding-right: 60px; }
+.toggle-pw { 
+    position: absolute; right: 20px; 
+    cursor: pointer; color: #cccccc; font-size: 26px; z-index: 10;
+}
+
+.remember-row { 
+    display: flex; align-items: center; gap: 12px; 
+    margin: 30px 0; font-size: 18px; color: #666; cursor: pointer; 
+}
+.remember-row input { width: 22px; height: 22px; }
+
+.login-btn { 
+    width: 100%; padding: 20px; 
+    color: white; 
+    border: none; border-radius: 12px; 
+    font-weight: 900; font-size: 28px; 
+    cursor: pointer; box-shadow: none !important;
+    transition: 0.2s;
+}
+.login-btn:active { transform: scale(0.98); }
+
+.footer-links { 
+    display: flex; flex-direction: column; 
+    gap: 20px; margin-top: 30px; font-size: 18px; 
+}
+.link-blue { color: #1a73e8; text-decoration: none; font-weight: 600; }
+
+.back-btn {
+    display: inline-flex; align-items: center; 
+    justify-content: center; gap: 8px; 
+    margin-top: 10px; color: #999; text-decoration: none;
+}
+
+/* Need Help 弹窗专用样式 */
+.modal-overlay {
+    display: none; position: fixed; z-index: 9999; 
+    left: 0; top: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.5); 
+}
+.modal-box {
+    background: #ffffff; margin: 12% auto; 
+    width: 320px; 
+    max-height: 350px; 
+    border-radius: 15px; overflow: hidden; 
+    display: flex; flex-direction: column; 
+    border: 1.5px solid #eeeeee;
+}
+.modal-body {
+    padding: 25px; overflow-y: auto;
+    text-align: left; font-size: 15px; line-height: 1.6; color: #444;
+}
 /*---------------------------------------------*/
 
-/* 4. admin/logout.php css LIM LI ZHE part*/
+/* 4. admin/portal.php css LIM LI ZHE part*/
+/* Dashboard Layout */
+.admin-container {
+    padding: 40px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
 
+.dashboard-header {
+    margin-bottom: 30px;
+}
+
+.dashboard-header h1 {
+    font-weight: 800;
+    color: #333;
+}
+
+.dashboard-header p {
+    color: #888;
+}
+
+/* Stat Cards */
+.stats-grid {
+    display: flex;
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.stat-card {
+    flex: 1;
+    padding: 30px;
+    color: white;
+    border-radius: 12px;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card.blue {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    box-shadow: 0 10px 20px rgba(0,123,255,0.2);
+}
+
+.stat-card.green {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+    box-shadow: 0 10px 20px rgba(40,167,69,0.2);
+}
+
+.stat-label {
+    font-size: 14px;
+    opacity: 0.8;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    margin-top: 10px;
+}
+
+/* Data Table Section */
+.data-section {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.05);
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.admin-table thead tr {
+    border-bottom: 2px solid #f8f9fa;
+    color: #888;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.admin-table th, .admin-table td {
+    padding: 15px;
+}
+
+.admin-table tbody tr {
+    border-bottom: 1px solid #f8f9fa;
+    transition: 0.2s;
+}
+
+.admin-table tbody tr:hover {
+    background-color: #fafafa;
+}
+
+/* Product Specific */
+.product-cell {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.img-placeholder {
+    width: 50px;
+    height: 50px;
+    background: #f4f4f4;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.img-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sold-badge {
+    background: #fff5f5;
+    color: #e60012;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.empty-state {
+    padding: 40px;
+    text-align: center;
+    color: #ccc;
+}
 /*---------------------------------------------*/
 
-/*---------------------------------------------*/
+
 /*---------------------------------------------*/
 /*--------------INCLUDES FILES-----------------*/
 /*---------------------------------------------*/
 /*---------------------------------------------*/
 
-/* 1. file path (OR NAME) (member name) */
+/* 1. _admin_head.php (LIM LI ZHE) */
+:root {
+    --pxx-red: #e60012;
+    --side-bg: #111111;
+    --side-h: #1a1e25;
+    --white: #ffffff;
+    --bg-canvas: #f4f7f6;
+    --header-h: 90px;
+    --side-w: 280px;
+    --trans: all 0.3s ease;
+    --toyyib-orange: #f39c12;
+}
+
+body, html {
+    margin: 0; padding: 0; height: 100vh; width: 100vw;
+    font-family: 'Poppins', sans-serif; background-color: var(--bg-canvas);
+    overflow: hidden; 
+}
+* { box-sizing: border-box; }
+a { text-decoration: none; color: inherit; }
+
+/* --- Header --- */
+.admin-master-header {
+    background-color: var(--pxx-red);
+    height: var(--header-h); width: 100%;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 40px; color: var(--white);
+    position: fixed; top: 0; left: 0; z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.header-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.logo-main { font-family: 'Montserrat', sans-serif; font-size: 30px; font-weight: 900; letter-spacing: -1px; }
+.logo-r { font-size: 12px; vertical-align: super; font-weight: 600; }
+.logo-portal { font-family: 'Montserrat', sans-serif; font-size: 20px; font-weight: 700; opacity: 0.95; }
+
+/* --- Notifications --- */
+.header-actions { display: flex; align-items: center; gap: 30px; }
+
+.noti-wrapper { position: relative; }
+.noti-btn {
+    background: rgba(255,255,255,0.2); 
+    padding: 8px 20px; 
+    border-radius: 12px;
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center;
+    cursor: pointer; 
+    border: none; 
+    color: white;
+    transition: var(--trans);
+    min-width: 130px;
+}
+.noti-btn:hover { background: rgba(255,255,255,0.3); }
+
+.icon-relative { position: relative; display: inline-block; line-height: 1; }
+.noti-btn i { font-size: 28px; margin-top: 5px; } 
+.noti-btn span { 
+    font-family: 'Montserrat', sans-serif; 
+    font-weight: 900; 
+    font-size: 14px; 
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+
+.noti-badge {
+    position: absolute; top: -2px; right: -8px; 
+    background: white; color: var(--pxx-red);
+    font-size: 11px; font-weight: 900; 
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.noti-preview {
+    position: absolute; top: calc(100% + 15px); right: 0;
+    width: 320px; background: white; border-radius: 12px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15); border: 1px solid #eee;
+    visibility: hidden; opacity: 0; transform: translateY(10px);
+    transition: var(--trans); z-index: 10001; overflow: hidden; color: #333;
+}
+.noti-wrapper:hover .noti-preview { visibility: visible; opacity: 1; transform: translateY(0); }
+.preview-h { padding: 15px 20px; font-weight: 800; border-bottom: 1px solid #f5f5f5; font-size: 13px; text-transform: uppercase; color: #999; }
+
+.preview-item { 
+    padding: 15px 20px; border-bottom: 1px solid #f9f9f9; 
+    display: flex; gap: 12px; align-items: flex-start;
+    transition: background 0.2s;
+}
+.preview-item:hover { background: #fff8f8; }
+.preview-item i { font-size: 14px; margin-top: 3px; }
+.preview-content { display: flex; flex-direction: column; gap: 2px; }
+.preview-title { font-weight: 700; font-size: 13px; color: #222; text-align: left; }
+.preview-msg { font-size: 12px; color: #666; line-height: 1.4; text-align: left; }
+.preview-time { font-size: 10px; color: #aaa; margin-top: 4px; text-align: left; }
+
+.preview-footer {
+    display: block; text-align: center; padding: 12px;
+    background: #fcfcfc; font-size: 11px; font-weight: 800;
+    color: var(--pxx-red); border-top: 1px solid #eee;
+}
+
+/* --- Profile --- */
+.profile-wrap { display: flex; align-items: center; gap: 15px; padding-left: 25px; border-left: 1px solid rgba(255,255,255,0.2); }
+.admin-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; }
+.logout-icon { font-size: 22px; color: white; margin-left: 10px; cursor: pointer; }
+
+/* --- Sidebar --- */
+.sidebar-fixed {
+    width: var(--side-w); background-color: var(--side-bg);
+    position: fixed; top: var(--header-h); left: 0; bottom: 0;
+    display: flex; flex-direction: column; padding-top: 15px; z-index: 9000;
+    overflow-y: auto;
+}
+.s-item, .s-drop-h {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 25px; font-size: 15px; font-weight: 600;
+    color: var(--white); border-left: 6px solid transparent; cursor: pointer;
+}
+.s-item:hover, .s-drop-h:hover, .s-item.active { background-color: var(--side-h); border-left-color: var(--pxx-red); }
+.s-icon-box { display: flex; align-items: center; gap: 15px; }
+.s-icon-box i { width: 25px; text-align: center; color: var(--white); font-size: 18px; }
+.s-sub-box { max-height: 0; overflow: hidden; background-color: #080808; transition: max-height 0.4s ease; }
+.s-sub-box.open { max-height: 400px; }
+.sub-nav-link { display: block; padding: 12px 25px 12px 65px; font-size: 14px; color: #aaa; }
+.sub-nav-link:hover { color: white; background: #111; }
+
+.sidebar-bottom { margin-top: auto; padding: 20px 25px; border-top: 1px solid #222; }
+.sidebar-bottom a { display: flex; align-items: center; gap: 12px; color: white; font-size: 14px; font-weight: 700; opacity: 0.8; margin-bottom: 15px; transition: var(--trans); }
+.sidebar-bottom a.tp-link:hover { color: var(--toyyib-orange); opacity: 1; }
+.sidebar-bottom a.db-link:hover { color: #3498db; opacity: 1; }
+.sidebar-bottom a.store-link:hover { color: #2ecc71; opacity: 1; }
+
+/* Main View */
+.main-content-view {
+    margin-top: var(--header-h); margin-left: var(--side-w);
+    padding: 50px; height: calc(100vh - var(--header-h));
+    overflow-y: auto; display: flex; flex-direction: column;
+}
+.empty-canvas { flex: 1; display: flex; justify-content: center; align-items: center; color: #ddd; text-align: center; }
+.empty-canvas i { font-size: 100px; opacity: 0.2; }
 /*---------------------------------------------*/
 
-/*This field is for css style declaring (Replace this comment while putting your css style)*/
-/* AND PLEASE CHECK NAME CONFLICTING USING (CTRL+F) FUNCTION AND PUT THE CSS STYLE NAME.
-                                                        (PLEASE DO IT FOR EVERY CSS STYLE) */
+/* 2.head.php (LIM LI ZHE) */
+:root {
+    --pxx-red: #e60012;
+    --white: #ffffff;
+    --gray-100: #f8f9fa;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
+body { 
+    margin: 0; 
+    font-family: 'Poppins', sans-serif; 
+    background-color: var(--gray-100);
+    padding-top: 100px; 
+}
 
+* { box-sizing: border-box; }
+a { text-decoration: none; color: inherit; transition: var(--transition); }
+
+.pxx-header { 
+    background-color: var(--pxx-red); 
+    color: white; 
+    padding: 12px 0; 
+    position: fixed; top: 0; left: 0; right: 0; 
+    z-index: 10000; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.header-container { 
+    display: flex; justify-content: space-between; align-items: center; 
+    max-width: 1400px; margin: 0 auto; padding: 0 40px; 
+    height: 60px;
+}
+
+.logo-link { 
+    font-family: 'Montserrat', sans-serif;
+    font-size: 40px; font-weight: 800; letter-spacing: -1px; 
+    display: flex; align-items: center;
+    height: 100%;
+    margin-right: 30px;
+}
+.logo-link sup { font-size: 16px; font-weight: 700; margin-left: 2px; }
+
+.search-section { 
+    flex: 1;
+    max-width: 700px;
+    min-width: 400px;
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center;
+    margin: 0 20px;
+    overflow: hidden; 
+}
+
+.search-container { 
+    display: flex; 
+    background: white; 
+    border-radius: 6px; 
+    overflow: hidden; 
+    width: 100%; 
+}
+.search-input { 
+    flex: 1;
+    border: none; 
+    padding: 12px 20px;
+    outline: none; 
+    font-size: 15px;
+    color: #333; 
+}
+.search-btn { 
+    background: white; 
+    border: none; 
+    color: var(--pxx-red); 
+    cursor: pointer; 
+    padding: 0 20px;
+    font-size: 18px;
+}
+
+.search-keywords {
+    margin-top: 6px;
+    font-size: 11px;
+    display: flex;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-left: 5px;
+    white-space: nowrap;
+    overflow: hidden; 
+    max-width: 100%; 
+}
+.search-keywords span { font-weight: 700; color: #ffffff; flex-shrink: 0; }
+.search-keywords a { color: rgba(255, 255, 255, 0.9); flex-shrink: 0; }
+.search-keywords a:hover { color: #ffffff; text-decoration: underline; }
+
+.nav-actions { display: flex; align-items: center; gap: 28px; height: 100%;} 
+.nav-item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;}
+.nav-trigger-link { display: flex; flex-direction: column; align-items: center; cursor: pointer; color: white; }
+.nav-trigger-link:hover { opacity: 0.85; transform: translateY(-2px); }
+
+.profile-item { margin-left: 10px; } 
+.icon-wrap { position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+.icon-wrap i { font-size: 24px; color: white; }
+.icon-text { font-size: 13px; font-weight: 700; color: white; margin-top: 4px; }
+
+.badge { 
+    position: absolute; 
+    top: -6px; 
+    right: -10px; 
+    background: white; 
+    color: var(--pxx-red); 
+    font-size: 10px; 
+    font-weight: 900; 
+    width: 20px; 
+    height: 20px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    line-height: 1;
+}
+.badge.wide { width: 28px; border-radius: 10px; }
+
+.user-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid white; }
+
+.preview-box, .user-dropdown {
+    position: absolute; 
+    top: calc(100% + 5px); 
+    background: white; 
+    border-radius: 8px; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
+    border: 1px solid #eee; 
+    visibility: hidden; 
+    opacity: 0; 
+    transform: translateY(10px); 
+    transition: var(--transition); 
+    color: #333; 
+    z-index: 10001;
+    overflow: hidden;
+}
+
+.preview-box::after, .user-dropdown::after { 
+    content: ''; 
+    position: absolute; 
+    top: -8px; 
+    border-left: 8px solid transparent; 
+    border-right: 8px solid transparent; 
+    border-bottom: 8px solid white; 
+}
+
+.nav-item.hover-trigger:hover .preview-box, 
+.nav-item.hover-trigger:hover .user-dropdown { 
+    visibility: visible; 
+    opacity: 1; 
+    transform: translateY(0); 
+}
+
+.user-dropdown { right: 0; min-width: 220px; display: flex; flex-direction: column; padding: 5px 0; }
+.user-dropdown::after { right: 25px; } 
+
+.guest-dropdown { width: 260px !important; padding: 15px !important; text-align: center; }
+.guest-dropdown a { 
+    padding: 10px 15px !important; 
+    display: inline-flex !important; 
+    align-items: center; 
+    justify-content: center; 
+    width: auto !important;
+    font-size: 15px !important; 
+}
+
+.user-dropdown a { 
+    padding: 12px 20px; 
+    font-size: 14px; 
+    color: #444; 
+    font-weight: 600; 
+    text-align: left; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    border-bottom: 1px solid #f9f9f9; 
+}
+.user-dropdown a:last-child { border-bottom: none; }
+.user-dropdown i { width: 20px; text-align: center; color: #888; font-size: 16px; }
+.user-dropdown a:hover { color: #28a745; background: #fafafa; }
+.user-dropdown a.logout-btn:hover, .user-dropdown a.logout-btn:hover i { color: var(--pxx-red); }
+
+.preview-box { right: -20px; width: 340px; cursor: default; }
+.preview-box::after { right: 35px; } 
+.preview-header { padding: 15px 20px; font-size: 14px; font-weight: 700; border-bottom: 1px solid #eee; text-align: left; background: #fafafa; color: #333; }
+
+.preview-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f5f5f5; text-align: left; }
+.preview-item img { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
+.preview-item-info { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.preview-item-name { font-size: 13px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preview-item-price { font-size: 12px; color: var(--pxx-red); font-weight: 700; margin-top: 3px; }
+.preview-item-qty { color: #888; font-weight: 400; font-size: 11px; }
+
+.preview-notif-item { padding: 15px 20px; border-bottom: 1px solid #f5f5f5; text-align: left; font-size: 13px; color: #444; line-height: 1.4; }
+.preview-empty { padding: 30px 20px; color: #999; font-size: 13px; text-align: center; }
+.preview-footer { display: block; text-align: center; padding: 12px; background: white; font-size: 13px; color: var(--pxx-red); font-weight: 700; border-top: 1px solid #eee; }
+.preview-footer:hover { background: #fafafa; }
 /*---------------------------------------------*/
+/* 3._info_head.php (LIM LI ZHE) */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 顶部导航条：增加固定效果 */
+.info-navbar {
+    background-color: #FF0000;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    padding: 0 40px;
+    justify-content: space-between;
+    
+    /* 固定在顶部的核心代码 */
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000; /* 确保在内容之上 */
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* 可选：滑下来时有一点阴影更好看 */
+}
+
+/* Logo 区域 */
+.logo-section a {
+    color: white;
+    text-decoration: none;
+    font-size: 42px;
+    font-family: 'Arial Black', Gadget, sans-serif;
+    font-weight: 900;
+    display: flex;
+    align-items: flex-start;
+}
+
+.logo-section span {
+    font-size: 18px;
+    margin-left: 2px;
+    margin-top: 5px;
+}
+
+/* 同一行的选项菜单 */
+.info-nav-links {
+    display: flex;
+    list-style: none;
+    align-items: center;
+}
+
+.info-nav-links li {
+    display: flex;
+    align-items: center;
+}
+
+/* 选项之间的白色竖线 */
+.info-nav-links li:not(:last-child)::after {
+    content: "|";
+    color: white;
+    margin: 0 15px;
+    font-size: 18px;
+    opacity: 0.8;
+}
+
+/* 链接文字样式 */
+.info-nav-links a {
+    color: white;
+    text-decoration: none;
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    transition: opacity 0.2s;
+}
+
+.info-nav-links a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+/* 响应式：如果屏幕太窄，自动换行 */
+@media (max-width: 900px) {
+    .info-navbar {
+        flex-direction: column;
+        height: auto;
+        padding: 15px;
+    }
+    .info-nav-links {
+        margin-top: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+/*---------------------------------------------*/
+
 
 /*---------------------------------------------*/
 /*---------------------------------------------*/

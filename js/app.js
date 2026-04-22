@@ -303,8 +303,27 @@ document.addEventListener("DOMContentLoaded", function() {
 /* ---------------------------------------------*/
 
 /* 3. admin/login.php js LIM LI ZHE part*/
-//
+function toggleModal(show) { 
+    const modal = document.getElementById('helpModal');
+    if(modal) { modal.style.display = show ? 'block' : 'none'; }
+}
 
+function togglePassword(id, icon) {
+    const input = document.getElementById(id);
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = "password";
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('helpModal');
+    if (event.target == modal) { toggleModal(false); }
+}
+/*--------------------------------------------------------*/
 
 
 /* 4. admin/product_crud.php js Tee De Yong part*/
@@ -650,9 +669,6 @@ setInterval(initMemberEditInjection, 500);
 /* --- Member Edit Profile JS End --- */
 
 
-
-
-
 /* 11. admin/order_crud.php (Tee De Yong) CONFLICT CHECKED*/
 /* --- Sales Analytics JS Start (TEE DE YONG's Part) --- */
 function initSalesAnalytics() {
@@ -672,9 +688,6 @@ function initSalesAnalytics() {
 window.addEventListener('load', initSalesAnalytics);
 setInterval(initSalesAnalytics, 500); 
 /* --- Sales Analytics JS End --- */
-
-
-
 
 
 /* 12. admin/order_history.php (Tee De Yong) CONFLICT CHECKED*/
@@ -1264,3 +1277,18 @@ $(document).ready(function() {
         });
     });
 });
+
+/* 25. includes/_admin_head.php (LIM LI ZHE part) */
+document.addEventListener('DOMContentLoaded', () => {
+    const currentPath = window.location.href;
+    document.querySelectorAll('.sub-nav-link').forEach(link => {
+        if (currentPath.includes(link.getAttribute('href'))) {
+            const box = link.closest('.s-sub-box');
+            if(box) {
+                box.classList.add('open');
+                box.previousElementSibling.classList.add('active');
+            }
+        }
+    });
+});
+/*----------------------------------------------*/
