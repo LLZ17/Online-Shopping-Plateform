@@ -651,8 +651,7 @@ function badge_number($num) {
                     </a>
                     <div class="user-dropdown">
                         <a href="<?php echo $path_prefix; ?>member/profile.php"><i class="fa-solid fa-user-circle"></i> My Account</a>
-                        <a href="<?php echo $path_prefix; ?>member/orders_history.php"><i class="fa-solid fa-box"></i> My Orders</a>
-                        <a href="<?php echo $path_prefix; ?>member/settings.php"><i class="fa-solid fa-gear"></i> My Settings</a>
+                        <a href="<?php echo $path_prefix; ?>../memberOrders/history.php"><i class="fa-solid fa-box"></i> My Orders</a>
                         <div style="height:1px; background:#eee; margin:5px 0;"></div>
                         <a href="<?php echo $path_prefix; ?>member/logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
                     </div>
