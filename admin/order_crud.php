@@ -112,4 +112,14 @@ if (file_exists($admin_head)) { include $admin_head; }
 
 <script src="../js/app.js?v=1.41"></script>
 
+<script>
+// 💡 强行锁定跳转逻辑：
+// 为了防止 app.js 里的同名函数把页面带去 Order History，我们在这里重写它。
+function triggerSyncRefresh() {
+    alert("📊 Sales data synchronized and refreshed!");
+    // 获取当前文件名，如果是 sales_analytics.php 就跳回这里
+    window.location.reload(); 
+}
+</script>
+
 <?php include __DIR__ . '/../includes/_foot.php'; ?>
