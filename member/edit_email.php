@@ -46,12 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_email'])) {
             $success = $email_update->execute([$new_email, $_SESSION['user_id']]);
 
             if ($success) {
-                echo "<script>
-                        alert('✅ Email has been updated. Please verify your new email.');
-                        window.location.href = 'profile.php?page=security';
-                      </script>";
-                exit();
-            }
+    // 仅仅负责跳转，带上 status=updated 标记
+    header("Location: profile.php?page=security&status=updated");
+    exit();
+}
         } catch (PDOException $e) {
             $error_msg = "Update failed: " . $e->getMessage();
         }
@@ -62,96 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_email'])) {
 require_once __DIR__ . '/../includes/_head.php'; 
 ?>
 
-<style>
-    /* 1. 页面背景 */
-    body {
-        /* 在这里替换你的背景图链接 */
-        background-image: url('../images/bg.jpeg'); 
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        margin: 0;
-    }
+    <link rel="stylesheet" href="../css/app.css">
 
-    /* 2. 居中容器 */
-    .edit-email-wrapper {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 80vh;
-        padding: 20px;
-    }
-
-    /* 3. 透明卡片 */
-    .email-card {
-        max-width: 480px;
-        width: 100%;
-        background: rgba(255, 255, 255, 0.95); /* 半透明白色 */
-        padding: 40px;
-        border-radius: 12px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
-        text-align: center;
-    }
-
-    h1 {
-        color: #1a1a1a;
-        font-size: 22px;
-        margin-bottom: 25px;
-        border-bottom: 2px solid #e60012;
-        padding-bottom: 12px;
-        display: inline-block;
-    }
-
-    .email-input {
-        width: 100%;
-        padding: 12px;
-        margin: 20px 0;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 16px;
-        box-sizing: border-box;
-    }
-
-    .btn-submit {
-        background: #e60012;
-        color: #fff;
-        padding: 14px;
-        border: none;
-        border-radius: 8px;
-        font-weight: bold;
-        cursor: pointer;
-        width: 100%;
-        font-size: 16px;
-        transition: 0.2s;
-    }
-
-    .btn-submit:hover {
-        background: #333;
-    }
-
-    .btn-cancel {
-        display: block;
-        margin-top: 20px;
-        color: #999;
-        text-decoration: none;
-        font-size: 14px;
-    }
-
-    .btn-cancel:hover {
-        text-decoration: underline;
-        color: #e60012;
-    }
-
-    .error-alert {
-        padding: 12px;
-        background: #fff1f0;
-        color: #f5222d;
-        border: 1px solid #ffa39e;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        font-size: 14px;
-    }
-</style>
 
 <div class="edit-email-wrapper">
     <div class="email-card">
@@ -176,4 +86,5 @@ require_once __DIR__ . '/../includes/_head.php';
     </div>
 </div>
 
+<script src="../js/app.js"></script>
 <?php require_once '../includes/_foot.php'; ?>

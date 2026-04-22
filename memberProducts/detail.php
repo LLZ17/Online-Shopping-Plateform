@@ -1,31 +1,39 @@
 <?php
 session_start();
-// 包含数据库连接
 require_once __DIR__ . '/../includes/db.php';
 
-// 1. 获取产品 ID 并从数据库抓取数据
+// 1. 获取数据
 $product_id = isset($_GET['id']) ? trim($_GET['id']) : '';
 $stmt = $pdo->prepare("SELECT * FROM products WHERE product_id = ?");
 $stmt->execute([$product_id]);
 $product = $stmt->fetch();
 
-if (!$product) {
-    die("Product not found! Please check your product ID.");
-}
+if (!$product) { die("Product not found!"); }
 
-// 2. 解析产品规格
+// 2. 处理规格与图片
 $all_images = !empty($product['product_image']) ? array_map('trim', explode(',', $product['product_image'])) : ['default.jpg'];
 $colours = !empty($product['colour']) ? array_map('trim', explode(',', $product['colour'])) : [];
 $sizes = !empty($product['size']) ? array_map('trim', explode(',', $product['size'])) : [];
-
-// 3. 核心显示字段与库存逻辑
-$sql_rating = (float)($product['rating'] ?? 0); 
 $stock = (int)$product['stock'];
-$is_out_of_stock = ($stock <= 0); // 判断是否没货
-$description = !empty($product['description']) ? $product['description'] : "No description provided.";
-$reward_points = floor($product['price'] * 1); 
+$description = $product['description'] ?? ''; // 确保变量存在
 
-// 4. 获取评论列表
+// --- 新增：建立颜色与图片的逻辑关联 ---
+$color_to_image_map = [];
+foreach ($colours as $c) {
+    $lower_c = strtolower($c); // 统一转小写进行匹配
+    $matched_img = '';
+    foreach ($all_images as $img) {
+        // 如果图片名包含颜色字符串，则认为该图片属于该颜色
+        if (strpos(strtolower($img), $lower_c) !== false) {
+            $matched_img = $img;
+            break; 
+        }
+    }
+    $color_to_image_map[$c] = $matched_img;
+}
+// ------------------------------------
+
+// 3. 获取评论
 $stmt_rev = $pdo->prepare("SELECT * FROM reviews WHERE product_id = ? ORDER BY created_at DESC");
 $stmt_rev->execute([$product_id]);
 $reviews = $stmt_rev->fetchAll();
@@ -35,69 +43,109 @@ require_once __DIR__ . '/../includes/_head.php';
 ?>
 
 <style>
-    :root { --shopee-red: #e60012; --star-yellow: #ffc107; --bg-gray: #f5f5f5; --orange-tint: #fffbf8; }
-    body { background-color: var(--bg-gray); font-family: -apple-system, sans-serif; }
-    .main-wrap { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+    /* 核心布局 */
+    .product-detail-container { 
+        max-width: 1200px; 
+        margin: 20px auto; 
+        padding: 0 15px; 
+        font-family: Arial, sans-serif;
+    }
 
-    /* 操作提示条 */
-    .msg-alert { background: #e6fffa; color: #2c7a7b; padding: 12px; border-radius: 4px; margin-bottom: 20px; text-align: center; border: 1px solid #b2f5ea; }
+    .product-card { 
+        display: flex !important; 
+        flex-direction: row; 
+        align-items: flex-start;
+        gap: 40px; 
+        background: white; 
+        padding: 25px; 
+        border-radius: 4px; 
+        box-shadow: 0 1px 5px rgba(0,0,0,0.1); 
+    }
 
-    /* 产品展示卡片 */
-    .product-card { display: flex; gap: 40px; background: white; padding: 25px; border-radius: 4px; box-shadow: 0 1px 1px rgba(0,0,0,0.05); }
-    .viewer-side { width: 450px; position: relative; }
-    .main-img-box { width: 100%; aspect-ratio: 1/1; border: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: center; position: relative; }
+    /* 左侧图片区 */
+    .viewer-side { 
+        width: 450px; 
+        flex-shrink: 0; 
+    }
+
+    .main-img-box { 
+        width: 100%; 
+        aspect-ratio: 1/1; 
+        border: 1px solid #f0f0f0; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #fff;
+    }
     .main-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    
-    .nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.1); border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; color: #fff; z-index: 5; }
-    .nav-arrow:hover { background: rgba(0,0,0,0.3); }
-    .arrow-l { left: 10px; } .arrow-r { right: 10px; }
 
-    .thumbs { display: flex; gap: 10px; margin-top: 15px; overflow-x: auto; }
-    .thumb-item { width: 80px; height: 80px; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; }
-    .thumb-item.active { border-color: var(--shopee-red); }
+    .thumb-list {
+        display: flex; 
+        gap: 10px; 
+        margin-top: 15px; 
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+    .thumb-item { 
+        width: 70px; 
+        height: 70px; 
+        cursor: pointer; 
+        border: 2px solid #eee; 
+        flex-shrink: 0;
+    }
+    .thumb-item.active { border-color: #e60012; }
     .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
 
     /* 右侧信息区 */
-    .info-side { flex: 1; }
-    .p-title { font-size: 22px; font-weight: 500; margin-bottom: 12px; }
-    .stats-row { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; font-size: 14px; }
-    .price-box { background: #fafafa; padding: 15px 20px; color: var(--shopee-red); font-size: 30px; font-weight: 600; margin-bottom: 20px; }
+    .info-side { 
+        flex: 1; 
+        min-width: 0; 
+    }
+
+    .p-title { font-size: 24px; font-weight: 500; margin-bottom: 10px; color: #333; }
+    .price-box { background: #fafafa; padding: 20px; color: #e60012; font-size: 32px; font-weight: 600; margin: 15px 0; border-radius: 4px; }
     
-    .points-card { background: #fffcf5; border: 1px solid #f9eacc; padding: 12px; border-radius: 4px; color: #ff9800; display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 25px; }
+    .spec-label { margin-bottom: 8px; color: #757575; font-size: 14px; }
+    .spec-btn { 
+        border: 1px solid #ddd; 
+        background: #fff; 
+        padding: 8px 16px; 
+        margin: 0 10px 10px 0;
+        cursor: pointer; 
+        min-width: 80px;
+        transition: all 0.2s;
+    }
+    .spec-btn:hover { border-color: #e60012; }
+    .spec-btn.active { border-color: #e60012; color: #e60012; background: #fff4f4; }
 
-    .spec-btn { border: 1px solid rgba(0,0,0,0.09); background: #fff; padding: 8px 15px; cursor: pointer; min-width: 60px; }
-    .spec-btn.active { border-color: var(--shopee-red); color: var(--shopee-red); }
-
-    /* 按钮组样式 */
+    /* 按钮组 */
     .action-group { display: flex; gap: 15px; margin-top: 30px; }
-    .btn-cart { flex: 1; height: 48px; background: rgba(208,1,27,0.08); color: var(--shopee-red); border: 1px solid var(--shopee-red); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-buy { flex: 1; height: 48px; background: var(--shopee-red); color: white; border: none; cursor: pointer; font-size: 16px; }
-    .btn-wishlist { flex: 1; height: 48px; background: #fff; color: #555; border: 1px solid #ddd; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
-    .btn-wishlist:hover { border-color: var(--shopee-red); color: var(--shopee-red); }
-    .btn-disabled { flex: 1; height: 48px; background: #eee; color: #bbb; border: 1px solid #ddd; cursor: not-allowed; font-size: 16px; }
+    .btn-cart { flex: 1; height: 50px; background: #fff4f4; color: #e60012; border: 1px solid #e60012; cursor: pointer; font-size: 16px; }
+    .btn-buy { flex: 1; height: 50px; background: #e60012; color: white; border: none; cursor: pointer; font-size: 16px; }
+    .btn-cart:hover { background: #ffebeb; }
+    .btn-buy:hover { background: #d00010; }
 
-    .content-section { background: white; margin-top: 20px; padding: 25px; }
-    .sect-title { background: #fafafa; padding: 12px 15px; font-size: 18px; margin-bottom: 20px; }
+    /* 详情与评论区 */
+    .content-section { background: white; margin-top: 20px; padding: 25px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .sect-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; border-left: 4px solid #e60012; padding-left: 15px; }
+
+    @media (max-width: 850px) {
+        .product-card { flex-direction: column; }
+        .viewer-side { width: 100%; }
+    }
 </style>
 
-<div class="main-wrap">
-    <?php if (isset($_GET['wishlist'])): ?>
-        <div class="msg-alert">
-            <?php echo ($_GET['wishlist'] == 'added') ? "❤️ Added to Wishlist!" : "💔 Removed from Wishlist!"; ?>
-        </div>
-    <?php endif; ?>
-
+<div class="product-detail-container">
     <div class="product-card">
+        
         <div class="viewer-side">
-            <button class="nav-arrow arrow-l" onclick="changeSlide(-1)">&#10094;</button>
             <div class="main-img-box">
                 <img src="../images/<?php echo $all_images[0]; ?>" id="targetDisplay">
             </div>
-            <button class="nav-arrow arrow-r" onclick="changeSlide(1)">&#10095;</button>
-
-            <div class="thumbs">
+            <div class="thumb-list">
                 <?php foreach($all_images as $i => $img): ?>
-                    <div class="thumb-item <?php echo $i==0?'active':''; ?>" onclick="setSlide(<?php echo $i; ?>)">
+                    <div class="thumb-item <?php echo $i===0?'active':''; ?>" onclick="setSlide('<?php echo $img; ?>', this)">
                         <img src="../images/<?php echo $img; ?>">
                     </div>
                 <?php endforeach; ?>
@@ -106,187 +154,159 @@ require_once __DIR__ . '/../includes/_head.php';
 
         <div class="info-side">
             <h1 class="p-title"><?php echo htmlspecialchars($product['name']); ?></h1>
-            <div class="stats-row">
-                <span style="color:var(--star-yellow);"><?php echo number_format($sql_rating, 1); ?> ★★★★★</span>
-                <span style="color:#757575;">| <?php echo $review_count; ?> Reviews | <?php echo $product['sales_count'] ?? 0; ?> Sold</span>
+            <div style="font-size:14px; color:#555; margin-bottom: 10px;">
+                <span style="color:#ffc107;">4.7 ★★★★★</span> | 
+                <span style="margin-left:10px;"><?php echo $review_count; ?> Reviews</span> | 
+                <span style="margin-left:10px;"><?php echo $product['sales_count'] ?? 0; ?> Sold</span>
             </div>
 
             <div class="price-box">RM <?php echo number_format($product['price'], 2); ?></div>
 
-            <div class="points-card">
-                <i class="fas fa-coins"></i>
-                <span>Earn <strong><?php echo $reward_points; ?></strong> reward points</span>
-            </div>
-
-            <form method="POST" id="mainForm">
+            <form id="purchaseForm">
                 <input type="hidden" name="p_id" value="<?php echo $product_id; ?>">
-                
+
                 <?php if(!empty($colours)): ?>
                 <div style="margin-bottom:20px;">
-                    <label style="color:#757575; display:block; margin-bottom:10px;">Colour:</label>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <?php foreach($colours as $idx => $c): ?>
-                            <button type="button" class="spec-btn col-opt" onclick="pickColor(this, <?php echo $idx; ?>, '<?php echo $c; ?>')"><?php echo $c; ?></button>
+                    <p class="spec-label">Colour:</p>
+                    <div style="display:flex; flex-wrap:wrap;">
+                        <?php foreach($colours as $c): 
+                            $img_link = $color_to_image_map[$c]; // 获取对应的图片名
+                        ?>
+                            <button type="button" class="spec-btn col-opt" 
+                                    onclick="selectOpt(this, 'color', '<?php echo $c; ?>', '<?php echo $img_link; ?>')">
+                                <?php echo $c; ?>
+                            </button>
                         <?php endforeach; ?>
                     </div>
-                    <input type="hidden" name="sel_color" id="inputColor">
+                    <input type="hidden" name="sel_color" id="selectedColor">
                 </div>
                 <?php endif; ?>
 
                 <?php if(!empty($sizes)): ?>
                 <div style="margin-bottom:20px;">
-                    <label style="color:#757575; display:block; margin-bottom:10px;">Size:</label>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <p class="spec-label">Size:</p>
+                    <div style="display:flex; flex-wrap:wrap;">
                         <?php foreach($sizes as $s): ?>
-                            <button type="button" class="spec-btn size-opt" onclick="pickSize(this, '<?php echo $s; ?>')"><?php echo $s; ?></button>
+                            <button type="button" class="spec-btn size-opt" onclick="selectOpt(this, 'size', '<?php echo $s; ?>', '')">
+                                <?php echo $s; ?>
+                            </button>
                         <?php endforeach; ?>
                     </div>
-                    <input type="hidden" name="sel_size" id="inputSize">
+                    <input type="hidden" name="sel_size" id="selectedSize">
                 </div>
                 <?php endif; ?>
 
                 <div style="margin-bottom:25px; display:flex; align-items:center; gap:15px;">
-                    <span style="color:#757575;">Quantity:</span>
-                    <div style="display:flex; border:1px solid #ddd;">
-                        <button type="button" onclick="adjQty(-1)" style="width:32px; background:#fff; border:none; cursor:pointer;">-</button>
-                        <input type="number" name="qty" id="qtyVal" value="1" readonly style="width:50px; text-align:center; border:none; border-left:1px solid #ddd; border-right:1px solid #ddd;">
-                        <button type="button" onclick="adjQty(1)" style="width:32px; background:#fff; border:none; cursor:pointer;">+</button>
+                    <span class="spec-label" style="margin-bottom:0;">Quantity:</span>
+                    <div style="display:flex; align-items:center; border:1px solid #ddd;">
+                        <input type="number" name="qty" value="1" min="1" max="<?php echo $stock; ?>" 
+                               style="width:60px; text-align:center; padding:8px; border:none; outline:none;">
                     </div>
-                    <span style="color:<?php echo $is_out_of_stock ? 'red' : '#757575'; ?>; font-size:14px;">
-                        <?php echo $is_out_of_stock ? 'Out of Stock' : $stock . ' pieces available'; ?>
-                    </span>
+                    <span style="font-size:13px; color:#999;"><?php echo $stock; ?> pieces available</span>
                 </div>
 
                 <div class="action-group">
-                    <?php if($is_out_of_stock): ?>
-                        <button type="submit" name="btn_action" value="wishlist" 
-                                onclick="this.form.action='wishlist_toggle.php';" 
-                                class="btn-wishlist">
-                            <i class="fas fa-heart"></i> Add To Wishlist
-                        </button>
-                        <button type="button" class="btn-disabled" disabled>Sold Out</button>
-                    <?php else: ?>
-                        <button type="submit" name="btn_action" value="add" 
-                                onclick="this.form.action='add.php';" 
-                                class="btn-cart">
-                            <i class="fas fa-cart-plus"></i> Add To Cart
-                        </button>
-                        <button type="submit" name="btn_action" value="buy" 
-                                onclick="this.form.action=../member/checkout.php';" 
-                                class="btn-buy">Buy Now</button>
-                    <?php endif; ?>
+                    <button type="button" onclick="handleCart('add')" class="btn-cart">Add To Cart</button>
+                    <button type="button" onclick="handleCart('buy')" class="btn-buy">Buy Now</button>
                 </div>
             </form>
         </div>
     </div>
 
     <div class="content-section">
-        <div class="sect-title">PRODUCT DESCRIPTION</div>
-        <div style="padding:0 15px; line-height:1.8; white-space: pre-wrap;"><?php echo htmlspecialchars($description); ?></div>
+        <div class="sect-title">Product Description</div>
+        <div style="line-height:1.8; color: #444; font-size: 15px;">
+            <?php echo nl2br(htmlspecialchars($description)); ?>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <div class="sect-title">Product Reviews (<?php echo $review_count; ?>)</div>
+        <?php if($review_count > 0): ?>
+            <?php foreach($reviews as $r): ?>
+                <div style="border-bottom:1px solid #eee; padding:20px 0;">
+                    <div style="color:#ffc107; margin-bottom:8px;"><?php echo str_repeat('★', $r['rating']); ?></div>
+                    <p style="margin:8px 0; color:#333;"><?php echo htmlspecialchars($r['comment']); ?></p>
+                    <small style="color:#999;"><?php echo date('Y-m-d H:i', strtotime($r['created_at'])); ?></small>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div style="padding:40px; text-align:center; color:#999;">
+                <p>No reviews yet for this product.</p>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    const images = <?php echo json_encode($all_images); ?>;
-    let currentIdx = 0;
-
-    // --- 1. 图片切换逻辑 (保持不变) ---
-    function setSlide(i) {
-        currentIdx = i;
-        const target = document.getElementById('targetDisplay');
-        if(target) target.src = "../images/" + images[currentIdx];
-        document.querySelectorAll('.thumb-item').forEach((box, index) => {
-            box.classList.toggle('active', index === currentIdx);
-        });
+    // 缩略图切换
+    function setSlide(img, el) {
+        $('#targetDisplay').attr('src', '../images/' + img);
+        $('.thumb-item').removeClass('active');
+        $(el).addClass('active');
     }
 
-    function changeSlide(n) {
-        currentIdx = (currentIdx + n + images.length) % images.length;
-        setSlide(currentIdx);
-    }
-
-    // --- 2. 规格选择逻辑 (保持不变) ---
-    function pickColor(btn, i, name) {
-        document.querySelectorAll('.col-opt').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('inputColor').value = name;
-        setSlide(i);
-    }
-
-    function pickSize(btn, name) {
-        document.querySelectorAll('.size-opt').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('inputSize').value = name;
-    }
-
-    function adjQty(n) {
-        const input = document.getElementById('qtyVal');
-        let val = parseInt(input.value) + n;
-        if(val >= 1 && val <= <?php echo $stock; ?>) input.value = val;
-    }
-
-    // --- 3. 核心修改：AJAX 提交逻辑 ---
-    $(document).ready(function() {
-        let currentAction = "";
-
-        // 获取点击的是哪个按钮 (add 或 buy)
-        $('#mainForm button[type="submit"]').click(function() {
-            currentAction = $(this).val();
-        });
-
-        $('#mainForm').on('submit', function(e) {
-            e.preventDefault(); // 关键：阻止跳转到白色的 add.php 页面
-
-            // A. 校验逻辑 (仅针对购买和加购)
-            if (currentAction !== 'wishlist') {
-                if(<?php echo count($colours); ?> > 0 && !$('#inputColor').val()) {
-                    Swal.fire('Reminder', 'Please select a Color!', 'warning');
-                    return false;
-                }
-                if(<?php echo count($sizes); ?> > 0 && !$('#inputSize').val()) {
-                    Swal.fire('Reminder', 'Please select a Size!', 'warning');
-                    return false;
-                }
+    // 规格选择（包含图片联动）
+    function selectOpt(btn, type, val, imgName) {
+        if(type === 'color') {
+            $('.col-opt').removeClass('active');
+            $('#selectedColor').val(val);
+            
+            // 如果该颜色有对应的图片，则自动切换
+            if(imgName && imgName !== '') {
+                $('#targetDisplay').attr('src', '../images/' + imgName);
+                
+                // 同时尝试联动缩略图的高亮
+                $('.thumb-item').removeClass('active');
+                $(`.thumb-item img[src*="${imgName}"]`).parent().addClass('active');
             }
+        } else {
+            $('.size-opt').removeClass('active');
+            $('#selectedSize').val(val);
+        }
+        $(btn).addClass('active');
+    }
 
-            // B. 异步提交数据
-            const targetUrl = (currentAction === 'wishlist') ? 'wishlist_toggle.php' : 'add.php';
+    // 购物车与直购处理
+    function handleCart(action) {
+        // 验证是否选择了颜色
+        if(<?php echo count($colours); ?> > 0 && !$('#selectedColor').val()) {
+            return Swal.fire({ icon: 'warning', title: 'Wait', text: 'Please select a color' });
+        }
+        // 验证是否选择了尺寸
+        if(<?php echo count($sizes); ?> > 0 && !$('#selectedSize').val()) {
+            return Swal.fire({ icon: 'warning', title: 'Wait', text: 'Please select a size' });
+        }
 
-            $.ajax({
-                url: targetUrl,
-                type: 'POST',
-                data: $(this).serialize() + '&btn_action=' + currentAction,
-                dataType: 'json',
-                success: function(res) {
+        const formData = $('#purchaseForm').serialize() + '&btn_action=' + action;
+
+        $.ajax({
+            url: 'add.php',
+            type: 'POST',
+            data: formData,
+            success: function(data) {
+                try {
+                    let res = JSON.parse(data);
                     if(res.success) {
-                        if (currentAction === 'buy') {
-                            // 如果是 Buy Now，成功后立刻跳去给钱
-                            window.location.href = '../checkout.php';
+                        if(action === 'buy') {
+                            window.location.href = '../member/checkout.php';
                         } else {
-                            // 如果是 Add to Cart，显示绿色勾号弹窗
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: res.message,
-                                showConfirmButton: false,
-                                timer: 1500
-                            });
+                            Swal.fire({ icon: 'success', title: 'Done', text: 'Added to cart successfully!' });
                         }
                     } else {
-                        // 报错提示
-                        Swal.fire('Error', res.error, 'error');
-                        if(res.error.includes('login')) {
-                            setTimeout(() => window.location.href = '../login.php', 1500);
-                        }
+                        Swal.fire({ icon: 'error', title: 'Error', text: res.error || 'Failed to process request' });
                     }
-                },
-                error: function() {
-                    Swal.fire('Error', 'Connection failed, please try again.', 'error');
+                } catch(e) {
+                    console.error("Response Parse Error:", data);
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'System Error. Check Console.' });
                 }
-            });
+            },
+            error: function() {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Network connection failed' });
+            }
         });
-    });
+    }
 </script>

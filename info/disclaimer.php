@@ -8,71 +8,8 @@ include('../includes/_info_head.php');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        .disclaimer-container {
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 20px;
-            line-height: 1.8;
-            color: #333;
-            font-family: Arial, sans-serif;
-        }
-
-        .disclaimer-header {
-            border-left: 8px solid #FF0000;
-            padding-left: 20px;
-            margin-bottom: 40px;
-        }
-
-        .disclaimer-header h1 {
-            color: #FF0000;
-            font-size: 2.5rem;
-            margin: 0;
-            font-family: 'Arial Black', sans-serif;
-            text-transform: uppercase;
-        }
-
-        .disclaimer-section {
-            margin-bottom: 35px;
-            background: #fff;
-            padding: 25px;
-            border: 1px solid #FF0000;
-            border-radius: 4px;
-        }
-
-        .academic-notice {
-            background-color: #fff5f5;
-            padding: 20px;
-            border-left: 5px solid #FF0000;
-            margin-bottom: 30px;
-        }
-
-        .disclaimer-section h2 {
-            color: #FF0000;
-            font-size: 1.4rem;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-        }
-
-        .disclaimer-section p {
-            font-size: 1rem;
-            color: #444;
-            margin-bottom: 15px;
-        }
-
-        strong {
-            color: #FF0000;
-        }
-
-        .reference-list {
-            padding-left: 20px;
-            color: #555;
-        }
-
-        .reference-list li {
-            margin-bottom: 10px;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../css/app.css">
 </head>
 <body>
 

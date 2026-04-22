@@ -65,16 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_update'])) {
 include '../includes/_head.php'; 
 ?>
 
-<style>
-    :root { --theme: #28a745; }
-    
-    /* 强制背景，防止走位 */
-    body { 
-        margin: 0; padding: 0; 
-        background: url('../images/bg.jpeg') center/cover no-repeat fixed !important; 
-        min-height: 100vh;
-    }
-</style>
+   
 
 <head>
     <link rel = "stylesheet" href = "../css/app.css">

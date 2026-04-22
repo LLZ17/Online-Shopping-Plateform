@@ -8,87 +8,8 @@ include('../includes/_info_head.php');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        .policy-container {
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 20px;
-            line-height: 1.8;
-            color: #333;
-            font-family: Arial, sans-serif;
-        }
+    <link rel="stylesheet" href="../css/app.css">
 
-        .policy-header {
-            border-left: 8px solid #FF0000;
-            padding-left: 20px;
-            margin-bottom: 40px;
-        }
-
-        .policy-header h1 {
-            color: #FF0000;
-            font-size: 2.5rem;
-            margin: 0;
-            font-family: 'Arial Black', sans-serif;
-            text-transform: uppercase;
-        }
-
-        .policy-section {
-            margin-bottom: 35px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 4px;
-            border: 1px solid #eee;
-        }
-
-        .policy-section h2 {
-            color: #FF0000;
-            font-size: 1.4rem;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-
-        .policy-section h2::before {
-            content: "";
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background: #FF0000;
-            margin-right: 10px;
-        }
-
-        .policy-section p, .policy-section ul {
-            font-size: 1rem;
-            color: #555;
-        }
-
-        .policy-section ul {
-            padding-left: 20px;
-        }
-
-        .policy-section li {
-            margin-bottom: 10px;
-        }
-
-        strong {
-            color: #FF0000;
-        }
-
-        .contact-box {
-            background: #FF0000;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-radius: 4px;
-            margin-top: 40px;
-        }
-
-        .contact-box a {
-            color: white;
-            font-weight: bold;
-            text-decoration: underline;
-        }
-    </style>
 </head>
 <body>
 

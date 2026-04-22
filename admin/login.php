@@ -23,7 +23,9 @@ include '../includes/_head.php';
 $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '';
 ?>
 
-<link rel="stylesheet" href=".css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../css/app.css">
+
+
 
 <style>
     .portal-banner, .login-btn { background-color: <?php echo $color; ?>; }

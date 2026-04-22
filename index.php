@@ -6,13 +6,34 @@ require_once 'includes/_head.php';
 $current_user_id = $_SESSION['user_id'] ?? null;
 
 /**
- * 优化后的 SQL：通过子查询检测收藏状态
+ * 修复图片显示问题的辅助函数
+ * 逻辑：将数据库中的逗号分隔字符串转为数组，优先找 main.jpg，否则取第一张
+ */
+function getProductMainImage($imageStr) {
+    if (empty($imageStr)) return 'default.jpg';
+    
+    // 兼容 detail.php 的逻辑，将字符串分割为数组
+    $images = array_map('trim', explode(',', $imageStr));
+    
+    // 优先寻找名为 main.jpg 的图片
+    foreach ($images as $img) {
+        if (strtolower($img) === 'main.jpg') {
+            return $img;
+        }
+    }
+    
+    // 如果没找到 main.jpg，则返回数组中的第一张
+    return $images[0];
+}
+
+/**
+ * 修改处：Hot Picks 改为按销量 (sales_count) 最高排序
  */
 $featured_sql = "
     SELECT p.*, 
     (SELECT COUNT(*) FROM favourites f WHERE f.product_id = p.product_id AND f.user_id = ?) as is_favourite
     FROM products p 
-    ORDER BY p.product_id DESC 
+    ORDER BY p.sales_count DESC 
     LIMIT 12";
 $stmt = $pdo->prepare($featured_sql);
 $stmt->execute([$current_user_id]);
@@ -102,7 +123,10 @@ $new_products = $stmt->fetchAll();
             <div class="product-card <?php echo ($product['is_favourite'] > 0) ? 'is-fav-module' : ''; ?>">
                 <div class="product-img-wrapper">
                     <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>">
-                        <img src="images/<?php echo !empty($product['product_image']) ? htmlspecialchars($product['product_image']) : 'default.jpg'; ?>" 
+                        <?php 
+                            $display_img = getProductMainImage($product['product_image']); 
+                        ?>
+                        <img src="images/<?php echo htmlspecialchars($display_img); ?>" 
                              alt="<?php echo htmlspecialchars($product['name']); ?>"
                              onerror="this.src='images/default.jpg'">
                     </a>
@@ -116,6 +140,9 @@ $new_products = $stmt->fetchAll();
                 <div class="product-info">
                     <div class="product-category">
                         <?php echo isset($product['category_type']) ? ($product['category_type'] == 'Men' ? '👔 MEN' : '👗 WOMEN') : 'FASHION'; ?>
+                        <span style="color: #ffc107; margin-left: 8px;">
+                            <?php echo number_format($product['rating'] ?? 0, 1); ?> ★
+                        </span>
                     </div>
                     <div class="product-name">
                         <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>">
@@ -124,7 +151,6 @@ $new_products = $stmt->fetchAll();
                     </div>
                     <div class="product-price">RM <?php echo number_format($product['price'], 2); ?></div>
                     
-                    <!-- 库存和销量显示 -->
                     <div class="product-stock-info">
                         <div class="stock-left">
                             <i class="fas fa-box"></i> Stock: <strong><?php echo $product['stock']; ?></strong> left
@@ -166,7 +192,10 @@ $new_products = $stmt->fetchAll();
             <div class="product-card <?php echo ($product['is_favourite'] > 0) ? 'is-fav-module' : ''; ?>">
                 <div class="product-img-wrapper">
                     <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>">
-                        <img src="images/<?php echo !empty($product['product_image']) ? htmlspecialchars($product['product_image']) : 'default.jpg'; ?>" 
+                        <?php 
+                            $display_img = getProductMainImage($product['product_image']); 
+                        ?>
+                        <img src="images/<?php echo htmlspecialchars($display_img); ?>" 
                              alt="<?php echo htmlspecialchars($product['name']); ?>"
                              onerror="this.src='images/default.jpg'">
                     </a>
@@ -180,6 +209,9 @@ $new_products = $stmt->fetchAll();
                 <div class="product-info">
                     <div class="product-category">
                         <?php echo isset($product['category_type']) ? ($product['category_type'] == 'Men' ? '👔 MEN' : '👗 WOMEN') : 'FASHION'; ?>
+                        <span style="color: #ffc107; margin-left: 8px;">
+                            <?php echo number_format($product['rating'] ?? 0, 1); ?> ★
+                        </span>
                     </div>
                     <div class="product-name">
                         <a href="memberProducts/detail.php?id=<?php echo $product['product_id']; ?>">
@@ -188,7 +220,6 @@ $new_products = $stmt->fetchAll();
                     </div>
                     <div class="product-price">RM <?php echo number_format($product['price'], 2); ?></div>
                     
-                    <!-- 库存和销量显示 -->
                     <div class="product-stock-info">
                         <div class="stock-left">
                             <i class="fas fa-box"></i> Stock: <strong><?php echo $product['stock']; ?></strong> left
@@ -218,14 +249,13 @@ $new_products = $stmt->fetchAll();
 </div>
 
 <div class="promo-banner">
-    <h3>🎉 Free Shipping on Orders RM100+</h3>
-    <p>Use code: <strong style="background: rgba(255,255,255,0.25); padding: 6px 15px; border-radius: 30px;">PXXSHIP</strong> at checkout</p>
+    <h3>🎉GET VOUCHER 10% OFF FOR NEW USER!</h3>
+    <p>Use code: <strong style="background: rgba(255, 255, 255, 0.25); padding: 6px 15px; border-radius: 30px;">NEWUSER</strong> at checkout</p>
     <a href="ViewAllProduct.php" class="promo-btn">Shop Now →</a>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    //  PHP to JavaScript
     var isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
 </script>
 <script src="js/app.js"></script>

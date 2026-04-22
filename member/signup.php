@@ -71,59 +71,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['final_save'])) {
 if (file_exists('../includes/_head.php')) { include('../includes/_head.php'); }
 ?>
 
-<style>
-    :root { --pxx-red: #e60012; --pxx-error: #ff4d4f; --pxx-success: #2ecc71; }
+    <link rel="stylesheet" href="../css/app.css">
 
-    .pxx-main-container {
-        min-height: 80vh; 
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 60px 20px;
-        /* Replace with your actual background link */
-        background-image: url('../images/bg.jpeg'); 
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-    }
 
-    .pxx-card {
-        width: 100%; max-width: 450px; background: rgba(255, 255, 255, 0.98);
-        padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); 
-        border-top: 10px solid var(--pxx-red);
-    }
-
-    .pxx-field { margin-bottom: 20px; position: relative; }
-    .pxx-field label { display: block; font-weight: 800; font-size: 12px; margin-bottom: 6px; text-transform: uppercase; color: #555; }
-    
-    .pxx-input { 
-        width: 100%; padding: 14px; border: 2px solid #ddd; border-radius: 10px; 
-        font-size: 16px; box-sizing: border-box; transition: 0.3s;
-    }
-    
-    .input-error { border-color: var(--pxx-error) !important; background-color: #fff9f9; }
-    .msg-hint { font-size: 11px; font-weight: bold; margin-top: 5px; display: none; }
-    .err-text { color: var(--pxx-error); }
-    .ok-text { color: var(--pxx-success); }
-
-    .btn-submit {
-        width: 100%; padding: 18px; background: var(--pxx-red); color: #fff;
-        border: none; border-radius: 10px; font-weight: 900; cursor: pointer;
-        transition: 0.3s; text-transform: uppercase; margin-top: 10px;
-    }
-    .btn-submit:disabled { background: #ccc; cursor: not-allowed; opacity: 0.7; }
-
-    /* Modal Styling */
-    .pxx-modal {
-        display: none; position: fixed; z-index: 10000; left: 0; top: 0;
-        width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center;
-    }
-    .modal-content {
-        background: #fff; width: 90%; max-width: 550px; border-radius: 15px; padding: 30px;
-    }
-    .tnc-scroll { height: 250px; overflow-y: scroll; border: 1px solid #eee; padding: 15px; margin-bottom: 20px; font-size: 14px; line-height: 1.6; color: #666; }
-    .tnc-link { color: var(--pxx-red); cursor: pointer; text-decoration: underline; font-weight: bold; }
-</style>
 
 <div class="pxx-main-container">
     <div class="pxx-card">

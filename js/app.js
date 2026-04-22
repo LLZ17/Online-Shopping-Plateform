@@ -752,118 +752,145 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 /* member/checkout.php (WONG YONG FENG) */
-$(document).ready(function() {
-    var subtotal = typeof memberSubtotal !== 'undefined' ? memberSubtotal : 0;
-    var maxPoints = typeof memberMaxPoints !== 'undefined' ? memberMaxPoints : 0;
-    var currentVoucherDiscount = typeof memberCurrentVoucherDiscount !== 'undefined' ? memberCurrentVoucherDiscount : 0;
-    
-    function updateMemberTotals() {
-        var points = parseInt($('#memberPointsInput').val()) || 0;
-        if (points > maxPoints) { 
-            points = maxPoints; 
-            $('#memberPointsInput').val(points); 
-        }
-        if (points < 0) { 
-            points = 0; 
-            $('#memberPointsInput').val(0); 
-        }
-        
-        // 确保 points 是 100 的倍数
-        points = Math.floor(points / 100) * 100;
-        $('#memberPointsInput').val(points);
-        
-        var pDiscount = points / 100;
-        var afterDiscount = subtotal - pDiscount - currentVoucherDiscount;
-        if (afterDiscount < 0) afterDiscount = 0;
-        
-        var shipping = (afterDiscount < 100 && afterDiscount > 0) ? 8.00 : 0;
-        var total = afterDiscount + shipping;
-        
-        $('#memberDiscountAmount').text('RM ' + pDiscount.toFixed(2));
-        $('#memberVoucherDiscountDisplay').text('RM ' + currentVoucherDiscount.toFixed(2));
-        $('#memberShippingAmount').text(shipping > 0 ? 'RM ' + shipping.toFixed(2) : 'FREE');
-        $('#memberTotalAmount').text('RM ' + total.toFixed(2));
-        
-        if (afterDiscount >= 100) {
-            $('#memberShippingNote').html('✅ Congratulations! You qualify for <strong>FREE shipping</strong>');
-        } else {
-            var need = (100 - afterDiscount).toFixed(2);
-            $('#memberShippingNote').html('🚚 Add RM ' + need + ' more to get FREE shipping');
-        }
+// js/app.js - Checkout & Member Product Functions
+// Requires: jQuery, and window.appConfig set in PHP page
+
+(function($) {
+    'use strict';
+
+    // Read PHP-injected config (define this in your PHP before including this file)
+    const cfg = window.appConfig || {};
+    const subtotal = parseFloat(cfg.subtotal) || 0;
+    const ptDisc = parseFloat(cfg.ptDisc) || 0;
+    let vDisc = 0;
+
+    // ==================== CHECKOUT VOUCHER FUNCTIONS ====================
+
+    function updateTotals() {
+        let afterDisc = Math.max(0, subtotal - ptDisc - vDisc);
+        let shipping = (afterDisc >= 100 || afterDisc <= 0) ? 0 : 8.00;
+        let total = afterDisc + shipping;
+
+        $('#v_amt_ui').text(vDisc > 0 ? '- RM ' + vDisc.toFixed(2) : 'RM 0.00');
+        $('#ship_ui').text(shipping === 0 ? 'FREE' : 'RM ' + shipping.toFixed(2));
+        $('#total_ui').text('RM ' + total.toFixed(2));
+        $('#h_v_amt').val(vDisc.toFixed(2));
+        $('#h_final').val(total.toFixed(2));
     }
 
-    
-    $('#memberApplyVoucherBtn').on('click', function() {
-        var code = $('#memberVoucherInput').val();
-        if (!code) { 
-            alert('Please enter a voucher code.'); 
-            return; 
+    function switchTab(idx) {
+        $('.v-tab-btn').removeClass('active');
+        $('.v-tab-btn').eq(idx).addClass('active');
+        $('.v-content').removeClass('active');
+        $('#tab_' + idx).addClass('active');
+        vDisc = 0;
+        $('#h_v_id').val('');
+        updateTotals();
+    }
+
+    function applyManualCode() {
+        let code = $('#v_code_input').val().trim();
+        if (!code) {
+            alert('Please enter a voucher code');
+            return;
         }
 
-        $.ajax({
-            url: 'checkout.php',
-            type: 'GET',
-            data: { action: 'validate_voucher', code: code, subtotal: subtotal },
-            dataType: 'json',
-            success: function(res) {
-                if (res.success) {
-                    currentVoucherDiscount = parseFloat(res.discount_value);
-                    $('#memberVoucherMsg').css('color', '#4caf50').text('✅ Voucher applied: -RM ' + currentVoucherDiscount.toFixed(2));
-                } else {
-                    currentVoucherDiscount = 0;
-                    $('#memberVoucherMsg').css('color', '#e60012').text('❌ ' + res.message);
-                }
-                updateMemberTotals();
-            },
-            error: function() {
-                alert('Voucher code error.');
+        $.post(cfg.ajaxUrl || 'checkout.php', {
+            ajax: 'check_v',
+            code: code,
+            subtotal: subtotal
+        })
+        .done(function(data) {
+            let res;
+            try {
+                res = (typeof data === 'object') ? data : JSON.parse(data);
+            } catch (e) {
+                alert('Server error. Invalid response.');
+                console.error('JSON parse error:', data);
+                return;
             }
+
+            if (res.success) {
+                vDisc = (res.method === '-') 
+                    ? parseFloat(res.val) 
+                    : subtotal * (parseFloat(res.val) / 100);
+                $('#h_v_id').val(res.id);
+                updateTotals();
+            } else {
+                alert(res.message || 'Invalid voucher code');
+            }
+        })
+        .fail(function() {
+            alert('Network error. Please try again.');
         });
-    });
-    
-    $('#memberPointsInput').on('input change', function() { 
-        updateMemberTotals(); 
-    });
-    
-    updateMemberTotals();
-});
-/* 5. memberProducts/listing.php (WONG YONG FENG) */
-$(document).ready(function() {
-    
-    $('#memberCategorySelect').on('change', function() {
-        $('#memberSearchForm').submit();
-    });
-    
-    // 添加到购物车
-    $('.member-add-to-cart').click(function() {
-        var productId = $(this).data('id');
-        var $btn = $(this);
-        $.ajax({
-            url: '../member_cart/add.php',
-            method: 'POST',
-            data: { product_id: productId, quantity: 1 },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    if (confirm('✓ Added to cart! Go to cart now?')) {
-                        window.location.href = '../member_cart/unified_cart.php';
+    }
+
+    function applySelectCode() {
+        let opt = $('#v_select_box option:selected');
+        if (String(opt.val()) === '0') {
+            vDisc = 0;
+        } else {
+            let val = parseFloat(opt.data('val')) || 0;
+            let method = opt.data('method');
+            vDisc = (method === '-') ? val : subtotal * (val / 100);
+            $('#h_v_id').val(opt.val());
+        }
+        updateTotals();
+    }
+
+    // ==================== MEMBER PRODUCT FUNCTIONS ====================
+
+    function initMemberProducts() {
+        $('#memberCategorySelect').on('change', function() {
+            $('#memberSearchForm').submit();
+        });
+
+        $('.member-add-to-cart').click(function() {
+            var productId = $(this).data('id');
+            var $btn = $(this);
+
+            $.ajax({
+                url: '../member_cart/add.php',
+                method: 'POST',
+                data: { product_id: productId, quantity: 1 },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        if (confirm('✓ Added to cart! Go to cart now?')) {
+                            window.location.href = '../member_cart/unified_cart.php';
+                        } else {
+                            $btn.text('Added!');
+                            setTimeout(function() {
+                                $btn.text('Add to Cart');
+                            }, 1500);
+                        }
                     } else {
-                        $btn.text('Added!');
-                        setTimeout(function() { $btn.text('Add to Cart'); }, 1500);
+                        alert(response.error);
+                        if (response.error === 'Please login first') {
+                            window.location.href = '../login.php';
+                        }
                     }
-                } else {
-                    alert(response.error);
-                    if (response.error === 'Please login first') {
-                        window.location.href = '../login.php';
-                    }
+                },
+                error: function() {
+                    alert('Error adding to cart');
                 }
-            },
-            error: function() {
-                alert('Error adding to cart');
-            }
+            });
         });
+    }
+
+    // ==================== INITIALIZATION ====================
+
+    $(document).ready(function() {
+        updateTotals();
+        initMemberProducts();
     });
-});
+
+    // Expose functions to global scope for inline onclick handlers
+    window.switchTab = switchTab;
+    window.applyManualCode = applyManualCode;
+    window.applySelectCode = applySelectCode;
+
+})(jQuery);
 /* 6. member/order_detail.php (WONG YONG FENG) */
 $(document).ready(function() {
     // 取消订单按钮确认框
@@ -1279,16 +1306,323 @@ $(document).ready(function() {
 });
 
 /* 25. includes/_admin_head.php (LIM LI ZHE part) */
-document.addEventListener('DOMContentLoaded', () => {
-    const currentPath = window.location.href;
-    document.querySelectorAll('.sub-nav-link').forEach(link => {
-        if (currentPath.includes(link.getAttribute('href'))) {
-            const box = link.closest('.s-sub-box');
-            if(box) {
-                box.classList.add('open');
-                box.previousElementSibling.classList.add('active');
+document.addEventListener('DOMContentLoaded', function() {
+    // 处理图片加载失败
+    const images = document.querySelectorAll('.preview-item img, .user-avatar');
+    images.forEach(img => {
+        img.addEventListener('error', function() {
+            if (!this.src.includes('default.jpg')) {
+                this.src = this.dataset.fallback || '../images/default.jpg';
             }
-        }
+        });
     });
+
+    // 搜索框简单验证
+    const searchForm = document.querySelector('.search-container');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            const input = this.querySelector('.search-input');
+            if (!input.value.trim()) {
+                // 如果搜索内容为空，可以在这里阻止提交
+                // e.preventDefault();
+            }
+        });
+    }
 });
 /*----------------------------------------------*/
+
+/* 26. memeber/edit_bank.php (LIM LI ZHE part) */
+// 使用 URLSearchParams 判断是否需要弹出提示
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('status') === 'success') {
+    alert('✅ Bank preference updated successfully!');
+    // 清理 URL 里的参数（可选，防止刷新页面重复弹出）
+    window.history.replaceState({}, document.title, window.location.pathname + "?page=bank");
+}
+/*----------------------------------------------*/
+
+
+/* 27. memeber/edit_email.php (LEONG HONG JUN part) */
+$(document).ready(function() {
+    // 获取 URL 中的参数
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // 检查是否有 status=updated
+    if (urlParams.get('status') === 'updated') {
+        alert('✅ Email has been updated. Please verify your new email.');
+        
+        // 可选：为了美观，弹出后清除 URL 中的参数，防止刷新页面再次弹出
+        const newUrl = window.location.pathname + '?page=security';
+        window.history.replaceState({}, document.title, newUrl);
+    }
+});
+/*----------------------------------------------*/
+
+
+/* 28. memeber/edit_email.php (LEONG HONG JUN part) */
+/**
+ * PXX Mall - 全局消息处理器
+ * 放在 $(document).ready 里面确保 HTML 加载完后执行
+ */
+$(document).ready(function() {
+    // 1. 获取 URL 中的查询参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+
+    // 2. 根据不同的信号弹出不同的对话框
+    if (status) {
+        switch(status) {
+            case 'phone_updated':
+                alert('✅ Verification Successful! Phone number has been updated.');
+                break;
+            case 'email_updated':
+                alert('✅ Email has been updated. Please verify your new email.');
+                break;
+            // 你可以继续增加更多分支...
+        }
+
+        // 3. 强迫症必备：弹出后清理 URL（把 ?status=xxx 删掉）
+        // 这样用户刷新页面时，不会再次看到弹窗
+        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?page=security";
+        window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+    }
+});
+/*----------------------------------------------*/
+
+/*member/email-verify.php lim li zhe*/
+(function() {
+    let timeLeft = 30; // 固定倒计时 30s
+    let timerInterval = null;
+    
+    const timerDisplay = document.getElementById('timer-val');
+    const countdownBox = document.getElementById('countdown-ui');
+    const resendTrigger = document.getElementById('resend-btn-ui');
+
+    /**
+     * 初始化倒计时循环逻辑
+     */
+    function startTimerLoop(seconds) {
+        clearInterval(timerInterval); 
+        timeLeft = seconds;
+        
+        if(countdownBox) countdownBox.style.display = 'block'; 
+        if(resendTrigger) resendTrigger.style.display = 'none';
+        
+        timerInterval = setInterval(() => {
+            timeLeft--; 
+            if(timerDisplay) timerDisplay.innerText = timeLeft;
+            
+            if (timeLeft <= 0) {
+                // 🔥 时间到，停止倒计时并显示按钮供用户“自主”重发
+                clearInterval(timerInterval); 
+                if(countdownBox) countdownBox.style.display = 'none';
+                if(resendTrigger) {
+                    resendTrigger.style.display = 'block';
+                    resendTrigger.innerText = "Resent a new code";
+                    resendTrigger.style.pointerEvents = "auto";
+                }
+            }
+        }, 1000);
+    }
+
+    /**
+     * 🔥 重发流程：由用户按，按完之后开启 30s 倒计时
+     */
+    window.runResendProcess = function() {
+        if(resendTrigger) {
+            resendTrigger.innerText = "Code Requesting...";
+            resendTrigger.style.pointerEvents = "none";
+        }
+        
+        // 调用后端发信服务
+        fetch('email_verify.php?service=trigger_resend')
+            .then(res => res.text())
+            .then(status => {
+                if (status.trim() === 'success') { 
+                    alert("Success: A new verification code has been sent to your email!"); 
+                    // 只有成功重发后，才重新开启 30s 倒计时
+                    startTimerLoop(30); 
+                } else { 
+                    alert("Transmission Error: " + status); 
+                    if(resendTrigger) {
+                        resendTrigger.innerText = "Resent a new code";
+                        resendTrigger.style.pointerEvents = "auto";
+                    }
+                }
+            })
+            .catch(err => {
+                alert("Network latency detected.");
+                if(resendTrigger) {
+                    resendTrigger.innerText = "Resent a new code";
+                    resendTrigger.style.pointerEvents = "auto";
+                }
+            });
+    };
+
+    // 页面初次进入时，因为系统自动发了一次，所以自动开启第一次倒计时
+    startTimerLoop(30);
+})();
+/*---------------------------------------------------*/
+
+/*member login php limlizhe*/
+function toggleModal(show) { 
+    const modal = document.getElementById('helpModal');
+    if(modal) {
+        modal.style.display = show ? 'block' : 'none';
+    }
+}
+
+function togglePassword(id, icon) {
+    const input = document.getElementById(id);
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = "password";
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('helpModal');
+    if (event.target == modal) {
+        toggleModal(false);
+    }
+}
+/*---------------------------------------*/ 
+
+/*member profile lim li zhe*/
+document.addEventListener('DOMContentLoaded', function() {
+    const stateSelect = document.getElementById('m_state');
+    const citySelect = document.getElementById('m_city');
+
+    if (!stateSelect || !citySelect) return;
+
+    const currentSQLState = "<?php echo d($u['State']); ?>";
+    const currentSQLCity = "<?php echo d($u['City']); ?>";
+
+    fetch('../includes/state.json') 
+        .then(response => {
+            if (!response.ok) throw new Error('State JSON file not found');
+            return response.json();
+        })
+        .then(data => {
+            const malaysiaRegions = data;
+
+            stateSelect.innerHTML = '<option value="">Select State</option>';
+            
+            // 1. 加载州属 (States)
+            Object.keys(malaysiaRegions).sort().forEach(stateName => {
+                let option = new Option(stateName, stateName);
+                if (stateName === currentSQLState) {
+                    option.selected = true;
+                }
+                stateSelect.add(option);
+            });
+
+            // 2. 如果已有州属数据，加载对应的城市 (Cities)
+            if (currentSQLState && malaysiaRegions[currentSQLState]) {
+                // 注意：这里传入的是 Object.keys，因为城市名现在是对象的 Key
+                fillCities(Object.keys(malaysiaRegions[currentSQLState]), currentSQLCity);
+            }
+
+            // 3. 联动事件
+            stateSelect.addEventListener('change', function() {
+                const selectedState = this.value;
+                // 获取选中州属下的所有城市名（Key）
+                const cityData = malaysiaRegions[selectedState] ? Object.keys(malaysiaRegions[selectedState]) : [];
+                fillCities(cityData);
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            stateSelect.innerHTML = '<option value="">Error loading data</option>';
+        });
+
+    function fillCities(cityNames, preselectedCity = "") {
+        citySelect.innerHTML = '<option value="">Select City</option>';
+        cityNames.sort().forEach(cityName => {
+            let option = new Option(cityName, cityName);
+            if (cityName === preselectedCity) {
+                option.selected = true;
+            }
+            citySelect.add(option);
+        });
+    }
+});
+
+function triggerPhotoDelete() {
+    if(confirm('Warning: Remove your current photo and use default?')) {
+        document.getElementById('displayAvatarImg').src = '../images/default.jpg';
+        document.getElementById('avatarDelFlagInput').value = '1';
+    }
+}
+/*--------------------------------------------------*/
+
+/*member signup limlizhe*/
+let isUserValid = false;
+    let isPassValid = false;
+
+    // Modal Controls
+    function openTnC() { document.getElementById('tncModal').style.display = 'flex'; }
+    function acceptTnC() {
+        document.getElementById('f_tnc').checked = true;
+        document.getElementById('f_tnc').disabled = false;
+        document.getElementById('tncModal').style.display = 'none';
+        validateForm();
+    }
+
+    // Security Validation (Length & Match)
+    function validateSecurity() {
+        const p1 = document.getElementById('f_pass').value;
+        const p2 = document.getElementById('f_conf').value;
+        const lenMsg = document.getElementById('pass-len-msg');
+        const matchMsg = document.getElementById('pass-match-msg');
+        const input2 = document.getElementById('f_conf');
+
+        // Length Check
+        lenMsg.style.display = (p1.length > 0 && p1.length < 6) ? 'block' : 'none';
+
+        // Match Check
+        if (p2.length > 0) {
+            if (p1 !== p2) {
+                matchMsg.style.display = 'block';
+                input2.classList.add('input-error');
+                isPassValid = false;
+            } else {
+                matchMsg.style.display = 'none';
+                input2.classList.remove('input-error');
+                isPassValid = (p1.length >= 6);
+            }
+        } else {
+            matchMsg.style.display = 'none';
+        }
+        
+        validateForm();
+    }
+
+    // AJAX Username Verification
+    let timer;
+    document.getElementById('f_user').addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+            const u = document.getElementById('f_user').value.trim();
+            const f = document.getElementById('user-feedback');
+            if (u.length < 3) { f.style.display = 'none'; isUserValid = false; validateForm(); return; }
+
+            const res = await fetch('?check_user=' + encodeURIComponent(u));
+            const status = await res.text();
+            f.style.display = 'block';
+            f.innerText = (status === 'taken') ? '✖ Username already exists' : '✔ Username is available';
+            f.className = (status === 'taken') ? 'msg-hint err-text' : 'msg-hint ok-text';
+            isUserValid = (status !== 'taken');
+            validateForm();
+        }, 500);
+    });
+
+    // Final Enable/Disable Button
+    function validateForm() {
+        const tnc = document.getElementById('f_tnc').checked;
+        const btn = document.getElementById('btnS');
+        btn.disabled = !(isUserValid && isPassValid && tnc);
+    }

@@ -29,13 +29,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['bank_selection'])) {
         $update_stmt = $pdo->prepare($sql);
         $success = $update_stmt->execute([$selected_bank, $user_id]);
 
-        if ($success) {
-            echo "<script>
-                    alert('✅ Bank preference updated successfully!');
-                    window.location.href = 'profile.php?page=bank';
-                  </script>";
-            exit();
-        }
+       if ($success) {
+    header("Location: profile.php?page=bank&status=success");
+    exit();
+}
     } catch (PDOException $e) {
         $message = "Error: " . $e->getMessage();
     }
@@ -43,92 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['bank_selection'])) {
 
 require_once __DIR__ . '/../includes/_head.php'; 
 ?>
+    <link rel="stylesheet" href="../css/app.css">
 
-<style>
-    body {
-        background-image: url('../images/bg.jpeg'); 
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        margin: 0;
-    }
 
-    .bank-wrapper {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start; /* 靠上对齐 */
-        min-height: 150vh; /* 强制极高的页面高度 */
-        padding: 60px 20px 400px 20px; /* 底部预留 400px 巨大空间强制下拉 */
-    }
-
-    .bank-card {
-        max-width: 450px;
-        width: 100%;
-        background: rgba(255, 255, 255, 0.98);
-        padding: 40px;
-        border-radius: 15px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        text-align: center;
-        /* 确保卡片本身不溢出 */
-        position: relative;
-        margin-bottom: 200px; 
-    }
-
-    .section-title {
-        color: #999;
-        font-size: 13px;
-        text-align: left;
-        margin-bottom: 25px;
-        font-weight: bold;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-    }
-
-    .bank-select {
-        width: 100%;
-        padding: 15px;
-        border: 1.5px solid #eee;
-        border-radius: 10px;
-        font-size: 16px;
-        margin-bottom: 30px;
-        background-color: #f9f9f9;
-        color: #333;
-        display: block;
-        cursor: pointer;
-        /* 自定义外观 */
-        appearance: none;
-        -webkit-appearance: none;
-        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-        background-repeat: no-repeat;
-        background-position: right 15px center;
-        background-size: 15px;
-    }
-
-    .btn-save {
-        background: #e60012;
-        color: #fff;
-        padding: 15px;
-        border: none;
-        border-radius: 10px;
-        font-weight: bold;
-        cursor: pointer;
-        width: 100%;
-        font-size: 16px;
-        display: block;
-        margin-bottom: 15px;
-    }
-
-    .btn-save:hover { background: #333; }
-
-    .btn-cancel {
-        display: block;
-        text-align: center;
-        color: #888;
-        text-decoration: none;
-        font-size: 14px;
-        padding: 10px;
-    }
-</style>
 
 <div class="bank-wrapper">
     <div class="bank-card">
@@ -158,4 +72,5 @@ require_once __DIR__ . '/../includes/_head.php';
     </div>
 </div>
 
+<script src="../js/app.js"></script>
 <?php require_once '../includes/_foot.php'; ?>

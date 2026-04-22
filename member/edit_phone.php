@@ -64,11 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // 清除临时验证数据
                 unset($_SESSION['temp_otp'], $_SESSION['temp_phone']);
 
-                // 🔥 精准重定向：返回 profile.php 的安全设置分支
-                echo "<script>
-                        alert('✅ Verification Successful! Phone number has been updated.');
-                        window.location.href = 'profile.php?page=security';
-                      </script>";
+                
                 exit();
             } catch (PDOException $e) {
                 $message = "Database Error: " . $e->getMessage();
@@ -85,121 +81,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 require_once __DIR__ . '/../includes/_head.php'; 
 ?>
 
-<style>
-    /* 1. 页面大框架 & 背景图 */
-    body {
-        /* 在这里修改你的背景图路径 */
-        background-image: url('../images/bg.jpeg'); 
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        margin: 0;
-    }
+    <link rel="stylesheet" href="../css/app.css">
 
-    .edit-phone-wrapper {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 80vh;
-        padding: 20px;
-    }
-
-    .phone-card {
-        max-width: 480px;
-        width: 100%;
-        background: rgba(255, 255, 255, 0.95); /* 半透明白色，保持易读性 */
-        padding: 40px;
-        border-radius: 12px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-        text-align: center;
-    }
-
-    h1 {
-        color: #1a1a1a;
-        font-size: 22px;
-        margin-bottom: 25px;
-        border-bottom: 2px solid #e60012;
-        padding-bottom: 12px;
-        display: inline-block;
-    }
-
-    /* 国际区号组合输入框布局 */
-    .input-group-pxx {
-        display: flex;
-        gap: 12px;
-        margin: 25px 0;
-        justify-content: center;
-    }
-
-    .select-prefix {
-        width: 90px;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        background: #fafafa;
-        font-weight: 600;
-    }
-
-    .phone-input {
-        flex: 1;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 16px;
-    }
-
-    /* 6位OTP严格输入框样式 */
-    .otp-input-large {
-        width: 100%;
-        max-width: 300px;
-        padding: 15px;
-        border: 2px solid #e60012;
-        border-radius: 8px;
-        font-size: 28px;
-        text-align: center;
-        letter-spacing: 10px;
-        margin: 20px auto;
-        display: block;
-        font-family: monospace;
-    }
-
-    .btn-action-pxx {
-        background: #e60012;
-        color: #fff;
-        padding: 14px;
-        border: none;
-        border-radius: 8px;
-        font-weight: bold;
-        cursor: pointer;
-        width: 100%;
-        font-size: 16px;
-        transition: 0.2s;
-    }
-
-    .btn-action-pxx:hover { background: #333; }
-
-    .btn-cancel {
-        display: block;
-        margin-top: 25px;
-        color: #999;
-        text-decoration: none;
-        font-size: 14px;
-    }
-
-    .btn-cancel:hover { text-decoration: underline; color: #e60012; }
-
-    /* 错误/提示框颜色调整 */
-    .msg-alert {
-        padding: 15px;
-        background: #fffbe6;
-        color: #856404;
-        border: 1px solid #ffe58f;
-        border-radius: 8px;
-        margin-bottom: 25px;
-        font-size: 14px;
-        line-height: 1.5;
-    }
-</style>
+// 逻辑处理成功后
+if ($update_success) {
+    // 使用 header 重定向，并带上 status 信号
+    header("Location: profile.php?page=security&status=phone_updated");
+    exit();
+}
 
 <div class="edit-phone-wrapper">
     <div class="phone-card">
@@ -252,4 +141,6 @@ require_once __DIR__ . '/../includes/_head.php';
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="../js/app.js"></script>
 <?php require_once '../includes/_foot.php'; ?>

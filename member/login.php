@@ -28,120 +28,14 @@ $bg_image_url = 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=
 include '../includes/_head.php'; 
 $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '';
 ?>
-
 <style>
-    /* 🔥 全局背景图逻辑 */
-    body {
-        margin: 0; padding: 0;
-        font-family: 'Segoe UI', Arial, sans-serif;
-        background-image: url('../images/bg.jpeg');
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        background-repeat: no-repeat;
-    }
-
-    input::-ms-reveal, input::-ms-clear { display: none; }
-
-    /* 高级遮罩层：防止图片太亮 */
-    .login-wrapper { 
-        display: flex; justify-content: center; align-items: center; 
-        min-height: 100vh; 
-       
-    }
-    
-    /* 🔥 磨砂玻璃卡片效果 */
-    .login-card { 
-        background: #ffffff; 
-        backdrop-filter: blur(10px); /* 磨砂效果 */
-        -webkit-backdrop-filter: blur(10px);
-        width: 100%; max-width: 500px; 
-        border-radius: 24px; 
-        border: 1px solid rgba(255, 255, 255, 0.3); 
-        box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important; 
-        text-align: center; overflow: hidden; 
-        animation: fadeIn 0.6s ease;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* 顶部全宽青色 Banner */
-    .portal-banner {
-        background-color: <?php echo $color; ?>;
-        padding: 40px 20px;
-        color: #ffffff;
-        font-size: 32px;
-        font-weight: 800;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        border-bottom: 1px solid rgba(0,0,0,0.1);
-    }
-    
-    .card-body { padding: 40px 60px; }
-
-    .welcome-text { font-size: 28px; font-weight: 600; margin-bottom: 35px; color: #333; }
-
-    .form-group { margin-bottom: 25px; text-align: left; }
-    .form-group label { display: block; margin-bottom: 10px; font-weight: 700; font-size: 20px; color: #333; }
-    
-    .form-group input { 
-        width: 100%; padding: 16px; border: 2px solid #eeeeee; 
-        border-radius: 12px; font-size: 17px; outline: none; 
-        box-sizing: border-box; background-color: #ffffff;
-        transition: 0.3s; 
-    }
-    .form-group input:focus { border-color: <?php echo $color; ?>; background: #fff; }
-
-    .input-container { position: relative; width: 100%; display: flex; align-items: center; }
-    .input-container input { padding-right: 60px; }
-    .toggle-pw { position: absolute; right: 20px; cursor: pointer; color: #999; font-size: 24px; z-index: 10; }
-
-    .remember-row { display: flex; align-items: center; gap: 12px; margin: 25px 0; font-size: 16px; color: #555; cursor: pointer; }
-    .remember-row input { width: 20px; height: 20px; accent-color: <?php echo $color; ?>; }
-
-    /* 登录按钮 */
-    .login-btn { 
-        width: 100%; padding: 18px; background: <?php echo $color; ?>; 
-        color: white; border: none; border-radius: 12px; 
-        font-weight: 800; font-size: 24px; cursor: pointer; 
-        transition: 0.3s;
-        box-shadow: 0 8px 15px rgba(40, 167, 69, 0.2);
-    }
-    .login-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
-    .login-btn:active { transform: scale(0.98); }
-
-    .footer-links { display: flex; flex-direction: column; gap: 18px; margin-top: 25px; font-size: 16px; }
-    .link-blue { color: #1a73e8; text-decoration: none; font-weight: 600; }
-    
-    .back-btn {
-        display: inline-flex; align-items: center; 
-        justify-content: center; gap: 8px; 
-        margin-top: 10px; color: #888; text-decoration: none;
-        font-weight: 500;
-    }
-    .back-btn:hover { color: <?php echo $color; ?>; }
-
-    /* Need Help 弹窗 */
-    .modal-overlay { 
-        display: none; position: fixed; z-index: 9999; 
-        left: 0; top: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.6); 
-    }
-    .modal-box { 
-        background: #ffffff; margin: 10% auto; 
-        width: 340px; max-height: 450px; 
-        border-radius: 20px; overflow: hidden; 
-        display: flex; flex-direction: column; 
-        box-shadow: 0 25px 50px rgba(0,0,0,0.2);
-    }
-    .modal-body {
-        padding: 30px; overflow-y: auto;
-        text-align: left; font-size: 15px; line-height: 1.6; color: #444;
+    :root {
+        --theme-color: <?php echo htmlspecialchars($color ?? '#17a2b8'); ?>;
     }
 </style>
+
+    <link rel="stylesheet" href="../css/app.css">
+
 
 <div class="login-wrapper">
     <div class="login-card">
@@ -213,31 +107,8 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
     </div>
 </div>
 
-<script>
-function toggleModal(show) { 
-    const modal = document.getElementById('helpModal');
-    if(modal) {
-        modal.style.display = show ? 'block' : 'none';
-    }
-}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-function togglePassword(id, icon) {
-    const input = document.getElementById(id);
-    if (input.type === "password") {
-        input.type = "text";
-        icon.classList.replace('fa-eye', 'fa-eye-slash');
-    } else {
-        input.type = "password";
-        icon.classList.replace('fa-eye-slash', 'fa-eye');
-    }
-}
-
-window.onclick = function(event) {
-    const modal = document.getElementById('helpModal');
-    if (event.target == modal) {
-        toggleModal(false);
-    }
-}
-</script>
+<script src="../js/app.js"></script>
 
 <?php include '../includes/_foot.php'; ?>

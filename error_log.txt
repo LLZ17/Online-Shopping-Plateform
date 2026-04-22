@@ -1,2 +1,0 @@
-[2026-04-22 12:10:59] Callback received. Status: 1, OrderNo: N/A
-[2026-04-22 12:10:59] Error: Session lost. user_id or pending_order is missing.

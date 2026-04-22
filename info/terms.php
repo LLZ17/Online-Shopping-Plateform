@@ -8,67 +8,7 @@ include('../includes/_info_head.php');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        .terms-container {
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 20px;
-            line-height: 1.8;
-            color: #333;
-            font-family: Arial, sans-serif;
-        }
-
-        .terms-header {
-            border-left: 8px solid #FF0000;
-            padding-left: 20px;
-            margin-bottom: 40px;
-        }
-
-        .terms-header h1 {
-            color: #FF0000;
-            font-size: 2.5rem;
-            margin: 0;
-            font-family: 'Arial Black', sans-serif;
-            text-transform: uppercase;
-        }
-
-        .terms-section {
-            margin-bottom: 30px;
-        }
-
-        .terms-section h2 {
-            color: #FF0000;
-            font-size: 1.4rem;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-        }
-
-        .terms-section p, .terms-section ul {
-            font-size: 1rem;
-            color: #555;
-            margin-bottom: 15px;
-        }
-
-        .privacy-highlight {
-            background-color: #fff5f5;
-            border: 1px dashed #FF0000;
-            padding: 20px;
-            border-radius: 4px;
-        }
-
-        strong {
-            color: #FF0000;
-        }
-
-        .footer-note {
-            margin-top: 50px;
-            font-size: 0.9rem;
-            color: #999;
-            text-align: center;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/app.css">
 </head>
 <body>
 
