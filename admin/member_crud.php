@@ -122,7 +122,6 @@ if (file_exists($admin_head)) { include $admin_head; }
                         ?>
                         <tr>
                             <td style="text-align: center; font-weight: 700; color: #64748b;"><?= $counter++ ?></td>
-                            
                             <td style="font-weight: 800; color: #94a3b8;">#<?= htmlspecialchars($m['user_id']) ?></td>
 
                             <td>
@@ -217,6 +216,14 @@ if (file_exists($admin_head)) { include $admin_head; }
 </div>
 
 <script src="../js/app.js?v=1.10"></script>
+
+<script>
+// 💡 强行纠正跳转：谁最后定义，谁说了算。
+function triggerSyncRefresh() {
+    alert("✅ Member records synchronized!");
+    window.location.href = 'member_crud.php';
+}
+</script>
 
 <?php 
 $foot = __DIR__ . '/../includes/_foot.php'; 

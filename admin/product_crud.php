@@ -121,9 +121,12 @@ if (file_exists($admin_head)) { include $admin_head; }
     </div>
 </template>
 
-<script src="../js/app.js?v=1.21"></script>
+<script src="../js/app.js?v=1.21"></script> 
 
-<?php 
-$foot = __DIR__ . '/../includes/_foot.php'; 
-if (file_exists($foot)) { include $foot; } 
-?>
+<script>
+// 🚀 强制覆盖任何同名函数，确保只跳回当前页面
+function triggerSyncRefresh() {
+    alert("✅ Product records synchronized!");
+    window.location.href = 'product_crud.php';
+}
+</script>

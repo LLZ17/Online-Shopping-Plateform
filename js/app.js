@@ -388,88 +388,78 @@ document.addEventListener("DOMContentLoaded", function() {
 /* --- Product Edit JS Start (TEE DE YONG's Part) --- */
 /* --- Admin Product Edit JS Start (TEE DE_YONG's Part) --- */
 // Tag Logic
-function setupTags(boxId, inputId) {
-    const box = document.getElementById(boxId);
-    const input = document.getElementById(inputId);
-    if(!box) return;
-    box.addEventListener('click', function(e) {
-        if (e.target.classList.contains('tag-item')) {
-            e.target.classList.toggle('active');
-            let vals = [];
-            box.querySelectorAll('.tag-item.active').forEach(t => vals.push(t.dataset.value));
-            input.value = vals.join(',');
-        }
-    });
-}
-
+/* --- Product Edit Form Interaction --- */
 document.addEventListener("DOMContentLoaded", function() {
-    // 初始化 Tags
-    setupTags('size-tags', 'hidden-size');
+    // 1. 初始化显示
+    const wrapper = document.getElementById('edit-wrapper');
+    const vp = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, main');
+    if (vp && wrapper) {
+        vp.innerHTML = '';
+        vp.appendChild(wrapper);
+        wrapper.style.display = 'block';
+    }
 
-    // Custom Select Logic
-    const wrapper = document.getElementById('type-select-wrapper');
-    if (wrapper) {
-        const hiddenType = document.getElementById('hidden-product-type');
-        const triggerText = wrapper.querySelector('.trigger-text');
+    // 2. 自定义 Select 交互
+    const trigger = document.querySelector('.custom-select-trigger');
+    const optionsBox = document.querySelector('.custom-options');
+    const triggerText = document.querySelector('.trigger-text');
+    const hiddenType = document.getElementById('hidden-product-type');
+
+    if (trigger && optionsBox) {
+        trigger.onclick = () => optionsBox.classList.toggle('open');
         
-        if(hiddenType && hiddenType.value) {
-            const opt = wrapper.querySelector(`.custom-option[data-value="${hiddenType.value}"]`);
-            if(opt) {
-                triggerText.innerText = opt.innerText;
-                opt.classList.add('selected');
-            }
-        }
-
-        wrapper.addEventListener('click', function(e) {
-            const opt = e.target.closest('.custom-option');
-            if (opt) {
-                hiddenType.value = opt.dataset.value;
-                triggerText.innerText = opt.innerText;
-                wrapper.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
-                opt.classList.add('selected');
-                this.classList.remove('open');
-            } else {
-                this.classList.toggle('open');
-            }
+        document.querySelectorAll('.custom-option').forEach(opt => {
+            opt.onclick = function() {
+                const val = this.dataset.value;
+                const text = this.innerText;
+                
+                triggerText.innerText = text;
+                hiddenType.value = val;
+                
+                document.querySelectorAll('.custom-option').forEach(o => o.classList.remove('active'));
+                this.classList.add('active');
+                optionsBox.classList.remove('open');
+            };
         });
     }
 
-    // Image Preview
+    // 3. Size Tags 交互
+    const sizeInput = document.getElementById('hidden-size');
+    document.querySelectorAll('#size-tags .tag-item').forEach(tag => {
+        tag.onclick = function() {
+            this.classList.toggle('active');
+            const activeTags = Array.from(document.querySelectorAll('#size-tags .tag-item.active'))
+                                   .map(t => t.dataset.value);
+            sizeInput.value = activeTags.join(', ');
+        };
+    });
+
+    // 4. 图片预览
     const photoInput = document.getElementById('photo-input');
+    const preview = document.getElementById('image-preview');
+    const placeholder = document.getElementById('no-photo-placeholder');
     if (photoInput) {
-        photoInput.addEventListener('change', function(e) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const img = document.getElementById('image-preview');
-                img.src = event.target.result;
-                img.style.display = 'block';
-                const placeholder = document.getElementById('no-photo-placeholder');
-                if(placeholder) placeholder.style.display = 'none';
+        photoInput.onchange = function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    preview.src = e.target.result;
+                    preview.style.display = 'inline-block';
+                    if (placeholder) placeholder.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
             }
-            if(this.files[0]) reader.readAsDataURL(this.files[0]);
-        });
+        };
     }
 
-    // Viewport Loader (For Edit Page)
-    const myEditContent = document.getElementById('edit-wrapper');
-    if (myEditContent) {
-        myEditContent.style.display = 'block';
-        let viewport = document.querySelector('.admin-content-viewport, .main-content, .content-wrapper, .page-content, main');
-        if (!viewport) {
-            const allElements = document.body.getElementsByTagName('*');
-            for (let el of allElements) {
-                if (el.textContent && el.textContent.includes("Administrative Workspace Ready")) {
-                    viewport = el.parentElement; break;
-                }
-            }
+    // 点击外部关闭下拉框
+    window.onclick = e => {
+        if (!e.target.closest('.custom-select-wrapper')) {
+            optionsBox?.classList.remove('open');
         }
-        if (viewport) {
-            viewport.innerHTML = ''; 
-            viewport.appendChild(myEditContent);
-        }
-    }
+    };
 });
-/* --- Admin Product Edit JS End --- */
 
 
 
