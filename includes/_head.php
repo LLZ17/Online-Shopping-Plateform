@@ -78,7 +78,6 @@ $dynamic_keywords = [];
 if (isset($pdo)) {
     try {
         if (!empty($current_category) && $current_category !== 'All') {
-            // 有分类时：从该分类的产品中获取关键词
             $kw_stmt = $pdo->prepare("
                 SELECT DISTINCT p.keywords 
                 FROM products p
@@ -91,7 +90,6 @@ if (isset($pdo)) {
             ");
             $kw_stmt->execute(['cat' => $current_category]);
         } else {
-            // 无分类时：从所有产品中随机获取关键词
             $kw_stmt = $pdo->prepare("
                 SELECT DISTINCT keywords 
                 FROM products 
@@ -105,7 +103,6 @@ if (isset($pdo)) {
         
         $fetched_keywords = $kw_stmt->fetchAll(PDO::FETCH_COLUMN);
         
-        // 拆分逗号分隔的关键词
         foreach ($fetched_keywords as $kw_string) {
             $parts = explode(',', $kw_string);
             foreach ($parts as $p) {
@@ -119,7 +116,6 @@ if (isset($pdo)) {
     } catch(PDOException $e) {}
 }
 
-// 如果数据库没有关键词，使用默认（确保有显示）
 if (empty($dynamic_keywords)) {
     if ($current_category == 'Women') $dynamic_keywords = ['Dress', 'Skirt', 'Blouse', 'Heels'];
     elseif ($current_category == 'Men') $dynamic_keywords = ['Shirt', 'Trousers', 'Sneakers', 'Jacket'];
@@ -136,7 +132,6 @@ $recent_wishlist = [];
 $cart_count = 0; 
 $recent_cart = [];
 
-// 获取 user_id
 $uid = '';
 if ($isLoggedIn) {
     if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
@@ -180,7 +175,7 @@ if (!empty($uid) && isset($pdo)) {
 
         if ($wishlist_count > 0) {
             $stmt = $pdo->prepare("
-                SELECT p.name, p.price, p.product_image 
+                SELECT p.name, p.price, p.product_image, f.size, f.colour
                 FROM favourites f 
                 JOIN products p ON f.product_id = p.product_id 
                 WHERE f.user_id = ? 
@@ -203,7 +198,6 @@ if (!empty($uid) && isset($pdo)) {
     } catch(PDOException $e) {}
 }
 
-// 辅助函数：数字超过99显示99+
 function badge_number($num) {
     return $num > 99 ? '99+' : $num;
 }
@@ -229,7 +223,7 @@ function badge_number($num) {
             margin: 0; 
             font-family: 'Poppins', sans-serif; 
             background-color: var(--gray-100);
-            padding-top: 100px;  /* 🌟 加大到 100px，确保 Welcome 图片完整显示 */
+            padding-top: 100px;
         }
         * { box-sizing: border-box; }
         a { text-decoration: none; color: inherit; transition: var(--transition); }
@@ -258,7 +252,6 @@ function badge_number($num) {
         }
         .logo-link sup { font-size: 16px; font-weight: 700; margin-left: 2px; }
 
-        /* 搜索框 */
         .search-section { 
             flex: 1;
             max-width: 700px;
@@ -293,7 +286,6 @@ function badge_number($num) {
             font-size: 18px;
         }
 
-        /* Trending */
         .search-keywords {
             margin-top: 6px;
             font-size: 12px;
@@ -328,8 +320,8 @@ function badge_number($num) {
         .profile-item { margin-left: 10px; } 
         .icon-wrap { 
             position: relative; 
-            width: 32px;        /* 🌟 固定宽度 */
-            height: 32px;       /* 🌟 固定高度 */
+            width: 32px;
+            height: 32px;
             display: flex; 
             align-items: center; 
             justify-content: center; 
@@ -337,7 +329,6 @@ function badge_number($num) {
         .icon-wrap i { font-size: 24px; color: white; }
         .icon-text { font-size: 13px; font-weight: 700; color: white; margin-top: 4px; }
 
-        /* 🌟 数字徽章 - 固定大小，不随页面缩放 */
         .badge { 
             position: absolute; 
             top: -6px; 
@@ -346,8 +337,8 @@ function badge_number($num) {
             color: var(--pxx-red); 
             font-size: 10px; 
             font-weight: 900; 
-            width: 20px;          /* 🌟 固定宽度 */
-            height: 20px;         /* 🌟 固定高度 */
+            width: 20px;
+            height: 20px;
             border-radius: 50%; 
             display: flex; 
             align-items: center; 
@@ -355,13 +346,23 @@ function badge_number($num) {
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             line-height: 1;
         }
-        /* 🌟 99+ 时稍微宽一点 */
         .badge.wide {
             width: 28px;
             border-radius: 10px;
         }
 
-        .user-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid white; }
+        /* ============================================
+           🌟 修复：用户头像 - 固定尺寸 + 占位背景
+           ============================================ */
+        .user-avatar { 
+            width: 34px; 
+            height: 34px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            border: 2px solid white; 
+            background-color: #ddd;        /* 加载前的占位灰色 */
+            display: block;               /* 消除 inline 间隙 */
+        }
 
         .preview-box, .user-dropdown {
             position: absolute; 
@@ -446,13 +447,21 @@ function badge_number($num) {
             text-align: left; 
         }
         .preview-item:last-child { border-bottom: none; }
+
+        /* ============================================
+           🌟 修复：预览商品图 - 固定尺寸 + 占位背景
+           ============================================ */
         .preview-item img { 
             width: 45px; 
             height: 45px; 
             object-fit: cover; 
             border-radius: 6px; 
             border: 1px solid #eee; 
+            background-color: #f0f0f0;    /* 加载前的占位色 */
+            flex-shrink: 0;               /* 防止被压缩 */
+            display: block;
         }
+        
         .preview-item-info { 
             display: flex; 
             flex-direction: column; 
@@ -506,6 +515,36 @@ function badge_number($num) {
             border-top: 1px solid #eee; 
         }
         .preview-footer:hover { background: #fafafa; }
+
+        .preview-item-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+        .meta-tag {
+            display: inline-flex;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+        .size-tag {
+            background: #f0f0f0;
+            color: #666;
+            border: 1px solid #e0e0e0;
+        }
+        .colour-tag {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            padding: 0;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3);
+        }
     </style>
 </head>
 <body>
@@ -582,11 +621,25 @@ function badge_number($num) {
                 <div class="preview-box">
                     <div class="preview-header">Your Wishlist (<?php echo $wishlist_count; ?>)</div>
                     <?php if (!empty($recent_wishlist)): ?>
-                        <?php foreach($recent_wishlist as $item): ?>
+                        <?php foreach($recent_wishlist as $item): 
+                            $wl_imgs = !empty($item['product_image']) ? explode(',', $item['product_image']) : [];
+                            $wl_display_img = !empty($wl_imgs[0]) ? trim($wl_imgs[0]) : 'default.jpg';
+                        ?>
                             <div class="preview-item">
-                                <img src="<?php echo $path_prefix; ?>images/<?php echo !empty($item['product_image']) ? htmlspecialchars($item['product_image']) : 'default.jpg'; ?>" onerror="this.src='<?php echo $path_prefix; ?>images/default.jpg'">
+                                <img src="<?php echo $path_prefix; ?>images/<?php echo htmlspecialchars($wl_display_img); ?>" 
+                                     alt="<?php echo htmlspecialchars($item['name']); ?>" 
+                                     onerror="this.onerror=null; this.src='<?php echo $path_prefix; ?>images/default.jpg'">
                                 <div class="preview-item-info">
                                     <span class="preview-item-name"><?php echo htmlspecialchars($item['name']); ?></span>
+                                    <span class="preview-item-meta">
+                                        <?php if(!empty($item['size'])): ?>
+                                            <span class="meta-tag size-tag"><?php echo htmlspecialchars($item['size']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if(!empty($item['colour'])): ?>
+                                            <span class="meta-tag colour-tag" style="background-color: <?php echo htmlspecialchars($item['colour']); ?>"></span>
+                                            <span style="font-size:11px; color:#666;"><?php echo htmlspecialchars($item['colour']); ?></span>
+                                        <?php endif; ?>
+                                    </span>
                                     <span class="preview-item-price">RM <?php echo number_format($item['price'], 2); ?></span>
                                 </div>
                             </div>
@@ -614,20 +667,34 @@ function badge_number($num) {
                 <div class="preview-box">
                     <div class="preview-header">Shopping Cart (<?php echo $cart_count; ?> Items)</div>
                     <?php if (!empty($recent_cart)): ?>
-                        <?php foreach($recent_cart as $item): ?>
+                        <?php foreach($recent_cart as $item): 
+                            $cart_imgs = !empty($item['product_image']) ? explode(',', $item['product_image']) : [];
+                            $cart_display_img = !empty($cart_imgs[0]) ? trim($cart_imgs[0]) : 'default.jpg';
+                            $cart_user_color = strtolower(trim($item['colour'])); 
+                            foreach ($cart_imgs as $img) {
+                                if ($cart_user_color !== '' && strpos(strtolower(trim($img)), $cart_user_color) !== false) {
+                                    $cart_display_img = trim($img); break;
+                                }
+                            }
+                        ?>
                             <div class="preview-item">
-                                <img src="<?php echo $path_prefix; ?>images/<?php echo !empty($item['product_image']) ? htmlspecialchars($item['product_image']) : 'default.jpg'; ?>" onerror="this.src='<?php echo $path_prefix; ?>images/default.jpg'">
+                                <img src="<?php echo $path_prefix; ?>images/<?php echo htmlspecialchars($cart_display_img); ?>" 
+                                     alt="<?php echo htmlspecialchars($item['name']); ?>" 
+                                     onerror="this.onerror=null; this.src='<?php echo $path_prefix; ?>images/default.jpg'">
                                 <div class="preview-item-info">
                                     <span class="preview-item-name"><?php echo htmlspecialchars($item['name']); ?></span>
+                                    <span class="preview-item-meta">
+                                        <?php if(!empty($item['selected_size'])): ?>
+                                            <span class="meta-tag size-tag"><?php echo htmlspecialchars($item['selected_size']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if(!empty($item['colour'])): ?>
+                                            <span class="meta-tag colour-tag" style="background-color: <?php echo htmlspecialchars($item['colour']); ?>"></span>
+                                            <span style="font-size:11px; color:#666;"><?php echo htmlspecialchars($item['colour']); ?></span>
+                                        <?php endif; ?>
+                                    </span>
                                     <span class="preview-item-price">
                                         RM <?php echo number_format($item['price'], 2); ?> 
                                         <span class="preview-item-qty">x <?php echo $item['quantity']; ?></span>
-                                        <?php if(!empty($item['selected_size'])): ?>
-                                            <span style="color:#666; font-size:11px;"> | Size: <?php echo htmlspecialchars($item['selected_size']); ?></span>
-                                        <?php endif; ?>
-                                        <?php if(!empty($item['colour'])): ?>
-                                            <span style="color:#666; font-size:11px;"> | <?php echo htmlspecialchars($item['colour']); ?></span>
-                                        <?php endif; ?>
                                     </span>
                                 </div>
                             </div>
@@ -645,13 +712,16 @@ function badge_number($num) {
                 <?php if ($isLoggedIn): ?>
                     <a href="<?php echo $path_prefix; ?>member/profile.php" class="nav-trigger-link">
                         <div class="icon-wrap">
-                            <img src="<?php echo $final_avatar_path; ?>" onerror="this.src='<?php echo $path_prefix; ?>images/default.jpg'" class="user-avatar" alt="User">
+                            <img src="<?php echo $final_avatar_path; ?>" 
+                                 onerror="this.onerror=null; this.src='<?php echo $path_prefix; ?>images/default.jpg'" 
+                                 class="user-avatar" 
+                                 alt="User">
                         </div>
                         <span class="icon-text"><?php echo htmlspecialchars($username); ?></span>
                     </a>
                     <div class="user-dropdown">
                         <a href="<?php echo $path_prefix; ?>member/profile.php"><i class="fa-solid fa-user-circle"></i> My Account</a>
-                        <a href="<?php echo $path_prefix; ?>../memberOrders/history.php"><i class="fa-solid fa-box"></i> My Orders</a>
+                        <a href="<?php echo $path_prefix; ?>memberOrders/history.php"><i class="fa-solid fa-box"></i> My Orders</a>
                         <div style="height:1px; background:#eee; margin:5px 0;"></div>
                         <a href="<?php echo $path_prefix; ?>member/logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
                     </div>

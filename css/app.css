@@ -1840,6 +1840,7 @@ body {
 /*---------------------------------------------*/
 
 /*5. member/edit_bank.php (LIM LI ZHE) */
+
 /*---------------------------------------------*/
 
 
@@ -5317,13 +5318,14 @@ tr:hover td { background: #fcfdfe; }
 /* 21. index.php (WONG YONG FENG) - 保持原有类名 */
 .hero-slider-container {
     position: relative;
-    margin: 20px 30px 40px 30px;
+    margin: 100px 30px 40px 30px;
     border-radius: 8px;
     overflow: hidden;
-    height: 75vh;
-    min-height: 600px;
+    height: 10vh;          /* 从 75vh 加大到 85vh */
+    min-height: 1200px;     /* 从 600px 加大到 750px */
     background: #FFFFFF;
 }
+
 
 .slide {
     position: absolute;
@@ -6762,7 +6764,7 @@ tr:hover td { background: #fcfdfe; }
 /* css/app.css - Pure CSS, no PHP */
 
 :root {
-    --theme-color: #17a2b8;
+    --theme-color:#28a745 ;
 }
 
 /* 🔥 全局背景图逻辑 */

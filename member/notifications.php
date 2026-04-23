@@ -57,9 +57,7 @@ $notifications = $stmt->fetchAll();
 include '../includes/_head.php'; 
 ?>
 
-<style>
-    
-</style>
+<link rel="stylesheet" href="../css/app.css">
 
 <div class="notif-container">
     <div class="notif-header">

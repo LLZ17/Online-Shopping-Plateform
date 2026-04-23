@@ -7,12 +7,12 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$status = $_GET['status_id'] ?? '';
+$status_id = $_GET['status_id'] ?? '';
+$billcode = $_GET['billcode'] ?? '';
+$order_no = $_GET['order_id'] ?? '';
 
-// 检查是否有待处理的订单
 if (!isset($_SESSION['pending_order'])) {
-    $order_id = $_GET['order_no'] ?? '';
-    if (!empty($order_id)) {
+    if (!empty($order_no)) {
         header("Location: member/orders_history.php");
         exit();
     }
@@ -23,80 +23,84 @@ if (!isset($_SESSION['pending_order'])) {
 $order = $_SESSION['pending_order'];
 $user_id = $_SESSION['user_id'];
 
-if ($status == '1') {
-    // 支付成功
+if ($status_id == '1') {
     try {
         $pdo->beginTransaction();
         
-        // 使用 order_id
-        $order_id = 'ORD' . date('Ymd') . rand(1000, 9999);
-        
-        // 计算各项金额
-        $items_subtotal = 0;
-        foreach ($order['cart_items'] as $item) {
-            $items_subtotal += $item['price'] * $item['quantity'];
-        }
-        
+        $items_subtotal = $order['subtotal'] ?? 0;
         $points_used = $order['points_to_use'] ?? 0;
-        $points_discount = $points_used / 100;
-        $after_discount = $items_subtotal - $points_discount;
-        
-        // 运费计算（满 RM100 免邮）
-        if ($after_discount < 100) {
-            $shipping_fee = 8.00;
-        } else {
-            $shipping_fee = 0;
-        }
-        
-        $final_total = $after_discount + $shipping_fee;
-        $points_earned = floor($final_total);
+        $points_discount = $order['points_discount'] ?? 0;
+        $shipping_fee = $order['shipping_fee'] ?? 0;
+        $final_total = $order['final_amount'] ?? 0;
+        $points_earned = $order['points_earned'] ?? 0;
+        $order_group_id = $order['order_group_id'] ?? ('ORD' . date('Ymd') . rand(1000, 9999));
         
         foreach ($order['cart_items'] as $item) {
-            // 修复：移除 contact_phone 字段，使用正确的字段名
+            $cat_stmt = $pdo->prepare("SELECT category_id FROM products WHERE product_id = ?");
+            $cat_stmt->execute([$item['product_id']]);
+            $category_id = $cat_stmt->fetchColumn();
+            
             $stmt = $pdo->prepare("
-                INSERT INTO orders (order_id, user_id, product_id, quantity, selected_size, total_price, shipping_address, points_used, points_earned, order_status, payment_status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Processing', 'Paid')
+                INSERT INTO orders (
+                    user_id, product_id, category_id, quantity, selected_size, colour,
+                    total_price, bank_name, payment_status, voucher_id, voucher_discount_amount,
+                    points_used, points_discount_amount, points_earned, order_status, shipping_address, payment_time
+                ) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Paid', ?, ?, ?, ?, ?, 'Processing', ?, NOW())
             ");
+            
             $stmt->execute([
-                $order_id,
                 $user_id,
                 $item['product_id'],
+                $category_id,
                 $item['quantity'],
-                $item['selected_size'] ?? '',
+                $item['selected_size'] ?: null,
+                $item['colour'] ?? null,
                 $item['price'] * $item['quantity'],
-                $order['address'],
+                'ToyyibPay',
+                $order['voucher_id'] ?? null,
+                $order['voucher_amount'] ?? 0,
                 $points_used,
-                $points_earned
+                $points_discount,
+                $points_earned,
+                $order['address']
             ]);
             
-            // 更新库存
             $stmt = $pdo->prepare("UPDATE products SET stock = stock - ? WHERE product_id = ?");
             $stmt->execute([$item['quantity'], $item['product_id']]);
         }
         
-        // 更新用户积分
         $new_points = ($order['user_points'] ?? 0) - $points_used + $points_earned;
         $stmt = $pdo->prepare("UPDATE users SET points = ? WHERE user_id = ?");
         $stmt->execute([$new_points, $user_id]);
         
-        // 清空购物车
-        $stmt = $pdo->prepare("DELETE FROM cart WHERE user_id = ?");
-        $stmt->execute([$user_id]);
+        // 只删除本次购买的商品
+        $purchased_cart_ids = array_column($order['cart_items'], 'cart_id');
+        if (!empty($purchased_cart_ids)) {
+            $placeholders = implode(',', array_fill(0, count($purchased_cart_ids), '?'));
+            $stmt = $pdo->prepare("DELETE FROM cart WHERE cart_id IN ($placeholders) AND user_id = ?");
+            $params = array_merge($purchased_cart_ids, [$user_id]);
+            $stmt->execute($params);
+        }
         
         $pdo->commit();
         
         unset($_SESSION['pending_order']);
         
-        // 显示成功页面
-        displaySuccessPage($order_id, $items_subtotal, $points_discount, $shipping_fee, $final_total, $points_earned, $points_used, $order['cart_items']);
+        displaySuccessPage($order_group_id, $items_subtotal, $points_discount, $shipping_fee, $final_total, $points_earned, $points_used, $order['cart_items']);
         exit();
         
     } catch (PDOException $e) {
         $pdo->rollBack();
-        die("Order failed: " . $e->getMessage());
+        error_log("Order processing failed: " . $e->getMessage());
+        displayFailPage("Database error occurred. Please contact support.");
+        exit();
     }
+} elseif ($status_id == '2') {
+    displayPendingPage();
+    exit();
 } else {
-    displayFailPage();
+    displayFailPage("Payment was not successful. Please try again.");
     exit();
 }
 
@@ -110,6 +114,7 @@ function displaySuccessPage($order_id, $subtotal, $points_discount, $shipping_fe
         <title>Payment Successful - PXX Mall</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
@@ -286,6 +291,20 @@ function displaySuccessPage($order_id, $subtotal, $points_discount, $shipping_fe
         </style>
     </head>
     <body>
+        <script>
+            window.onload = function() {
+                Swal.fire({
+                    title: 'Payment Successful!',
+                    text: 'Order #<?php echo htmlspecialchars($order_id); ?> has been confirmed.',
+                    icon: 'success',
+                    confirmButtonText: 'Great!',
+                    confirmButtonColor: '#4caf50',
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            };
+        </script>
+
         <div class="success-container">
             <div class="success-header">
                 <div class="success-icon">
@@ -328,7 +347,7 @@ function displaySuccessPage($order_id, $subtotal, $points_discount, $shipping_fe
                              onerror="this.src='images/default.jpg'">
                         <div class="product-details">
                             <div class="product-name"><?php echo htmlspecialchars($item['name']); ?></div>
-                            <div class="product-meta">Size: <?php echo $item['selected_size'] ?: 'One Size'; ?></div>
+                            <div class="product-meta">Size: <?php echo $item['selected_size'] ?: 'One Size'; ?> | Color: <?php echo $item['colour'] ?: 'Default'; ?></div>
                         </div>
                         <div class="product-qty">x<?php echo $item['quantity']; ?></div>
                         <div class="product-price">RM <?php echo number_format($item['price'] * $item['quantity'], 2); ?></div>
@@ -393,7 +412,7 @@ function displaySuccessPage($order_id, $subtotal, $points_discount, $shipping_fe
     <?php
 }
 
-function displayFailPage() {
+function displayFailPage($message = "Payment failed. Please try again.") {
     ?>
     <!DOCTYPE html>
     <html lang="en">
@@ -446,7 +465,6 @@ function displayFailPage() {
                 color: white;
                 text-decoration: none;
                 border-radius: 40px;
-                font-weight: 600;
                 margin: 5px;
                 transition: 0.3s;
             }
@@ -460,9 +478,37 @@ function displayFailPage() {
                 <i class="fas fa-times"></i>
             </div>
             <h1>Payment Failed</h1>
-            <p>We couldn't process your payment. Please try again.</p>
+            <p><?php echo htmlspecialchars($message); ?></p>
             <a href="memberProduct/unified_cart.php" class="btn">← Back to Cart</a>
             <a href="index.php" class="btn btn-gray">🏠 Back to Home</a>
+        </div>
+    </body>
+    </html>
+    <?php
+}
+
+function displayPendingPage() {
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Payment Processing - PXX Mall</title>
+        <style>
+            body { font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+            .container { max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 5px 25px rgba(0,0,0,0.08); }
+            .pending { color: #ff9800; font-size: 60px; animation: spin 2s linear infinite; }
+            @keyframes spin { 100% { transform: rotate(360deg); } }
+            .btn { display: inline-block; background: #e60012; color: white; padding: 12px 25px; text-decoration: none; border-radius: 40px; margin: 10px; font-weight: 600; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="pending">⏳</div>
+            <h1>Payment Processing</h1>
+            <p>Your payment is being processed. Please check your order history later.</p>
+            <a href="member/orders_history.php" class="btn">View Orders</a>
         </div>
     </body>
     </html>
@@ -477,6 +523,7 @@ function displayNoOrderPage() {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Payment Status - PXX Mall</title>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <style>
             body { font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
             .container { max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 5px 25px rgba(0,0,0,0.08); }
@@ -486,11 +533,21 @@ function displayNoOrderPage() {
         </style>
     </head>
     <body>
+        <script>
+            window.onload = function() {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Your order has been placed successfully.',
+                    icon: 'success',
+                    confirmButtonColor: '#4caf50'
+                });
+            };
+        </script>
         <div class="container">
             <div class="success">✓</div>
             <h1>Payment Successful!</h1>
             <p>Your order has been placed successfully.</p>
-            <a href="memberOrders/history.php" class="btn">View My Orders</a>
+            <a href="member/orders_history.php" class="btn">View My Orders</a>
             <a href="ViewAllProduct.php" class="btn btn-gray">Continue Shopping</a>
         </div>
     </body>

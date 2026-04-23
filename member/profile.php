@@ -160,7 +160,7 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
     }
 
     .pxx-master-wrapper { 
-        width: 1200px; 
+        width: 1400px; 
         margin: 40px auto; 
         display: flex; 
         gap: 40px; 
@@ -228,7 +228,12 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
         transition: border-color 0.2s; background: #fff;
     }
     
-    select.pxx-input-large { height: 48px; cursor: pointer; }
+    select.pxx-input-large { 
+        height: 48px; 
+        cursor: pointer; 
+        line-height: normal;
+        padding: 8px 15px;
+    }
     
     .pxx-input-large:focus { border-color: var(--pxx-red); outline: none; }
 
@@ -304,7 +309,7 @@ if (file_exists($pxx_head_file)) { include_once $pxx_head_file; }
             <a href="?page=security" class="nav-link-item <?php echo $active_page=='security'?'active':''; ?>">My Account Security</a>
             
             <div style="margin-top: 50px;">
-                <a href="../logout.php" class="nav-link-item" style="padding-left: 0; color: #bbb;">
+                <a href="logout.php" class="nav-link-item" style="padding-left: 0; color: #bbb;">
                     <i class="fas fa-power-off" style="width: 35px; text-align: left;"></i>
                     <span>Logout System</span>
                 </a>

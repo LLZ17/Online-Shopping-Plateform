@@ -30,7 +30,7 @@ $saved_user = isset($_SESSION['keep_username']) ? $_SESSION['keep_username'] : '
 ?>
 <style>
     :root {
-        --theme-color: <?php echo htmlspecialchars($color ?? '#17a2b8'); ?>;
+        --theme-color: <?php echo htmlspecialchars($color ?? '#28a745'); ?>;
     }
 </style>
 
