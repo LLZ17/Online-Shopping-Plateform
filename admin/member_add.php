@@ -1,29 +1,27 @@
 <?php
-// TEE DE YONG's Part: Member Add (Blue Premium UI + Password Hashing)
+// TEE DE YONG's Part: Member Add (Logic & Structure)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../includes/db.php'; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 获取表单数据
     $user_id = $_POST['user_id'] ?? '';
     $username = $_POST['username'] ?? '';
     $real_name = $_POST['real_name'] ?? '';
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
+    $address = $_POST['address'] ?? ''; // 💡 获取地址
 
-    // 💡 安全第一：把用户输入的明文密码转换成哈希密文
     $password_hashed = password_hash($password, PASSWORD_DEFAULT);
 
     try {
-        // 插入新数据到 users 表
-        $insertStmt = $pdo->prepare("INSERT INTO users (user_id, username, real_name, email, password_hashed, role) VALUES (?, ?, ?, ?, ?, 'Member')");
-        $insertStmt->execute([$user_id, $username, $real_name, $email, $password_hashed]);
+        // 💡 确保数据库 users 表中有 address 这一列
+        $insertStmt = $pdo->prepare("INSERT INTO users (user_id, username, real_name, email, password_hashed, address, role) VALUES (?, ?, ?, ?, ?, ?, 'Member')");
+        $insertStmt->execute([$user_id, $username, $real_name, $email, $password_hashed, $address]);
 
         echo "<script>alert('✨ New member successfully added!'); window.location.href='member_crud.php';</script>";
         exit;
-
     } catch (Exception $e) {
         die("<div style='padding:20px; color:red;'>Insert Error: " . $e->getMessage() . "</div>");
     }
@@ -33,7 +31,7 @@ $admin_head = __DIR__ . '/../includes/_admin_head.php';
 if (file_exists($admin_head)) { include $admin_head; }
 ?>
 
-<link rel="stylesheet" href="../css/app.css?v=1.12">
+<link rel="stylesheet" href="../css/app.css?v=<?= time(); ?>">
 
 <div id="add-wrapper" class="scroll-wrapper" style="display:none;">
     <div id="add-member-app" class="premium-form-card">
@@ -43,7 +41,6 @@ if (file_exists($admin_head)) { include $admin_head; }
         </div>
         <div class="form-body">
             <form method="POST" action="">
-                
                 <div class="grid-row">
                     <div class="form-group">
                         <label>User ID</label>
@@ -66,6 +63,11 @@ if (file_exists($admin_head)) { include $admin_head; }
                 </div>
 
                 <div class="form-group">
+                    <label>Home Address</label>
+                    <textarea name="address" class="input-style" placeholder="Enter full address..." rows="3" style="resize: none;"></textarea>
+                </div>
+
+                <div class="form-group">
                     <label>Account Password</label>
                     <input type="password" name="password" class="input-style" placeholder="Enter a secure password" required>
                 </div>
@@ -74,13 +76,12 @@ if (file_exists($admin_head)) { include $admin_head; }
                     <a href="member_crud.php" class="btn-back">← CANCEL</a>
                     <button type="submit" class="btn-submit">CREATE MEMBER</button>
                 </div>
-                
             </form>
         </div>
     </div>
 </div>
 
-<script src="../js/app.js?v=1.12"></script>
+<script src="../js/app.js?v=<?= time(); ?>"></script>
 
 <?php 
 $foot = __DIR__ . '/../includes/_foot.php';
