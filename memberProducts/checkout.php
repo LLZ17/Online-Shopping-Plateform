@@ -33,26 +33,34 @@ if (isset($_POST['ajax']) && $_POST['ajax'] === 'check_v') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     $ids_str = $_POST['cart_ids_hidden'] ?? '';
     if (empty($ids_str)) {
-        echo "<script>alert('Your selection is empty!'); window.location.href='../cart/unified_cart.php';</script>";
+        echo "<script>alert('Your selection is empty!'); window.location.href='unified_cart.php';</script>";
         exit();
     }
     
     $ids_array = explode(',', $ids_str);
     $placeholders = implode(',', array_fill(0, count($ids_array), '?'));
     
-    $sql = "SELECT c.cart_id, c.product_id, c.quantity, p.price FROM cart c 
+    // 获取完整的购物车信息（包含 payment_return.php 需要的所有字段）
+    $sql = "SELECT c.cart_id, c.product_id, c.quantity, c.selected_size, c.colour, 
+                   p.name, p.price, p.product_image, p.stock, p.colour as all_colours 
+            FROM cart c 
             JOIN products p ON c.product_id = p.product_id 
-            WHERE c.cart_id IN ($placeholders) AND c.user_id = ?";
+            WHERE c.cart_id IN ($placeholders) AND c.user_id = ? AND c.is_selected = 1";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(array_merge($ids_array, [$_SESSION['user_id']]));
     $cart_items = $stmt->fetchAll();
+    
+    if (empty($cart_items)) {
+        echo "<script>alert('No items found!'); window.location.href='unified_cart.php';</script>";
+        exit();
+    }
     
     $subtotal_raw = 0;
     foreach ($cart_items as $item) {
         $subtotal_raw += $item['price'] * $item['quantity'];
     }
     
-    $u_stmt = $pdo->prepare("SELECT points FROM users WHERE user_id = ?");
+    $u_stmt = $pdo->prepare("SELECT points, address, Postcode, City, State, real_name, phone_num, email FROM users WHERE user_id = ?");
     $u_stmt->execute([$_SESSION['user_id']]);
     $user_data = $u_stmt->fetch();
 
@@ -66,14 +74,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     $shipping = ($after_discount >= 100 || $after_discount <= 0) ? 0 : 8.00;
     $final_amount = max(0, $after_discount + $shipping);
     
+    // 构建完整地址
+    $addr = trim($user_data['address'] ?? '');
+    $post = trim($user_data['Postcode'] ?? '');
+    $city = trim($user_data['City'] ?? '');
+    $stat = trim($user_data['State'] ?? '');
+    $full = $addr . ($post ? ", $post" : "") . ($city ? ", $city" : "") . ($stat ? ", $stat" : "");
+    
+    // 统一用 $_SESSION['pending_order']，结构和 payment_return.php 匹配
     $_SESSION['pending_order'] = [
-        'cart_ids'               => $ids_str,
-        'final_total'            => $final_amount,
-        'voucher_id'             => $_POST['applied_v_id'] ?: null,
-        'voucher_discount'       => $voucher_amt,
-        'points_used'            => $auto_points_used,
-        'points_discount_amount' => $points_discount,
-        'points_earned'          => $points_earned
+        'order_group_id'   => 'ORD' . date('Ymd') . rand(1000, 9999),
+        'cart_items'       => $cart_items,
+        'subtotal'         => $subtotal_raw,
+        'points_to_use'    => $auto_points_used,
+        'points_discount'  => $points_discount,
+        'shipping_fee'     => $shipping,
+        'final_amount'     => $final_amount,
+        'voucher_id'       => $_POST['applied_v_id'] ?: null,
+        'voucher_amount'   => $voucher_amt,
+        'points_earned'    => $points_earned,
+        'user_points'      => $user_points,
+        'address'          => $full
     ];
     
     header('Location: toyyibpay_payment.php');
@@ -92,7 +113,7 @@ $user = $u_stmt->fetch();
 
 $ids_str = $_GET['ids'] ?? '';
 if (empty($ids_str)) {
-    echo "<script>alert('Your selection is empty!'); window.location.href='../cart/unified_cart.php';</script>";
+    echo "<script>alert('Your selection is empty!'); window.location.href='unified_cart.php';</script>";
     exit();
 }
 $ids_array = explode(',', $ids_str);
@@ -108,7 +129,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute(array_merge($ids_array, [$user_id]));
 $cart_items = $stmt->fetchAll();
 
-if (empty($cart_items)) { header('Location: ../cart/unified_cart.php'); exit(); }
+if (empty($cart_items)) { header('Location: unified_cart.php'); exit(); }
 
 $subtotal_raw = 0;
 foreach ($cart_items as $item) {
@@ -178,7 +199,7 @@ require_once '../includes/_head.php';
             <div class="wrong-info-box">
                 <span>⚠️ Wrong shipping detail? Please change in <a href="../member/profile.php">My Account</a>.</span>
             </div>
-            <form id="orderForm" method="POST">
+            <form id="orderForm" method="POST" action="checkout.php">
                 <span class="co-label">Email Address:</span>
                 <input type="email" name="email" class="co-data" style="width:100%; box-sizing:border-box;" value="<?php echo htmlspecialchars($user['email']); ?>" required>
                 <div class="receipt-info-box">
@@ -225,22 +246,24 @@ require_once '../includes/_head.php';
             <h3>Order Summary</h3>
             <div class="summary-list">
                 <?php foreach($cart_items as $item): 
-                    // 精准取图逻辑
-                    $imgs_arr = array_filter(array_map('trim', explode(',', $item['product_image'])));
-                    $cols_arr = array_filter(array_map('trim', explode(',', $item['all_colours'])));
-                    $selected_col = trim($item['colour']);
+                    // ===== 和 cart 页面一致的图片匹配逻辑 =====
+                    $imgs = explode(',', $item['product_image']);
+                    $display_img = trim($imgs[0]);
+                    $user_color = strtolower(trim($item['colour'])); 
                     
-                    $img_index = 0; 
-                    foreach ($cols_arr as $idx => $color_name) {
-                        if (strcasecmp($color_name, $selected_col) === 0) {
-                            $img_index = $idx;
-                            break;
+                    if ($user_color !== '') {
+                        foreach ($imgs as $img) {
+                            $img_trimmed = strtolower(trim($img));
+                            if (strpos($img_trimmed, $user_color) !== false) {
+                                $display_img = trim($img);
+                                break;
+                            }
                         }
                     }
-                    $display_img = $imgs_arr[$img_index] ?? ($imgs_arr[0] ?? 'default.jpg');
+                    // ==========================================
                 ?>
                     <div class="sum-item">
-                        <img src="../images/<?php echo htmlspecialchars($display_img); ?>" onerror="this.src='../images/default.jpg'">
+                        <img src="../images/<?php echo htmlspecialchars($display_img); ?>" onerror="this.onerror=null; this.src='../images/default.jpg';">
                         <div style="flex:1;">
                             <div style="font-weight:800; font-size:15px;"><?php echo htmlspecialchars($item['name']); ?></div>
                             <div style="font-size:13px; color:#888;">Size: <?php echo htmlspecialchars($item['selected_size']); ?> | Color: <?php echo htmlspecialchars($item['colour']); ?></div>
@@ -270,7 +293,7 @@ require_once '../includes/_head.php';
             </div>
 
             <div style="display:flex; gap:15px; margin-top:25px;">
-                <a href="../cart/unified_cart.php" class="cancel-btn">Cancel</a>
+                <a href="unified_cart.php" class="cancel-btn">Cancel</a>
                 <button type="submit" form="orderForm" class="pay-btn">Pay Now</button>
             </div>
         </div>
