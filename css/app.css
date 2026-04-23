@@ -2435,68 +2435,31 @@ tr:hover td { background: #fcfdfe; }
 
 
 
-/* 7. admin/member_add.php (Tee De Yong) CONFLICT CHECKED*/
-/* --- Member Registration CSS Start (TEE DE YONG's Part) --- */
-.premium-form-card { max-width: 650px; margin: 30px auto; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.04); overflow: hidden; font-family: 'Inter', sans-serif; }
 
-/* 会员专属蓝色顶部 */
-.form-header { background: #111; padding: 25px 35px; border-bottom: 4px solid #2563eb; }
-.form-header h2 { margin: 0; color: white; font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
-.form-header p { margin: 5px 0 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; }
-
-.form-body { padding: 30px 35px; }
-
-.grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-.form-group { margin-bottom: 20px; }
-.grid-row .form-group { margin-bottom: 0; }
-
-.form-group label { display: block; font-weight: 800; color: #64748b; margin-bottom: 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-
-.input-style { width: 100%; padding: 14px 18px; border-radius: 12px; border: 2px solid #f1f5f9; font-size: 14px; font-weight: 600; color: #1e293b; background: #f8fafc; transition: all 0.3s ease; box-sizing: border-box; }
-.input-style:focus { border-color: #2563eb; background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-
-.btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; padding-top: 25px; border-top: 1px solid #f1f5f9; }
-
-/* 会员专属蓝色按钮 */
-.btn-submit { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 16px 35px; border: none; border-radius: 12px; font-size: 14px; font-weight: 900; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(37,99,235,0.2); }
-.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(37,99,235,0.3); }
-
-.btn-back { color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 800; padding-left: 5px; transition: 0.3s; }
-.btn-back:hover { color: #1e293b; }
-/* --- Member Registration CSS End --- */
 
 
 
 /* 9. admin/member_add.php (Tee De Yong) CONFLICT CHECKED*/
 /* --- Member Registration JS Start (TEE DE YONG's Part) --- */
-/* --- Member Registration CSS Start (TEE DE YONG's Part) --- */
-.premium-form-card { max-width: 650px; margin: 30px auto; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.04); overflow: hidden; font-family: 'Inter', sans-serif; }
 
-/* 会员专属蓝色顶部 */
+.premium-form-card { max-width: 650px; margin: 30px auto; background: #ffffff; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.04); overflow: hidden; font-family: 'Inter', sans-serif; }
 .form-header { background: #111; padding: 25px 35px; border-bottom: 4px solid #2563eb; }
 .form-header h2 { margin: 0; color: white; font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
 .form-header p { margin: 5px 0 0; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; }
-
 .form-body { padding: 30px 35px; }
-
 .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
 .form-group { margin-bottom: 20px; }
-.grid-row .form-group { margin-bottom: 0; }
-
 .form-group label { display: block; font-weight: 800; color: #64748b; margin-bottom: 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
 
 .input-style { width: 100%; padding: 14px 18px; border-radius: 12px; border: 2px solid #f1f5f9; font-size: 14px; font-weight: 600; color: #1e293b; background: #f8fafc; transition: all 0.3s ease; box-sizing: border-box; }
 .input-style:focus { border-color: #2563eb; background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
 
+/* 适配地址栏 */
+textarea.input-style { min-height: 100px; line-height: 1.6; }
+
 .btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; padding-top: 25px; border-top: 1px solid #f1f5f9; }
-
-/* 会员专属蓝色按钮 */
 .btn-submit { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 16px 35px; border: none; border-radius: 12px; font-size: 14px; font-weight: 900; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(37,99,235,0.2); }
-.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(37,99,235,0.3); }
-
-.btn-back { color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 800; padding-left: 5px; transition: 0.3s; }
-.btn-back:hover { color: #1e293b; }
-/* --- Member Registration CSS End --- */
+.btn-back { color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 800; transition: 0.3s; }
 
 
 
