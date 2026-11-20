@@ -1,5 +1,5 @@
-**AMIT1014 WEB-BASED INTEGRATED SYSTEMS
-**Assignment: Web-Based System Development
+AMIT1014 WEB-BASED INTEGRATED SYSTEMS 
+Assignment: Web-Based System Development
 
 Objective: Apply the web programming skills that you learned from the course
 AMIT1014 to develop a secured data-driven web-based system by
